@@ -1,24 +1,26 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 export const metadata: Metadata = {
   title: "Z CAR",
   description: "PORMIDO G10向け Zポータル・カーナビホーム",
-  manifest: "/manifest.webmanifest",
+  manifest: `${basePath}/manifest.webmanifest`,
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: `${basePath}/favicon.svg`,
+    shortcut: `${basePath}/favicon.svg`,
   },
   openGraph: {
     title: "Z CAR",
     description: "Z PORTAL | CAR",
-    images: ["/og.png"],
+    images: [`${basePath}/og.png`],
   },
   twitter: {
     card: "summary_large_image",
     title: "Z CAR",
     description: "Z PORTAL | CAR",
-    images: ["/og.png"],
+    images: [`${basePath}/og.png`],
   },
 };
 
