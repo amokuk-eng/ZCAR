@@ -453,6 +453,140 @@ function SevenSegmentNumber({
   );
 }
 
+function AuroraCockpit({
+  rpm,
+  speed,
+  coolant,
+  voltage,
+  status,
+}: {
+  rpm: number | null;
+  speed: number | null;
+  coolant: number | null;
+  voltage: number | null;
+  status: ObdConnectionStatus;
+}) {
+  const live = status === "live";
+  const coolantWarn = coolant !== null && coolant >= 100;
+  const voltageWarn = voltage !== null && voltage <= 11.8;
+  const speedRatio = Math.max(0, Math.min(1, (speed ?? 0) / 140));
+  const rpmRatio = Math.max(0, Math.min(1, (rpm ?? 0) / 8000));
+  // Both rings sweep 240° of a pathLength-100 circle (100 * 240/360).
+  const sweep = 66.67;
+  const coolantLevel =
+    coolant === null
+      ? 0
+      : Math.max(0, Math.min(100, ((coolant - 40) / 80) * 100));
+  const voltageLevel =
+    voltage === null
+      ? 0
+      : Math.max(0, Math.min(100, ((voltage - 10) / 5) * 100));
+
+  return (
+    <div className="aurora-stage">
+      <div className="aurora-side">
+        <article className={`aurora-card${coolantWarn ? " warn" : ""}`}>
+          <small>COOLANT 水温</small>
+          <strong>
+            {coolant ?? "--"}
+            <em>°C</em>
+          </strong>
+          <div className="aurora-meter" aria-hidden="true">
+            <i style={{ width: `${coolantLevel}%` }} />
+          </div>
+          <b>{coolantWarn ? "OVERHEAT" : "STABLE"}</b>
+        </article>
+        <article className={`aurora-card${voltageWarn ? " warn" : ""}`}>
+          <small>VOLTAGE 電圧</small>
+          <strong>
+            {voltage ?? "--"}
+            <em>V</em>
+          </strong>
+          <div className="aurora-meter" aria-hidden="true">
+            <i style={{ width: `${voltageLevel}%` }} />
+          </div>
+          <b>{voltageWarn ? "LOW POWER" : "STABLE"}</b>
+        </article>
+      </div>
+
+      <div
+        className="aurora-dial"
+        aria-label={`Speed ${speed ?? 0} kilometers per hour, engine ${rpm ?? 0} RPM`}
+      >
+        <svg viewBox="0 0 340 340" aria-hidden="true">
+          <defs>
+            <linearGradient id="auroraSpeedGrad" x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0" stopColor="#6d28d9" />
+              <stop offset="0.55" stopColor="#c26bff" />
+              <stop offset="1" stopColor="#ff5fd2" />
+            </linearGradient>
+          </defs>
+          <g transform="rotate(150 170 170)">
+            <circle
+              className="aurora-track"
+              cx="170"
+              cy="170"
+              r="140"
+              pathLength="100"
+              style={{ strokeDasharray: `${sweep} 100` }}
+            />
+            <circle
+              className="aurora-progress"
+              cx="170"
+              cy="170"
+              r="140"
+              pathLength="100"
+              stroke="url(#auroraSpeedGrad)"
+              style={{ strokeDasharray: `${speedRatio * sweep} 100` }}
+            />
+            <circle
+              className="aurora-rpm-track"
+              cx="170"
+              cy="170"
+              r="114"
+              pathLength="100"
+              style={{ strokeDasharray: `${sweep} 100` }}
+            />
+            <circle
+              className="aurora-rpm"
+              cx="170"
+              cy="170"
+              r="114"
+              pathLength="100"
+              style={{ strokeDasharray: `${rpmRatio * sweep} 100` }}
+            />
+          </g>
+        </svg>
+        <div className="aurora-dial-core">
+          <strong>{speed === null ? "--" : Math.round(speed)}</strong>
+          <span>km/h</span>
+          <b>{rpm === null ? "---- rpm" : `${rpm} rpm`}</b>
+        </div>
+      </div>
+
+      <div className="aurora-side">
+        <article className={`aurora-card aurora-link-card${live ? "" : " warn"}`}>
+          <small>LINK 接続</small>
+          <strong className="aurora-link">{live ? "ONLINE" : "OFFLINE"}</strong>
+          <b>{live ? "OBD2 TELEMETRY" : "TAP OBD2 TO LINK"}</b>
+        </article>
+        <article className="aurora-card">
+          <small>STATUS 状態</small>
+          <ul>
+            <li className={coolantWarn ? "bad" : undefined}>
+              {coolantWarn ? "▲ COOLANT HIGH" : "• COOLANT OK"}
+            </li>
+            <li className={voltageWarn ? "bad" : undefined}>
+              {voltageWarn ? "▲ VOLTAGE LOW" : "• POWER OK"}
+            </li>
+            <li>{live ? "• TELEMETRY OK" : "• TELEMETRY STANDBY"}</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  );
+}
+
 function EvaCockpit({
   rpm,
   speed,
@@ -1486,10 +1620,7 @@ export default function Home() {
   }, [showMeter, showFuel, showMusic]);
 
   useEffect(() => {
-    if (
-      showMeter &&
-      (settings.meterTheme === "green" || settings.meterTheme === "aurora")
-    ) return;
+    if (showMeter && settings.meterTheme === "green") return;
     greenLeafletMapRef.current?.remove();
     greenLeafletMapRef.current = null;
   }, [showMeter, settings.meterTheme]);
@@ -1497,7 +1628,7 @@ export default function Home() {
   useEffect(() => {
     if (
       !showMeter ||
-      !(settings.meterTheme === "green" || settings.meterTheme === "aurora") ||
+      settings.meterTheme !== "green" ||
       !greenMapElementRef.current
     ) return;
     let cancelled = false;
@@ -1550,7 +1681,7 @@ export default function Home() {
   useEffect(() => {
     if (
       !showMeter ||
-      !(settings.meterTheme === "green" || settings.meterTheme === "aurora") ||
+      settings.meterTheme !== "green" ||
       !greenMapElementRef.current
     ) return;
     const element = greenMapElementRef.current;
@@ -2109,6 +2240,62 @@ export default function Home() {
                     <i style={{ width: `${fuelPercent}%` }} aria-hidden="true" />
                   </button>
                   <span><small>ARRIVAL</small><b>{routeArrivalTime ?? "--:--"}</b></span>
+                </footer>
+              </section>
+            ) : settings.meterTheme === "aurora" ? (
+              <section className="aurora-cluster" aria-label="Aurora violet cockpit">
+                <header className={`aurora-topline ${obdStatus}`}>
+                  <strong>AURORA DRIVE</strong>
+                  <span><i aria-hidden="true" />{obdStatusLabelEn}</span>
+                  <b>
+                    {routeMinutesRemaining === null
+                      ? "ETA --"
+                      : `DESTINATION ${routeMinutesRemaining} MIN`}
+                  </b>
+                </header>
+
+                <AuroraCockpit
+                  rpm={obdData.rpm}
+                  speed={displaySpeed}
+                  coolant={obdData.coolant}
+                  voltage={obdData.voltage}
+                  status={obdStatus}
+                />
+
+                <footer className="aurora-footer">
+                  <span><small>LOCAL TIME</small><b>{clock}</b></span>
+                  <button
+                    type="button"
+                    className={
+                      [
+                        fuelResetting ? "resetting" : "",
+                        estimatedRemainingLiters !== null &&
+                        estimatedRemainingLiters <= FUEL_RESERVE_L
+                          ? "critical"
+                          : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ") || undefined
+                    }
+                    onPointerDown={startFuelReset}
+                    onPointerUp={cancelFuelReset}
+                    onPointerLeave={cancelFuelReset}
+                    onPointerCancel={cancelFuelReset}
+                    onContextMenu={(event) => event.preventDefault()}
+                    aria-label={`Estimated range ${Math.round(fuelRangeKm)} kilometers. Hold to refuel.`}
+                  >
+                    <small>RANGE 航続可能</small>
+                    <b>{Math.round(fuelRangeKm)} km</b>
+                    <i style={{ width: `${fuelPercent}%` }} aria-hidden="true" />
+                  </button>
+                  <span>
+                    <small>FUEL AVG 平均燃費</small>
+                    <b>
+                      {monthlyFuelEconomy === null
+                        ? "-- km/L"
+                        : `${monthlyFuelEconomy.toFixed(1)} km/L`}
+                    </b>
+                  </span>
                 </footer>
               </section>
             ) : settings.meterTheme === "eva" ? (
