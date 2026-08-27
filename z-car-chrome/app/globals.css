@@ -7666,13 +7666,10 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   box-shadow: inset 0 0 0 1px rgba(183, 108, 255, .18);
 }
 .aurora-compass span {
-  color: #2c1252;
-  text-shadow:
-    0 0 6px rgba(255, 255, 255, .9),
-    0 0 2px rgba(255, 255, 255, .9);
+  color: #d9c2ff;
+  text-shadow: 0 0 8px rgba(10, 5, 20, .95);
 }
-.aurora-compass .north { color: #b3128f; }
-.aurora-map-attribution { color: rgba(60, 40, 90, .75); }
+.aurora-compass .north { color: #ff8fd9; }
 .aurora-compass { position: absolute; inset: 8px; z-index: 5; pointer-events: none; font-size: 11px; letter-spacing: .1em; color: #d9c2ff; text-shadow: 0 0 8px rgba(12, 4, 24, .95); }
 .aurora-compass span { position: absolute; }
 .aurora-compass .north { top: 4px; left: 50%; transform: translateX(-50%); color: #ff8fd9; }
@@ -7900,7 +7897,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   inset: 0;
   width: 100%;
   height: 100%;
-  background: #e8eaed;
+  background: #17202a;
 }
 .aurora-map-chip.top {
   bottom: auto;

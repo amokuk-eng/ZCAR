@@ -134,6 +134,88 @@ const AURORA_GMAP_ZOOM = 15;
 // only — safe to ship in client code. The settings key overrides it.
 const DEFAULT_GMAPS_KEY = "AIzaSyDndPX8sQmYXOCwVyJtmNUXv-GWXLT6Qh8";
 
+// Google's night-mode map styling, shared by the home and aurora maps.
+const NIGHT_MAP_STYLES = [
+  { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+  {
+    featureType: "administrative.locality",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#d59563" }],
+  },
+  {
+    featureType: "poi",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#d59563" }],
+  },
+  {
+    featureType: "poi.park",
+    elementType: "geometry",
+    stylers: [{ color: "#263c3f" }],
+  },
+  {
+    featureType: "poi.park",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#6b9a76" }],
+  },
+  {
+    featureType: "road",
+    elementType: "geometry",
+    stylers: [{ color: "#38414e" }],
+  },
+  {
+    featureType: "road",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#212a37" }],
+  },
+  {
+    featureType: "road",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#9ca5b3" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "geometry",
+    stylers: [{ color: "#746855" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#1f2835" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#f3d19c" }],
+  },
+  {
+    featureType: "transit",
+    elementType: "geometry",
+    stylers: [{ color: "#2f3948" }],
+  },
+  {
+    featureType: "transit.station",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#d59563" }],
+  },
+  {
+    featureType: "water",
+    elementType: "geometry",
+    stylers: [{ color: "#17263c" }],
+  },
+  {
+    featureType: "water",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#515c6d" }],
+  },
+  {
+    featureType: "water",
+    elementType: "labels.text.stroke",
+    stylers: [{ color: "#17263c" }],
+  },
+];
+
 // Loads the Google Maps JavaScript API once and caches the promise.
 const loadGoogleMaps = (key: string) => {
   const w = window as unknown as {
@@ -1481,6 +1563,7 @@ export default function Home() {
             clickableIcons: false,
             gestureHandling: "none",
             keyboardShortcuts: false,
+            styles: NIGHT_MAP_STYLES,
           });
           homeGmapRef.current = map;
           homeGmapCircleRef.current = new mapsApi.Circle({
@@ -1569,6 +1652,7 @@ export default function Home() {
             clickableIcons: false,
             gestureHandling: "none",
             keyboardShortcuts: false,
+            styles: NIGHT_MAP_STYLES,
           });
           return;
         }
