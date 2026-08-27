@@ -7902,3 +7902,16 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 .aurora-map-window .green-nav-map-canvas {
   background: #efece6;
 }
+
+/* Google Maps canvas inside the aurora cockpit (used when an API key is set). */
+.aurora-gmap-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #e8eaed;
+}
+.aurora-map-chip.top {
+  bottom: auto;
+  top: 10px;
+}
