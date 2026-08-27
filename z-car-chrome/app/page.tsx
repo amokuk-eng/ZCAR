@@ -2127,6 +2127,16 @@ export default function Home() {
                 {showMeter ? "HOME" : "METER"}
               </button>
             )}
+            {!showMeter && !showFuel && !showMusic && (
+              <button
+                type="button"
+                className="meter-theme-button"
+                onClick={openSettings}
+                aria-label="設定を開く"
+              >
+                SET
+              </button>
+            )}
             {showMeter && (
               <button
                 type="button"
