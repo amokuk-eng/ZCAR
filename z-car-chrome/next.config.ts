@@ -9,7 +9,10 @@ const staticExport = process.env.STATIC_EXPORT === "1";
 const basePath = staticExport ? (process.env.BASE_PATH ?? "") : "";
 
 const nextConfig: NextConfig = {
-  env: { NEXT_PUBLIC_BASE_PATH: basePath },
+  env: {
+    NEXT_PUBLIC_BASE_PATH: basePath,
+    NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+  },
   ...(staticExport
     ? {
         output: "export" as const,
