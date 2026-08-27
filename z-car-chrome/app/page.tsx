@@ -2154,7 +2154,14 @@ export default function Home() {
                     <b>{Math.round(fuelRangeKm)} km</b>
                     <i style={{ width: `${fuelPercent}%` }} aria-hidden="true" />
                   </button>
-                  <span><small>到着 ARRIVAL</small><b>{routeArrivalTime ?? "--:--"}</b></span>
+                  <span>
+                    <small>平均燃費 FUEL AVG</small>
+                    <b>
+                      {monthlyFuelEconomy === null
+                        ? "-- km/L"
+                        : `${monthlyFuelEconomy.toFixed(1)} km/L`}
+                    </b>
+                  </span>
                 </footer>
               </section>
             ) : (
