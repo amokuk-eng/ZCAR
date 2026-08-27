@@ -1837,7 +1837,7 @@ export default function Home() {
     destination: string,
     destinationLabel: RouteEta["destination"],
   ) => {
-    const apiKey = settings.googleRoutesApiKey.trim();
+    const apiKey = settings.googleRoutesApiKey.trim() || DEFAULT_GMAPS_KEY;
     if (apiKey && location) {
       setRouteEtaStatus("loading");
       const controller = new AbortController();
