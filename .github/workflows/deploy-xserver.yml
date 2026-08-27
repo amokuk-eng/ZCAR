@@ -42,7 +42,23 @@ jobs:
           BASE_PATH: /zcar
         run: npm run build:static
 
+      # サーバーへのFTPS接続はまれにタイムアウトするため、
+      # 1回目が失敗したら自動でもう一度だけ試す。
       - name: Upload via FTPS
+        id: deploy
+        continue-on-error: true
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          timeout: 120000
+          local-dir: z-car-chrome/out/
+          server-dir: ${{ secrets.FTP_TARGET_DIR }}
+
+      - name: Upload via FTPS (retry)
+        if: steps.deploy.outcome == 'failure'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
