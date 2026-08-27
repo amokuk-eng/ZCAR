@@ -2138,7 +2138,10 @@ export default function Home() {
                     className={
                       [
                         fuelResetting ? "resetting" : "",
-                        fuelRangeKm <= 50 ? "critical" : "",
+                        estimatedRemainingLiters !== null &&
+                        estimatedRemainingLiters <= FUEL_RESERVE_L
+                          ? "critical"
+                          : "",
                       ]
                         .filter(Boolean)
                         .join(" ") || undefined
