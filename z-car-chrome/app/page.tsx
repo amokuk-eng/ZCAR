@@ -30,7 +30,7 @@ type Settings = {
   state: CarState;
   departedAt: string;
   checkedOutAt: string;
-  meterTheme: "green" | "red-triple" | "aurora";
+  meterTheme: "green" | "red-triple" | "aurora" | "eva";
 };
 type RouteEta = {
   arrivalAt: number;
@@ -450,6 +450,138 @@ function SevenSegmentNumber({
         );
       })}
     </g>
+  );
+}
+
+function EvaCockpit({
+  rpm,
+  speed,
+  coolant,
+  voltage,
+  status,
+}: {
+  rpm: number | null;
+  speed: number | null;
+  coolant: number | null;
+  voltage: number | null;
+  status: ObdConnectionStatus;
+}) {
+  const live = status === "live";
+  const linking =
+    status === "requesting" ||
+    status === "connecting" ||
+    status === "connected" ||
+    status === "initializing";
+  const coolantWarn = coolant !== null && coolant >= 100;
+  const voltageWarn = voltage !== null && voltage <= 11.8;
+  const anyWarn = coolantWarn || voltageWarn;
+  const pattern = anyWarn
+    ? { code: "赤", label: "PATTERN RED", tone: "alert" }
+    : live
+      ? { code: "緑", label: "PATTERN GREEN", tone: "normal" }
+      : { code: "橙", label: "PATTERN ORANGE", tone: "hold" };
+  const revCells = 24;
+  const revActive = Math.round(
+    Math.max(0, Math.min(1, (rpm ?? 0) / 8000)) * revCells,
+  );
+  const coolantLevel =
+    coolant === null
+      ? 0
+      : Math.max(0, Math.min(100, ((coolant - 40) / 80) * 100));
+  const voltageLevel =
+    voltage === null
+      ? 0
+      : Math.max(0, Math.min(100, ((voltage - 10) / 5) * 100));
+  const signalLabel = live
+    ? "回線接続 LINK ACTIVE"
+    : linking
+      ? "同期中 SYNCING"
+      : "信号消失 NO SIGNAL";
+
+  return (
+    <div className={`eva-stage ${pattern.tone}`}>
+      <div className="eva-column">
+        <article className={`eva-box${coolantWarn ? " warn" : ""}`}>
+          <small>水温 <span>COOLANT</span></small>
+          <strong>
+            {coolant ?? "--"}
+            <em>°C</em>
+          </strong>
+          <div className="eva-bar" aria-hidden="true">
+            <i style={{ width: `${coolantLevel}%` }} />
+          </div>
+          <b>{coolantWarn ? "警告 OVERHEAT" : "正常 NOMINAL"}</b>
+        </article>
+        <article className={`eva-box${voltageWarn ? " warn" : ""}`}>
+          <small>電圧 <span>VOLTAGE</span></small>
+          <strong>
+            {voltage ?? "--"}
+            <em>V</em>
+          </strong>
+          <div className="eva-bar" aria-hidden="true">
+            <i style={{ width: `${voltageLevel}%` }} />
+          </div>
+          <b>{voltageWarn ? "警告 LOW VOLT" : "正常 NOMINAL"}</b>
+        </article>
+      </div>
+
+      <div className="eva-center">
+        <header className={`eva-pattern ${pattern.tone}`}>
+          <span className="eva-pattern-code">{pattern.code}</span>
+          <span className="eva-pattern-label">{pattern.label}</span>
+        </header>
+        <div
+          className="eva-speed"
+          aria-label={`Speed ${speed ?? 0} kilometers per hour`}
+        >
+          <strong>{speed === null ? "--" : Math.round(speed)}</strong>
+          <span>
+            km/h<small>速度 VELOCITY</small>
+          </span>
+        </div>
+        <div
+          className="eva-rev"
+          aria-label={`Engine ${rpm ?? 0} RPM`}
+        >
+          <small>回転 REV</small>
+          <div className="eva-rev-cells" aria-hidden="true">
+            {Array.from({ length: revCells }, (_, index) => (
+              <i
+                key={index}
+                className={
+                  index < revActive
+                    ? index >= revCells - 4
+                      ? "on hot"
+                      : "on"
+                    : undefined
+                }
+              />
+            ))}
+          </div>
+          <b>{rpm === null ? "---- rpm" : `${rpm} rpm`}</b>
+        </div>
+      </div>
+
+      <div className="eva-column">
+        <article className={`eva-box eva-signal${live ? "" : " warn"}`}>
+          <small>信号 <span>SIGNAL</span></small>
+          <strong className="eva-signal-state">{signalLabel}</strong>
+          <b>{live ? "OBD2 TELEMETRY" : "TOUCH OBD2 TO LINK"}</b>
+        </article>
+        <article className={`eva-box eva-status${anyWarn ? " warn" : ""}`}>
+          <small>状態 <span>STATUS</span></small>
+          <ul>
+            <li className={coolantWarn ? "bad" : undefined}>
+              {coolantWarn ? "▲ 機関温度上昇" : "・機関温度 安定"}
+            </li>
+            <li className={voltageWarn ? "bad" : undefined}>
+              {voltageWarn ? "▲ 電圧低下" : "・電源系 安定"}
+            </li>
+            <li>{live ? "・遠隔測定 良好" : "・遠隔測定 待機"}</li>
+          </ul>
+        </article>
+      </div>
+    </div>
   );
 }
 
@@ -1354,7 +1486,10 @@ export default function Home() {
   }, [showMeter, showFuel, showMusic]);
 
   useEffect(() => {
-    if (showMeter && settings.meterTheme !== "red-triple") return;
+    if (
+      showMeter &&
+      (settings.meterTheme === "green" || settings.meterTheme === "aurora")
+    ) return;
     greenLeafletMapRef.current?.remove();
     greenLeafletMapRef.current = null;
   }, [showMeter, settings.meterTheme]);
@@ -1362,7 +1497,7 @@ export default function Home() {
   useEffect(() => {
     if (
       !showMeter ||
-      settings.meterTheme === "red-triple" ||
+      !(settings.meterTheme === "green" || settings.meterTheme === "aurora") ||
       !greenMapElementRef.current
     ) return;
     let cancelled = false;
@@ -1415,7 +1550,7 @@ export default function Home() {
   useEffect(() => {
     if (
       !showMeter ||
-      settings.meterTheme === "red-triple" ||
+      !(settings.meterTheme === "green" || settings.meterTheme === "aurora") ||
       !greenMapElementRef.current
     ) return;
     const element = greenMapElementRef.current;
@@ -1974,6 +2109,45 @@ export default function Home() {
                     <i style={{ width: `${fuelPercent}%` }} aria-hidden="true" />
                   </button>
                   <span><small>ARRIVAL</small><b>{routeArrivalTime ?? "--:--"}</b></span>
+                </footer>
+              </section>
+            ) : settings.meterTheme === "eva" ? (
+              <section className="eva-cluster" aria-label="Pattern orange command cockpit">
+                <header className={`eva-topline ${obdStatus}`}>
+                  <strong>特別警戒 DRIVE MONITOR</strong>
+                  <span><i aria-hidden="true" />{obdStatusLabelEn}</span>
+                  <b>
+                    {routeMinutesRemaining === null
+                      ? "ETA --"
+                      : `DESTINATION ${routeMinutesRemaining} MIN`}
+                  </b>
+                </header>
+
+                <EvaCockpit
+                  rpm={obdData.rpm}
+                  speed={displaySpeed}
+                  coolant={obdData.coolant}
+                  voltage={obdData.voltage}
+                  status={obdStatus}
+                />
+
+                <footer className="eva-footer">
+                  <span><small>時刻 LOCAL TIME</small><b>{clock}</b></span>
+                  <button
+                    type="button"
+                    className={fuelResetting ? "resetting" : undefined}
+                    onPointerDown={startFuelReset}
+                    onPointerUp={cancelFuelReset}
+                    onPointerLeave={cancelFuelReset}
+                    onPointerCancel={cancelFuelReset}
+                    onContextMenu={(event) => event.preventDefault()}
+                    aria-label={`Estimated range ${Math.round(fuelRangeKm)} kilometers. Hold to refuel.`}
+                  >
+                    <small>航続可能 RANGE</small>
+                    <b>{Math.round(fuelRangeKm)} km</b>
+                    <i style={{ width: `${fuelPercent}%` }} aria-hidden="true" />
+                  </button>
+                  <span><small>到着 ARRIVAL</small><b>{routeArrivalTime ?? "--:--"}</b></span>
                 </footer>
               </section>
             ) : (
@@ -2573,6 +2747,20 @@ export default function Home() {
               </i>
               <span><b>AURORA VIOLET</b><small>TURQUOISE BASE × VIOLET NEON</small></span>
               <em>{settings.meterTheme === "aurora" ? "ACTIVE" : "SELECT"}</em>
+            </button>
+            <button
+              type="button"
+              className={settings.meterTheme === "eva" ? "selected eva" : "eva"}
+              onClick={() => {
+                setSettings({ ...settings, meterTheme: "eva" });
+                themeDialog.current?.close();
+              }}
+            >
+              <i className="theme-preview eva" aria-hidden="true">
+                <span>PATTERN ORANGE</span>
+              </i>
+              <span><b>PATTERN ORANGE</b><small>COMMAND ROOM COCKPIT</small></span>
+              <em>{settings.meterTheme === "eva" ? "ACTIVE" : "SELECT"}</em>
             </button>
           </div>
         </div>
