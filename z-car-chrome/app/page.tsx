@@ -30,7 +30,7 @@ type Settings = {
   state: CarState;
   departedAt: string;
   checkedOutAt: string;
-  meterTheme: "green" | "red-triple";
+  meterTheme: "green" | "red-triple" | "aurora";
 };
 type RouteEta = {
   arrivalAt: number;
@@ -1354,7 +1354,7 @@ export default function Home() {
   }, [showMeter, showFuel, showMusic]);
 
   useEffect(() => {
-    if (showMeter && settings.meterTheme === "green") return;
+    if (showMeter && settings.meterTheme !== "red-triple") return;
     greenLeafletMapRef.current?.remove();
     greenLeafletMapRef.current = null;
   }, [showMeter, settings.meterTheme]);
@@ -1362,7 +1362,7 @@ export default function Home() {
   useEffect(() => {
     if (
       !showMeter ||
-      settings.meterTheme !== "green" ||
+      settings.meterTheme === "red-triple" ||
       !greenMapElementRef.current
     ) return;
     let cancelled = false;
@@ -1415,7 +1415,7 @@ export default function Home() {
   useEffect(() => {
     if (
       !showMeter ||
-      settings.meterTheme !== "green" ||
+      settings.meterTheme === "red-triple" ||
       !greenMapElementRef.current
     ) return;
     const element = greenMapElementRef.current;
@@ -1855,7 +1855,11 @@ export default function Home() {
       ) : (
       <div
         id="app"
-        className={`${showMeter ? "is-fullscreen " : ""}${isFullscreen ? "browser-fullscreen " : ""}meter-theme-${settings.meterTheme}`}
+        className={`${showMeter ? "is-fullscreen " : ""}${isFullscreen ? "browser-fullscreen " : ""}${
+          settings.meterTheme === "aurora"
+            ? "meter-theme-green meter-theme-aurora"
+            : `meter-theme-${settings.meterTheme}`
+        }`}
         aria-label="Z CAR カーナビホーム"
       >
         <header className="topbar">
@@ -2555,6 +2559,20 @@ export default function Home() {
               </i>
               <span><b>RED</b><small>RED COCKPIT THEME</small></span>
               <em>{settings.meterTheme === "red-triple" ? "ACTIVE" : "SELECT"}</em>
+            </button>
+            <button
+              type="button"
+              className={settings.meterTheme === "aurora" ? "selected aurora" : "aurora"}
+              onClick={() => {
+                setSettings({ ...settings, meterTheme: "aurora" });
+                themeDialog.current?.close();
+              }}
+            >
+              <i className="theme-preview aurora" aria-hidden="true">
+                <span>AURORA VIOLET</span>
+              </i>
+              <span><b>AURORA VIOLET</b><small>TURQUOISE BASE × VIOLET NEON</small></span>
+              <em>{settings.meterTheme === "aurora" ? "ACTIVE" : "SELECT"}</em>
             </button>
           </div>
         </div>

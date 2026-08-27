@@ -7591,3 +7591,99 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 #app:is(.meter-theme-green, .meter-theme-red-triple) .music-youtube-card > header b {
   color: var(--z-theme-muted);
 }
+
+/* ZEST aurora-violet: turquoise cockpit layout re-tinted with a violet neon
+   palette. The #app element carries meter-theme-green alongside
+   meter-theme-aurora so all structural rules apply; only colors change. */
+#app.meter-theme-aurora {
+  --z-theme-rgb: 183, 108, 255;
+  --z-theme: #b76cff;
+  --z-theme-soft: #dcbcff;
+  --z-theme-muted: #9a7cc2;
+  --z-theme-deep: #2f0d55;
+}
+#app.meter-theme-aurora:not(.is-fullscreen) {
+  background:
+    radial-gradient(circle at 24% 8%, rgba(162, 89, 240, .14), transparent 31%),
+    radial-gradient(circle at 91% 84%, rgba(84, 43, 150, .14), transparent 34%),
+    linear-gradient(145deg, #0d0716, #030108 70%);
+}
+#app.meter-theme-aurora:not(.is-fullscreen) .brand small,
+#app.meter-theme-aurora:not(.is-fullscreen) footer { color: #a184c8; }
+#app.meter-theme-aurora:not(.is-fullscreen) .car-id,
+#app.meter-theme-aurora:not(.is-fullscreen) .meter-view-button {
+  border-color: rgba(183, 108, 255, .34);
+  background: linear-gradient(180deg, rgba(38, 16, 60, .94), rgba(14, 6, 26, .98));
+  color: #e0c6ff;
+  box-shadow: inset 0 0 14px rgba(160, 92, 238, .07);
+}
+#app.meter-theme-aurora:not(.is-fullscreen) .clock {
+  color: #f8f1ff;
+  text-shadow: 0 0 17px rgba(183, 108, 255, .22);
+}
+#app.meter-theme-aurora:not(.is-fullscreen) .left-panel,
+#app.meter-theme-aurora:not(.is-fullscreen) .right-panel {
+  border-color: rgba(168, 100, 244, .26);
+  background: linear-gradient(145deg, rgba(23, 11, 38, .97), rgba(8, 3, 16, .99));
+}
+#app.meter-theme-aurora.is-fullscreen {
+  background:
+    radial-gradient(circle at 50% 46%, rgba(150, 82, 236, .13), transparent 45%),
+    linear-gradient(145deg, #0e0618, #040109 74%);
+}
+#app.meter-theme-aurora.is-fullscreen .performance-cluster {
+  filter: hue-rotate(148deg) saturate(1.08);
+}
+#app.meter-theme-aurora.is-fullscreen .performance-main-gauge {
+  border: 3px solid rgba(196, 128, 255, .82);
+  outline: 1px solid rgba(120, 72, 158, .62);
+  outline-offset: 3px;
+  box-shadow:
+    inset 0 0 68px rgba(0, 0, 0, .96),
+    inset 0 0 0 1px rgba(240, 226, 255, .18),
+    inset 0 0 20px rgba(188, 112, 255, .13),
+    0 0 0 1px rgba(16, 4, 28, .96),
+    0 0 0 3px rgba(96, 59, 140, .56),
+    0 -2px 8px rgba(238, 217, 255, .3),
+    0 0 13px rgba(190, 115, 255, .88),
+    0 0 31px rgba(158, 76, 240, .5),
+    0 0 58px rgba(120, 47, 196, .27);
+}
+#app.meter-theme-aurora.is-fullscreen .topbar {
+  border-bottom-color: rgba(183, 108, 255, .24);
+  background: linear-gradient(180deg, rgba(18, 8, 30, .94), rgba(7, 2, 14, .84));
+}
+#app.meter-theme-aurora.is-fullscreen .brand small,
+#app.meter-theme-aurora.is-fullscreen .car-id { color: #b18ade; }
+#app.meter-theme-aurora.is-fullscreen .clock {
+  color: #f9f2ff;
+  text-shadow: 0 0 17px rgba(183, 108, 255, .26);
+}
+#app.meter-theme-aurora.is-fullscreen .meter-view-button,
+#app.meter-theme-aurora.is-fullscreen .meter-theme-button,
+#app.meter-theme-aurora.is-fullscreen .obd-connect-compact {
+  border-color: rgba(183, 108, 255, .36);
+  background: linear-gradient(180deg, rgba(40, 17, 63, .95), rgba(13, 5, 24, .99));
+  color: #e2c9ff;
+}
+
+/* AURORA VIOLET selector card */
+.meter-theme-options > button.aurora.selected {
+  border-color: #b76cff;
+  box-shadow: inset 0 0 0 1px rgba(183, 108, 255, .34);
+}
+.meter-theme-options > button.aurora small { color: #83729a; }
+.meter-theme-options > button.aurora em { color: #c49bff; }
+.theme-preview.aurora {
+  border-color: #55307f;
+  background:
+    linear-gradient(135deg, rgba(183, 108, 255, .26), transparent 52%),
+    linear-gradient(160deg, #1d0d33, #060210 72%);
+}
+.theme-preview.aurora span {
+  color: #cf9dff;
+  text-shadow: 0 0 14px rgba(183, 108, 255, .65);
+  font-size: 11px;
+  letter-spacing: .12em;
+  white-space: nowrap;
+}
