@@ -453,140 +453,6 @@ function SevenSegmentNumber({
   );
 }
 
-function AuroraCockpit({
-  rpm,
-  speed,
-  coolant,
-  voltage,
-  status,
-}: {
-  rpm: number | null;
-  speed: number | null;
-  coolant: number | null;
-  voltage: number | null;
-  status: ObdConnectionStatus;
-}) {
-  const live = status === "live";
-  const coolantWarn = coolant !== null && coolant >= 100;
-  const voltageWarn = voltage !== null && voltage <= 11.8;
-  const speedRatio = Math.max(0, Math.min(1, (speed ?? 0) / 140));
-  const rpmRatio = Math.max(0, Math.min(1, (rpm ?? 0) / 8000));
-  // Both rings sweep 240° of a pathLength-100 circle (100 * 240/360).
-  const sweep = 66.67;
-  const coolantLevel =
-    coolant === null
-      ? 0
-      : Math.max(0, Math.min(100, ((coolant - 40) / 80) * 100));
-  const voltageLevel =
-    voltage === null
-      ? 0
-      : Math.max(0, Math.min(100, ((voltage - 10) / 5) * 100));
-
-  return (
-    <div className="aurora-stage">
-      <div className="aurora-side">
-        <article className={`aurora-card${coolantWarn ? " warn" : ""}`}>
-          <small>COOLANT 水温</small>
-          <strong>
-            {coolant ?? "--"}
-            <em>°C</em>
-          </strong>
-          <div className="aurora-meter" aria-hidden="true">
-            <i style={{ width: `${coolantLevel}%` }} />
-          </div>
-          <b>{coolantWarn ? "OVERHEAT" : "STABLE"}</b>
-        </article>
-        <article className={`aurora-card${voltageWarn ? " warn" : ""}`}>
-          <small>VOLTAGE 電圧</small>
-          <strong>
-            {voltage ?? "--"}
-            <em>V</em>
-          </strong>
-          <div className="aurora-meter" aria-hidden="true">
-            <i style={{ width: `${voltageLevel}%` }} />
-          </div>
-          <b>{voltageWarn ? "LOW POWER" : "STABLE"}</b>
-        </article>
-      </div>
-
-      <div
-        className="aurora-dial"
-        aria-label={`Speed ${speed ?? 0} kilometers per hour, engine ${rpm ?? 0} RPM`}
-      >
-        <svg viewBox="0 0 340 340" aria-hidden="true">
-          <defs>
-            <linearGradient id="auroraSpeedGrad" x1="0" y1="1" x2="1" y2="0">
-              <stop offset="0" stopColor="#6d28d9" />
-              <stop offset="0.55" stopColor="#c26bff" />
-              <stop offset="1" stopColor="#ff5fd2" />
-            </linearGradient>
-          </defs>
-          <g transform="rotate(150 170 170)">
-            <circle
-              className="aurora-track"
-              cx="170"
-              cy="170"
-              r="140"
-              pathLength="100"
-              style={{ strokeDasharray: `${sweep} 100` }}
-            />
-            <circle
-              className="aurora-progress"
-              cx="170"
-              cy="170"
-              r="140"
-              pathLength="100"
-              stroke="url(#auroraSpeedGrad)"
-              style={{ strokeDasharray: `${speedRatio * sweep} 100` }}
-            />
-            <circle
-              className="aurora-rpm-track"
-              cx="170"
-              cy="170"
-              r="114"
-              pathLength="100"
-              style={{ strokeDasharray: `${sweep} 100` }}
-            />
-            <circle
-              className="aurora-rpm"
-              cx="170"
-              cy="170"
-              r="114"
-              pathLength="100"
-              style={{ strokeDasharray: `${rpmRatio * sweep} 100` }}
-            />
-          </g>
-        </svg>
-        <div className="aurora-dial-core">
-          <strong>{speed === null ? "--" : Math.round(speed)}</strong>
-          <span>km/h</span>
-          <b>{rpm === null ? "---- rpm" : `${rpm} rpm`}</b>
-        </div>
-      </div>
-
-      <div className="aurora-side">
-        <article className={`aurora-card aurora-link-card${live ? "" : " warn"}`}>
-          <small>LINK 接続</small>
-          <strong className="aurora-link">{live ? "ONLINE" : "OFFLINE"}</strong>
-          <b>{live ? "OBD2 TELEMETRY" : "TAP OBD2 TO LINK"}</b>
-        </article>
-        <article className="aurora-card">
-          <small>STATUS 状態</small>
-          <ul>
-            <li className={coolantWarn ? "bad" : undefined}>
-              {coolantWarn ? "▲ COOLANT HIGH" : "• COOLANT OK"}
-            </li>
-            <li className={voltageWarn ? "bad" : undefined}>
-              {voltageWarn ? "▲ VOLTAGE LOW" : "• POWER OK"}
-            </li>
-            <li>{live ? "• TELEMETRY OK" : "• TELEMETRY STANDBY"}</li>
-          </ul>
-        </article>
-      </div>
-    </div>
-  );
-}
-
 function EvaCockpit({
   rpm,
   speed,
@@ -1620,7 +1486,10 @@ export default function Home() {
   }, [showMeter, showFuel, showMusic]);
 
   useEffect(() => {
-    if (showMeter && settings.meterTheme === "green") return;
+    if (
+      showMeter &&
+      (settings.meterTheme === "green" || settings.meterTheme === "aurora")
+    ) return;
     greenLeafletMapRef.current?.remove();
     greenLeafletMapRef.current = null;
   }, [showMeter, settings.meterTheme]);
@@ -1628,7 +1497,7 @@ export default function Home() {
   useEffect(() => {
     if (
       !showMeter ||
-      settings.meterTheme !== "green" ||
+      !(settings.meterTheme === "green" || settings.meterTheme === "aurora") ||
       !greenMapElementRef.current
     ) return;
     let cancelled = false;
@@ -1681,7 +1550,7 @@ export default function Home() {
   useEffect(() => {
     if (
       !showMeter ||
-      settings.meterTheme !== "green" ||
+      !(settings.meterTheme === "green" || settings.meterTheme === "aurora") ||
       !greenMapElementRef.current
     ) return;
     const element = greenMapElementRef.current;
@@ -1814,6 +1683,8 @@ export default function Home() {
   const greenCenterSpeed =
     displaySpeed === null ? null : Math.round(displaySpeed);
   const dailyTripKm = dailyTrip.date === today ? dailyTrip.distanceKm : 0;
+  const auroraCoolantWarn = obdData.coolant !== null && obdData.coolant >= 100;
+  const auroraVoltageWarn = obdData.voltage !== null && obdData.voltage <= 11.8;
   const performanceDate = `${today.slice(5, 7)}.${today.slice(8, 10)}`;
   const performanceWeekday = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Tokyo",
@@ -2243,31 +2114,167 @@ export default function Home() {
                 </footer>
               </section>
             ) : settings.meterTheme === "aurora" ? (
-              <section className="aurora-cluster" aria-label="Aurora violet cockpit">
+              <section
+                className="aurora-cluster"
+                style={greenCockpitStyle}
+                aria-label="Aurora violet driving cockpit"
+              >
                 <header className={`aurora-topline ${obdStatus}`}>
                   <strong>AURORA DRIVE</strong>
                   <span><i aria-hidden="true" />{obdStatusLabelEn}</span>
                   <b>
+                    {settings.carId.toUpperCase()}
                     {routeMinutesRemaining === null
-                      ? "ETA --"
-                      : `DESTINATION ${routeMinutesRemaining} MIN`}
+                      ? " · ETA --"
+                      : ` · ETA ${routeMinutesRemaining} MIN`}
                   </b>
                 </header>
 
-                <AuroraCockpit
-                  rpm={obdData.rpm}
-                  speed={displaySpeed}
-                  coolant={obdData.coolant}
-                  voltage={obdData.voltage}
-                  status={obdStatus}
-                />
+                <div className="aurora-main">
+                  <div className="aurora-map-card" aria-label="Live navigation map">
+                    <div className="aurora-map-window">
+                      <div className="green-map-rotator" aria-hidden="true">
+                        <div ref={greenMapElementRef} className="green-nav-map-canvas" />
+                      </div>
+                      <div className={`aurora-compass ${locationStatus}`} aria-hidden="true">
+                        <span className="north">N</span>
+                        <span className="east">E</span>
+                        <span className="south">S</span>
+                        <span className="west">W</span>
+                      </div>
+                      <div className="aurora-map-chip">
+                        <small>TODAY 本日走行</small>
+                        <b>{dailyTripKm.toFixed(1)} km</b>
+                      </div>
+                      <a
+                        className="aurora-map-attribution"
+                        href="https://www.openstreetmap.org/copyright"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        © OSM
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="aurora-drive">
+                    <div
+                      className="aurora-speedblock"
+                      aria-label={`Speed ${displaySpeed ?? 0} kilometers per hour, engine ${obdData.rpm ?? 0} RPM`}
+                    >
+                      <svg viewBox="0 0 340 340" aria-hidden="true">
+                        <defs>
+                          <linearGradient id="auroraSpeedGrad" x1="0" y1="1" x2="1" y2="0">
+                            <stop offset="0" stopColor="#6d28d9" />
+                            <stop offset="0.55" stopColor="#c26bff" />
+                            <stop offset="1" stopColor="#ff5fd2" />
+                          </linearGradient>
+                        </defs>
+                        <g transform="rotate(150 170 170)">
+                          <circle
+                            className="aurora-track"
+                            cx="170"
+                            cy="170"
+                            r="146"
+                            pathLength="100"
+                            style={{ strokeDasharray: "66.67 100" }}
+                          />
+                          <circle
+                            className="aurora-progress"
+                            cx="170"
+                            cy="170"
+                            r="146"
+                            pathLength="100"
+                            stroke="url(#auroraSpeedGrad)"
+                            style={{
+                              strokeDasharray: `${
+                                Math.max(0, Math.min(1, (displaySpeed ?? 0) / 140)) * 66.67
+                              } 100`,
+                            }}
+                          />
+                        </g>
+                      </svg>
+                      <div className="aurora-dial-core">
+                        <strong>
+                          {displaySpeed === null ? "--" : Math.round(displaySpeed)}
+                        </strong>
+                        <span>km/h</span>
+                      </div>
+                    </div>
+                    <div className="aurora-rpm-row" aria-label={`Engine ${obdData.rpm ?? 0} RPM`}>
+                      <small>RPM</small>
+                      <div className="aurora-rpm-bar" aria-hidden="true">
+                        <i
+                          style={{
+                            width: `${Math.max(
+                              0,
+                              Math.min(100, ((obdData.rpm ?? 0) / 8000) * 100),
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                      <b>{obdData.rpm ?? "----"}</b>
+                    </div>
+                    <div className="aurora-vitals">
+                      <span className={auroraCoolantWarn ? "warn" : undefined}>
+                        <small>COOLANT 水温</small>
+                        <b>{obdData.coolant ?? "--"}°C</b>
+                      </span>
+                      <span className={auroraVoltageWarn ? "warn" : undefined}>
+                        <small>VOLT 電圧</small>
+                        <b>{obdData.voltage?.toFixed(1) ?? "--"}V</b>
+                      </span>
+                      <span className={obdStatus === "live" ? undefined : "warn"}>
+                        <small>LINK 接続</small>
+                        <b>{obdStatus === "live" ? "ONLINE" : "OFFLINE"}</b>
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
                 <footer className="aurora-footer">
-                  <span><small>LOCAL TIME</small><b>{clock}</b></span>
+                  <div className="aurora-cell aurora-clock-cell">
+                    <b className="aurora-clock">{clock}</b>
+                    <small>{performanceDate} {performanceWeekday} · JST</small>
+                    <small className="aurora-sun">
+                      ▲{solarSunrise ?? "--:--"} ▼{solarSunset ?? "--:--"}
+                    </small>
+                  </div>
+                  <div className={`aurora-cell aurora-weather-cell ${weatherStatus}`}>
+                    <b>
+                      {weather ? `${Math.round(weather.temperature)}°C` : "--"}
+                    </b>
+                    {weather ? (
+                      <div className="aurora-weather-row" aria-label="現在から6時間先までの天気">
+                        <span>
+                          <svg viewBox="0 0 48 48" aria-hidden="true">
+                            <WeatherGlyph code={weather.code} isDay={weather.isDay} x={24} y={24} size={40} />
+                          </svg>
+                          <small>NOW</small>
+                        </span>
+                        {weather.hours.map((hour, index) => (
+                          <span key={hour.time}>
+                            <svg viewBox="0 0 48 48" aria-hidden="true">
+                              <WeatherGlyph code={hour.code} isDay={hour.isDay} x={24} y={24} size={40} />
+                            </svg>
+                            <small>{index === 0 ? "+3H" : "+6H"}</small>
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <small>WEATHER {weatherStatus === "loading" ? "···" : "--"}</small>
+                    )}
+                  </div>
+                  <div className="aurora-cell aurora-world-cell" aria-label="World time">
+                    <span><small>CALIFORNIA</small><b>{californiaClock}</b></span>
+                    <span><small>RUSSIA</small><b>{russiaClock}</b></span>
+                    <span><small>CHINA</small><b>{chinaClock}</b></span>
+                  </div>
                   <button
                     type="button"
                     className={
                       [
+                        "aurora-cell aurora-range-cell",
                         fuelResetting ? "resetting" : "",
                         estimatedRemainingLiters !== null &&
                         estimatedRemainingLiters <= FUEL_RESERVE_L
@@ -2275,7 +2282,7 @@ export default function Home() {
                           : "",
                       ]
                         .filter(Boolean)
-                        .join(" ") || undefined
+                        .join(" ")
                     }
                     onPointerDown={startFuelReset}
                     onPointerUp={cancelFuelReset}
@@ -2286,16 +2293,24 @@ export default function Home() {
                   >
                     <small>RANGE 航続可能</small>
                     <b>{Math.round(fuelRangeKm)} km</b>
-                    <i style={{ width: `${fuelPercent}%` }} aria-hidden="true" />
+                    <div className="aurora-fe-scale" aria-hidden="true">
+                      <em>E</em>
+                      <div><i style={{ width: `${fuelPercent}%` }} /></div>
+                      <em>F</em>
+                    </div>
                   </button>
-                  <span>
-                    <small>FUEL AVG 平均燃費</small>
+                  <div className="aurora-cell aurora-fuel-cell">
+                    <small>EST AVG FUEL 平均燃費</small>
                     <b>
-                      {monthlyFuelEconomy === null
+                      {estimatedAverageFuelEconomy === null
                         ? "-- km/L"
-                        : `${monthlyFuelEconomy.toFixed(1)} km/L`}
+                        : `${estimatedAverageFuelEconomy.toFixed(1)} km/L`}
                     </b>
-                  </span>
+                    <small>
+                      TRIP {Math.round(fuelTripKm)} km · EST{" "}
+                      {estimatedRemainingLiters?.toFixed(1) ?? "--"} L
+                    </small>
+                  </div>
                 </footer>
               </section>
             ) : settings.meterTheme === "eva" ? (
