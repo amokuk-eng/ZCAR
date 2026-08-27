@@ -129,6 +129,30 @@ const HOME_RANDOM_PLAYLISTS = [
 const FUEL_TANK_CAPACITY_L = 36;
 const FUEL_RESERVE_L = 4;
 const GREEN_METER_MAP_ZOOM = 12;
+const AURORA_GMAP_ZOOM = 15;
+
+// Loads the Google Maps JavaScript API once and caches the promise.
+const loadGoogleMaps = (key: string) => {
+  const w = window as unknown as {
+    google?: { maps?: unknown };
+    __gmapsPromise?: Promise<unknown>;
+  };
+  if (w.google?.maps) return Promise.resolve(w.google.maps);
+  if (!w.__gmapsPromise) {
+    w.__gmapsPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&v=weekly`;
+      script.async = true;
+      script.onload = () => resolve(w.google?.maps);
+      script.onerror = () => {
+        delete w.__gmapsPromise;
+        reject(new Error("Google Maps failed to load"));
+      };
+      document.head.appendChild(script);
+    });
+  }
+  return w.__gmapsPromise;
+};
 const FUEL_LOG_STORAGE_KEY = "zcar-fuel-log-v1";
 const DAILY_TRIP_STORAGE_KEY = "zcar-daily-trip-v1";
 const IMPORTED_FUEL_ENTRIES: FuelEntry[] = [
@@ -914,6 +938,11 @@ export default function Home() {
   const greenMapElementRef = useRef<HTMLDivElement>(null);
   const greenLeafletMapRef = useRef<LeafletMap | null>(null);
   const greenMapStyleRef = useRef<"dark" | "gsi" | null>(null);
+  const auroraGmapElementRef = useRef<HTMLDivElement>(null);
+  // google.maps.Map, typed loosely because the SDK is loaded at runtime.
+  const auroraGmapRef = useRef<{
+    setCenter: (point: { lat: number; lng: number }) => void;
+  } | null>(null);
   const weatherLatitude = location ? Number(location.lat.toFixed(2)) : null;
   const weatherLongitude = location ? Number(location.lng.toFixed(2)) : null;
   const weatherLocationKey =
@@ -1500,6 +1529,52 @@ export default function Home() {
     greenLeafletMapRef.current = null;
     greenMapStyleRef.current = null;
   }, [showMeter, settings.meterTheme]);
+
+  useEffect(() => {
+    if (showMeter && settings.meterTheme === "aurora") return;
+    auroraGmapRef.current = null;
+  }, [showMeter, settings.meterTheme]);
+
+  useEffect(() => {
+    const apiKey = settings.googleRoutesApiKey.trim();
+    if (
+      !showMeter ||
+      settings.meterTheme !== "aurora" ||
+      !apiKey ||
+      !auroraGmapElementRef.current
+    ) return;
+    let cancelled = false;
+    const focusPoint = location
+      ? { lat: location.lat, lng: location.lng }
+      : { lat: 34.6937, lng: 135.5023 };
+
+    void loadGoogleMaps(apiKey)
+      .then((maps) => {
+        if (cancelled || !auroraGmapElementRef.current) return;
+        if (!auroraGmapRef.current) {
+          const mapsApi = maps as {
+            Map: new (
+              element: HTMLElement,
+              options: Record<string, unknown>,
+            ) => { setCenter: (point: { lat: number; lng: number }) => void };
+          };
+          auroraGmapRef.current = new mapsApi.Map(auroraGmapElementRef.current, {
+            center: focusPoint,
+            zoom: AURORA_GMAP_ZOOM,
+            disableDefaultUI: true,
+            clickableIcons: false,
+            gestureHandling: "none",
+            keyboardShortcuts: false,
+          });
+          return;
+        }
+        auroraGmapRef.current.setCenter(focusPoint);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [showMeter, settings.meterTheme, settings.googleRoutesApiKey, location]);
 
   useEffect(() => {
     if (
@@ -2145,7 +2220,11 @@ export default function Home() {
                   <div className="aurora-map-card" aria-label="Live navigation map">
                     <div className="aurora-map-window">
                       <div className="green-map-rotator" aria-hidden="true">
-                        <div ref={greenMapElementRef} className="green-nav-map-canvas" />
+                        {settings.googleRoutesApiKey.trim() ? (
+                          <div ref={auroraGmapElementRef} className="aurora-gmap-canvas" />
+                        ) : (
+                          <div ref={greenMapElementRef} className="green-nav-map-canvas" />
+                        )}
                       </div>
                       <div className={`aurora-compass ${locationStatus}`} aria-hidden="true">
                         <span className="north">N</span>
@@ -2153,18 +2232,24 @@ export default function Home() {
                         <span className="south">S</span>
                         <span className="west">W</span>
                       </div>
-                      <div className="aurora-map-chip">
+                      <div
+                        className={`aurora-map-chip${
+                          settings.googleRoutesApiKey.trim() ? " top" : ""
+                        }`}
+                      >
                         <small>TODAY 本日走行</small>
                         <b>{dailyTripKm.toFixed(1)} km</b>
                       </div>
-                      <a
-                        className="aurora-map-attribution"
-                        href="https://maps.gsi.go.jp/development/ichiran.html"
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        © 国土地理院
-                      </a>
+                      {!settings.googleRoutesApiKey.trim() && (
+                        <a
+                          className="aurora-map-attribution"
+                          href="https://maps.gsi.go.jp/development/ichiran.html"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          © 国土地理院
+                        </a>
+                      )}
                     </div>
                   </div>
 
