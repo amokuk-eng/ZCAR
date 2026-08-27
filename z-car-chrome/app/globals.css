@@ -6969,186 +6969,96 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   --z-theme-deep: #4a1420;
 }
 
-/* ZEST turquoise-blue: home screen */
-#app.meter-theme-green:not(.is-fullscreen) {
+/* HOME screen: fixed ZEST deep-green palette for every meter theme. */
+#app:not(.is-fullscreen) {
   background:
-    radial-gradient(circle at 24% 8%, rgba(31, 209, 219, .13), transparent 31%),
-    radial-gradient(circle at 91% 84%, rgba(11, 105, 122, .13), transparent 34%),
-    linear-gradient(145deg, #071013, #020609 70%);
+    radial-gradient(circle at 24% 8%, rgba(34, 197, 94, .13), transparent 31%),
+    radial-gradient(circle at 91% 84%, rgba(7, 94, 52, .13), transparent 34%),
+    linear-gradient(145deg, #061208, #020805 70%);
 }
-#app.meter-theme-green:not(.is-fullscreen) .brand small,
-#app.meter-theme-green:not(.is-fullscreen) footer { color: #64aeb4; }
-#app.meter-theme-green:not(.is-fullscreen) .car-id,
-#app.meter-theme-green:not(.is-fullscreen) .meter-view-button {
-  border-color: rgba(39, 220, 227, .34);
-  background: linear-gradient(180deg, rgba(13, 48, 53, .94), rgba(5, 19, 23, .98));
-  color: #a7f8fa;
-  box-shadow: inset 0 0 14px rgba(27, 205, 214, .06);
+#app:not(.is-fullscreen) .brand small,
+#app:not(.is-fullscreen) footer { color: #69b287; }
+#app:not(.is-fullscreen) .car-id,
+#app:not(.is-fullscreen) .meter-view-button {
+  border-color: rgba(52, 199, 111, .34);
+  background: linear-gradient(180deg, rgba(12, 44, 26, .94), rgba(5, 18, 11, .98));
+  color: #aaf5c8;
+  box-shadow: inset 0 0 14px rgba(32, 186, 104, .06);
 }
-#app.meter-theme-green:not(.is-fullscreen) .clock {
-  color: #eaffff;
-  text-shadow: 0 0 17px rgba(39, 220, 227, .2);
+#app:not(.is-fullscreen) .clock {
+  color: #eafff2;
+  text-shadow: 0 0 17px rgba(52, 199, 111, .2);
 }
-#app.meter-theme-green:not(.is-fullscreen) .left-panel,
-#app.meter-theme-green:not(.is-fullscreen) .right-panel {
-  border-color: rgba(45, 205, 214, .24);
-  background: linear-gradient(145deg, rgba(8, 25, 29, .97), rgba(3, 10, 13, .99));
-  box-shadow: inset 0 0 30px rgba(13, 131, 143, .045);
+#app:not(.is-fullscreen) .left-panel,
+#app:not(.is-fullscreen) .right-panel {
+  border-color: rgba(44, 196, 116, .24);
+  background: linear-gradient(145deg, rgba(8, 25, 15, .97), rgba(3, 10, 6, .99));
+  box-shadow: inset 0 0 30px rgba(15, 128, 68, .045);
 }
-#app.meter-theme-green:not(.is-fullscreen) .map-status-bar {
-  border-bottom-color: rgba(45, 220, 227, .2);
-  background: rgba(3, 14, 17, .98);
-  color: #619ca1;
+#app:not(.is-fullscreen) .map-status-bar {
+  border-bottom-color: rgba(52, 199, 111, .2);
+  background: rgba(3, 14, 8, .98);
+  color: #619c7d;
 }
-#app.meter-theme-green:not(.is-fullscreen) .map-status-bar time { color: #dbfeff; }
-#app.meter-theme-green:not(.is-fullscreen) .map-status-bar .ready,
-#app.meter-theme-green:not(.is-fullscreen) .map-status-bar .online { color: #6ee7eb; }
-#app.meter-theme-green:not(.is-fullscreen) .map-status-bar .ready i,
-#app.meter-theme-green:not(.is-fullscreen) .map-status-bar .online i {
-  background: #27dce3;
-  box-shadow: 0 0 8px rgba(39, 220, 227, .76);
+#app:not(.is-fullscreen) .map-status-bar time { color: #dcfde9; }
+#app:not(.is-fullscreen) .map-status-bar .ready,
+#app:not(.is-fullscreen) .map-status-bar .online { color: #6fe7a9; }
+#app:not(.is-fullscreen) .map-status-bar .ready i,
+#app:not(.is-fullscreen) .map-status-bar .online i {
+  background: #33cf7c;
+  box-shadow: 0 0 8px rgba(52, 199, 111, .76);
 }
-#app.meter-theme-green:not(.is-fullscreen) .map-shortcuts {
-  border-bottom-color: rgba(39, 220, 227, .28);
-  background: linear-gradient(180deg, rgba(5, 23, 27, .98), rgba(3, 15, 19, .92));
+#app:not(.is-fullscreen) .map-shortcuts {
+  border-bottom-color: rgba(52, 199, 111, .28);
+  background: linear-gradient(180deg, rgba(5, 22, 13, .98), rgba(3, 15, 9, .92));
 }
-#app.meter-theme-green:not(.is-fullscreen) .map-shortcuts button {
-  border-left-color: rgba(39, 220, 227, .2);
-  color: #8cf4f6;
+#app:not(.is-fullscreen) .map-shortcuts button {
+  border-left-color: rgba(52, 199, 111, .2);
+  color: #8ff3bf;
 }
-#app.meter-theme-green:not(.is-fullscreen) .map-shortcuts button:active:not(:disabled) {
-  background: linear-gradient(180deg, rgba(30, 194, 204, .26), rgba(11, 91, 103, .16));
-  box-shadow: inset 0 -2px #35e4ea;
+#app:not(.is-fullscreen) .map-shortcuts button:active:not(:disabled) {
+  background: linear-gradient(180deg, rgba(33, 185, 105, .26), rgba(10, 88, 50, .16));
+  box-shadow: inset 0 -2px #3be08d;
 }
-#app.meter-theme-green:not(.is-fullscreen) .map-shortcuts button b {
-  text-shadow: 0 0 12px rgba(39, 220, 227, .35);
+#app:not(.is-fullscreen) .map-shortcuts button b {
+  text-shadow: 0 0 12px rgba(52, 199, 111, .35);
 }
-#app.meter-theme-green:not(.is-fullscreen) .map-obd-bar {
-  border-top-color: rgba(39, 220, 227, .28);
-  background: linear-gradient(180deg, rgba(4, 19, 23, .92), rgba(2, 11, 14, .99));
-  color: #72ced2;
+#app:not(.is-fullscreen) .map-obd-bar {
+  border-top-color: rgba(52, 199, 111, .28);
+  background: linear-gradient(180deg, rgba(4, 19, 11, .92), rgba(2, 11, 6, .99));
+  color: #74cfa0;
 }
-#app.meter-theme-green:not(.is-fullscreen) .map-obd-bar > span { border-left-color: rgba(39, 220, 227, .2); }
-#app.meter-theme-green:not(.is-fullscreen) .map-obd-bar small,
-#app.meter-theme-green:not(.is-fullscreen) .map-obd-bar em { color: #5c9da2; }
-#app.meter-theme-green:not(.is-fullscreen) .map-obd-bar strong {
-  color: #edffff;
-  text-shadow: 0 0 14px rgba(39, 220, 227, .25);
+#app:not(.is-fullscreen) .map-obd-bar > span { border-left-color: rgba(52, 199, 111, .2); }
+#app:not(.is-fullscreen) .map-obd-bar small,
+#app:not(.is-fullscreen) .map-obd-bar em { color: #5c9d7d; }
+#app:not(.is-fullscreen) .map-obd-bar strong {
+  color: #ecfff4;
+  text-shadow: 0 0 14px rgba(52, 199, 111, .25);
 }
-#app.meter-theme-green:not(.is-fullscreen) .home-weather-card,
-#app.meter-theme-green:not(.is-fullscreen) .shift-monitor {
-  border-color: rgba(39, 220, 227, .3);
-  background: linear-gradient(145deg, rgba(10, 36, 40, .96), rgba(3, 13, 16, .99));
-  box-shadow: inset 0 0 24px rgba(23, 179, 190, .055);
+#app:not(.is-fullscreen) .home-weather-card,
+#app:not(.is-fullscreen) .shift-monitor {
+  border-color: rgba(52, 199, 111, .3);
+  background: linear-gradient(145deg, rgba(10, 35, 21, .96), rgba(3, 13, 8, .99));
+  box-shadow: inset 0 0 24px rgba(25, 170, 95, .055);
 }
-#app.meter-theme-green:not(.is-fullscreen) .home-weather-copy small,
-#app.meter-theme-green:not(.is-fullscreen) .home-weather-temperature small,
-#app.meter-theme-green:not(.is-fullscreen) .shift-monitor header small { color: #5f9fa5; }
-#app.meter-theme-green:not(.is-fullscreen) .home-weather-copy strong,
-#app.meter-theme-green:not(.is-fullscreen) .home-weather-temperature strong,
-#app.meter-theme-green:not(.is-fullscreen) .shift-monitor header strong { color: #eaffff; }
-#app.meter-theme-green:not(.is-fullscreen) .home-weather-temperature em,
-#app.meter-theme-green:not(.is-fullscreen) .shift-monitor header em { color: #53dce2; }
-#app.meter-theme-green:not(.is-fullscreen) .schedule-mini-icon {
-  border-color: rgba(39, 220, 227, .45);
-  color: #60eef2;
-  box-shadow: 0 0 14px rgba(39, 220, 227, .13);
+#app:not(.is-fullscreen) .home-weather-copy small,
+#app:not(.is-fullscreen) .home-weather-temperature small,
+#app:not(.is-fullscreen) .shift-monitor header small { color: #5f9f7e; }
+#app:not(.is-fullscreen) .home-weather-copy strong,
+#app:not(.is-fullscreen) .home-weather-temperature strong,
+#app:not(.is-fullscreen) .shift-monitor header strong { color: #eafff2; }
+#app:not(.is-fullscreen) .home-weather-temperature em,
+#app:not(.is-fullscreen) .shift-monitor header em { color: #55d992; }
+#app:not(.is-fullscreen) .schedule-mini-icon {
+  border-color: rgba(52, 199, 111, .45);
+  color: #63eda7;
+  box-shadow: 0 0 14px rgba(52, 199, 111, .13);
 }
-#app.meter-theme-green:not(.is-fullscreen) .today-shift.active,
-#app.meter-theme-green:not(.is-fullscreen) .today-shift.finished,
-#app.meter-theme-green:not(.is-fullscreen) .week-shifts > div.working {
-  border-color: rgba(39, 220, 227, .32);
-  background: linear-gradient(90deg, rgba(18, 108, 117, .2), rgba(8, 35, 40, .12));
-}
-
-/* Red selection: home screen follows the completed red meter theme. */
-#app.meter-theme-red-triple:not(.is-fullscreen) {
-  background:
-    radial-gradient(circle at 23% 8%, rgba(239, 58, 85, .14), transparent 31%),
-    radial-gradient(circle at 91% 84%, rgba(112, 18, 37, .15), transparent 34%),
-    linear-gradient(145deg, #13070a, #050204 70%);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .brand small,
-#app.meter-theme-red-triple:not(.is-fullscreen) footer { color: #a36570; }
-#app.meter-theme-red-triple:not(.is-fullscreen) .car-id,
-#app.meter-theme-red-triple:not(.is-fullscreen) .meter-view-button {
-  border-color: rgba(239, 58, 85, .38);
-  background: linear-gradient(180deg, rgba(57, 13, 23, .95), rgba(21, 5, 10, .99));
-  color: #ffc0c9;
-  box-shadow: inset 0 0 14px rgba(239, 58, 85, .07);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .clock {
-  color: #fff0f3;
-  text-shadow: 0 0 17px rgba(239, 58, 85, .23);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .left-panel,
-#app.meter-theme-red-triple:not(.is-fullscreen) .right-panel {
-  border-color: rgba(239, 58, 85, .25);
-  background: linear-gradient(145deg, rgba(31, 8, 14, .97), rgba(11, 3, 6, .99));
-  box-shadow: inset 0 0 30px rgba(178, 24, 52, .05);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-status-bar {
-  border-bottom-color: rgba(239, 58, 85, .22);
-  background: rgba(20, 4, 8, .98);
-  color: #9d626c;
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-status-bar time { color: #ffe9ed; }
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-status-bar .ready,
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-status-bar .online { color: #ee778a; }
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-status-bar .ready i,
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-status-bar .online i {
-  background: #ef3a55;
-  box-shadow: 0 0 8px rgba(239, 58, 85, .76);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-shortcuts {
-  border-bottom-color: rgba(239, 58, 85, .3);
-  background: linear-gradient(180deg, rgba(32, 7, 13, .98), rgba(19, 4, 9, .93));
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-shortcuts button {
-  border-left-color: rgba(239, 58, 85, .22);
-  color: #ff9aaa;
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-shortcuts button:active:not(:disabled) {
-  background: linear-gradient(180deg, rgba(200, 35, 64, .28), rgba(103, 13, 33, .17));
-  box-shadow: inset 0 -2px #ff526d;
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-shortcuts button b { text-shadow: 0 0 12px rgba(239, 58, 85, .38); }
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-obd-bar {
-  border-top-color: rgba(239, 58, 85, .3);
-  background: linear-gradient(180deg, rgba(26, 5, 11, .93), rgba(15, 3, 7, .99));
-  color: #d57787;
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-obd-bar > span { border-left-color: rgba(239, 58, 85, .21); }
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-obd-bar small,
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-obd-bar em { color: #9d5e69; }
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-obd-bar strong {
-  color: #fff0f3;
-  text-shadow: 0 0 14px rgba(239, 58, 85, .27);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .home-weather-card,
-#app.meter-theme-red-triple:not(.is-fullscreen) .shift-monitor {
-  border-color: rgba(239, 58, 85, .32);
-  background: linear-gradient(145deg, rgba(42, 10, 18, .97), rgba(16, 4, 8, .99));
-  box-shadow: inset 0 0 24px rgba(205, 34, 63, .06);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .home-weather-copy small,
-#app.meter-theme-red-triple:not(.is-fullscreen) .home-weather-temperature small,
-#app.meter-theme-red-triple:not(.is-fullscreen) .shift-monitor header small { color: #a2616d; }
-#app.meter-theme-red-triple:not(.is-fullscreen) .home-weather-copy strong,
-#app.meter-theme-red-triple:not(.is-fullscreen) .home-weather-temperature strong,
-#app.meter-theme-red-triple:not(.is-fullscreen) .shift-monitor header strong { color: #fff0f3; }
-#app.meter-theme-red-triple:not(.is-fullscreen) .home-weather-temperature em,
-#app.meter-theme-red-triple:not(.is-fullscreen) .shift-monitor header em { color: #ff667d; }
-#app.meter-theme-red-triple:not(.is-fullscreen) .schedule-mini-icon {
-  border-color: rgba(239, 58, 85, .48);
-  color: #ff7187;
-  box-shadow: 0 0 14px rgba(239, 58, 85, .15);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .today-shift.active,
-#app.meter-theme-red-triple:not(.is-fullscreen) .today-shift.finished,
-#app.meter-theme-red-triple:not(.is-fullscreen) .week-shifts > div.working {
-  border-color: rgba(239, 58, 85, .35);
-  background: linear-gradient(90deg, rgba(132, 22, 43, .24), rgba(49, 8, 17, .14));
+#app:not(.is-fullscreen) .today-shift.active,
+#app:not(.is-fullscreen) .today-shift.finished,
+#app:not(.is-fullscreen) .week-shifts > div.working {
+  border-color: rgba(52, 199, 111, .32);
+  background: linear-gradient(90deg, rgba(16, 104, 58, .2), rgba(8, 34, 20, .12));
 }
 
 /* ZEST turquoise-blue: fullscreen green meter. Geometry is intentionally untouched. */
@@ -7215,185 +7125,10 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   white-space: nowrap;
 }
 
-/* Restrained home palette: neutral graphite surfaces with only faint theme cues. */
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) {
-  background:
-    radial-gradient(circle at 24% 6%, rgba(255, 255, 255, .028), transparent 34%),
-    linear-gradient(145deg, #0a0d10, #040608 72%);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .brand small,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) footer {
-  color: #737b82;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .car-id,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .meter-view-button,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .meter-theme-button {
-  border-color: #2c343b;
-  background: linear-gradient(180deg, #171c21, #0e1216);
-  color: #c9d0d5;
-  box-shadow: inset 0 1px rgba(255, 255, 255, .025);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .clock {
-  color: #e6eaed;
-  text-shadow: none;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .left-panel,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .right-panel {
-  border-color: #262e34;
-  background: linear-gradient(145deg, #11161a, #090d10 78%);
-  box-shadow: inset 0 0 28px rgba(0, 0, 0, .32);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .map-status-bar {
-  border-bottom-color: #242c31;
-  background: rgba(8, 11, 14, .97);
-  color: #777f85;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .map-status-bar time,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .map-status-bar .ready,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .map-status-bar .online {
-  color: #cbd1d5;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .map-status-bar i,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .map-status-bar .ready i,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .map-status-bar .online i {
-  background: #929ba1;
-  box-shadow: 0 0 5px rgba(184, 195, 201, .24);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .map-shortcuts {
-  border-bottom-color: #293137;
-  background: linear-gradient(180deg, rgba(13, 17, 21, .98), rgba(8, 11, 14, .92));
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .map-shortcuts button {
-  border-left-color: #283036;
-  color: #c7cdd1;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .map-shortcuts button:active:not(:disabled) {
-  background: linear-gradient(180deg, rgba(128, 139, 147, .15), rgba(72, 80, 86, .09));
-  box-shadow: inset 0 -2px #7b858c;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .map-shortcuts button b {
-  text-shadow: none;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .map-obd-bar {
-  border-top-color: #293137;
-  background: linear-gradient(180deg, rgba(11, 15, 18, .92), rgba(6, 9, 11, .98));
-  color: #8a9298;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .map-obd-bar > span {
-  border-left-color: #283036;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .map-obd-bar small,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .map-obd-bar em {
-  color: #777f85;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .map-obd-bar strong {
-  color: #e4e8eb;
-  text-shadow: none;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .home-weather-card,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .shift-monitor {
-  border-color: #293137;
-  background: linear-gradient(145deg, #151a1e, #0b0f12);
-  box-shadow: inset 0 0 22px rgba(0, 0, 0, .26);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .home-weather-icon,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .schedule-mini-icon {
-  border-color: #343d43;
-  color: #adb5ba;
-  filter: grayscale(1);
-  box-shadow: none;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .home-weather-icon svg {
-  filter: grayscale(1) saturate(0);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .home-weather-copy small,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .home-weather-temperature small,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .shift-monitor header small {
-  color: #737b81;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .home-weather-copy strong,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .home-weather-temperature strong,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .shift-monitor header strong {
-  color: #e0e5e8;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .home-weather-temperature em,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .shift-monitor header em {
-  color: #929ba1;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .today-shift.active,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .today-shift.finished,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .week-shifts > div.working {
-  border-color: #30383e;
-  background: linear-gradient(90deg, rgba(108, 118, 125, .11), rgba(43, 49, 54, .07));
-}
-
 /* Keep theme identity subtle on the home frame only. */
 #app.meter-theme-green:not(.is-fullscreen) .left-panel,
 #app.meter-theme-green:not(.is-fullscreen) .right-panel {
   border-color: rgba(52, 166, 173, .18);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .left-panel,
-#app.meter-theme-red-triple:not(.is-fullscreen) .right-panel {
-  border-color: rgba(171, 66, 82, .18);
-}
-
-/* Red home accents: stronger on state and outlines, while cards and large numbers stay neutral. */
-#app.meter-theme-red-triple:not(.is-fullscreen) .left-panel,
-#app.meter-theme-red-triple:not(.is-fullscreen) .right-panel {
-  border-color: rgba(225, 58, 82, .34);
-  box-shadow: inset 0 0 30px rgba(184, 28, 53, .035);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .car-id,
-#app.meter-theme-red-triple:not(.is-fullscreen) .meter-view-button {
-  border-color: rgba(219, 62, 85, .34);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-status-bar,
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-shortcuts,
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-obd-bar {
-  border-color: rgba(213, 56, 80, .25);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-status-bar .ready i,
-#app.meter-theme-red-triple:not(.is-fullscreen) .map-status-bar .online i {
-  background: #de425a;
-  box-shadow: 0 0 7px rgba(222, 66, 90, .44);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .home-weather-card,
-#app.meter-theme-red-triple:not(.is-fullscreen) .shift-monitor {
-  border-color: rgba(214, 58, 82, .28);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .schedule-mini-icon {
-  border-color: rgba(224, 64, 89, .42);
-  background: rgba(102, 18, 34, .26);
-  color: #e87989;
-  filter: none;
-  box-shadow: inset 0 0 12px rgba(218, 50, 77, .08);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .shift-monitor header em {
-  color: #e97183;
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .today-shift.active {
-  color: #fff1f3;
-  background: linear-gradient(90deg, rgba(129, 21, 40, .72), rgba(77, 13, 27, .62));
-  box-shadow: inset 0 0 0 1px rgba(235, 70, 94, .42);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .today-shift.active small {
-  color: #f29aa7;
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .today-shift.finished {
-  color: #eadde0;
-  background: linear-gradient(90deg, rgba(82, 27, 38, .52), rgba(48, 18, 26, .44));
-  box-shadow: inset 0 0 0 1px rgba(177, 65, 83, .28);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .today-shift.finished small {
-  color: #bd7a85;
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .week-shifts > div.working {
-  color: #ed8797;
-  background: linear-gradient(180deg, rgba(92, 20, 34, .58), rgba(48, 13, 22, .5));
-  box-shadow: inset 0 0 0 1px rgba(214, 67, 89, .4);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .week-shifts > div.working em {
-  color: #ffadba;
 }
 
 /* Turquoise home accents and calendar: remove every remaining legacy green state. */
@@ -7406,9 +7141,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 #app.meter-theme-green:not(.is-fullscreen) .meter-view-button,
 #app.meter-theme-green:not(.is-fullscreen) .meter-theme-button {
   border-color: rgba(43, 185, 194, .3);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .meter-theme-button {
-  border-color: rgba(219, 62, 85, .34);
 }
 #app.meter-theme-green:not(.is-fullscreen) .map-status-bar,
 #app.meter-theme-green:not(.is-fullscreen) .map-shortcuts,
@@ -7467,107 +7199,12 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   --fuel-accent-muted: #65aeb3;
   --fuel-accent-deep: #18575d;
 }
-#app.meter-theme-red-triple:not(.is-fullscreen) .fuel-page {
-  --fuel-rgb: 225, 62, 86;
-  --fuel-accent: #e13e56;
-  --fuel-accent-soft: #f38a9a;
-  --fuel-accent-muted: #a96a75;
-  --fuel-accent-deep: #641b2a;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-page {
-  border-color: rgba(var(--fuel-rgb), .28);
-  background:
-    linear-gradient(rgba(var(--fuel-rgb), .018) 1px, transparent 1px) 0 0 / 22px 22px,
-    linear-gradient(90deg, rgba(var(--fuel-rgb), .018) 1px, transparent 1px) 0 0 / 22px 22px,
-    radial-gradient(circle at 84% 18%, rgba(var(--fuel-rgb), .075), transparent 32%),
-    linear-gradient(145deg, #101417, #070a0c 68%);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-page::after {
-  background: repeating-linear-gradient(180deg, transparent 0 3px, rgba(var(--fuel-rgb), .009) 3px 4px);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-page-heading {
-  border-bottom-color: rgba(var(--fuel-rgb), .2);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-page-heading small,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-entry-card header small,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-history-card header small {
-  color: var(--fuel-accent-muted);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-summary article,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-entry-card,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-history-card {
-  border-color: rgba(var(--fuel-rgb), .19);
-  background: linear-gradient(145deg, rgba(21, 26, 30, .97), rgba(9, 13, 16, .98));
-  box-shadow: inset 0 0 18px rgba(var(--fuel-rgb), .025);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-summary .fuel-summary-primary {
-  border-color: rgba(var(--fuel-rgb), .48);
-  background: linear-gradient(145deg, rgba(var(--fuel-rgb), .13), rgba(10, 15, 18, .98));
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-summary .fuel-summary-primary strong {
-  color: var(--fuel-accent-soft);
-  text-shadow: 0 0 14px rgba(var(--fuel-rgb), .22);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-summary em,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-entry-card label em,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-history-table em {
-  color: var(--fuel-accent-muted);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-entry-card > header,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-history-card > header {
-  border-bottom-color: rgba(var(--fuel-rgb), .18);
-  background: linear-gradient(90deg, rgba(var(--fuel-rgb), .095), transparent 74%);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-entry-card input,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-entry-card label > div {
-  border-color: rgba(var(--fuel-rgb), .22);
-  background: #090d10;
-  color: #eef2f4;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-entry-card input:focus,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-entry-card label > div:focus-within {
-  border-color: var(--fuel-accent);
-  box-shadow: 0 0 0 2px rgba(var(--fuel-rgb), .1);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-live-result {
-  border-color: rgba(var(--fuel-rgb), .38);
-  background: radial-gradient(circle at 24% 50%, rgba(var(--fuel-rgb), .11), transparent 54%), #0a0f12;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-live-result small {
-  color: var(--fuel-accent-muted);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-live-result strong,
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-history-table span:first-of-type strong {
-  color: var(--fuel-accent-soft);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-live-result em {
-  color: var(--fuel-accent-muted);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-live-result button {
-  border-color: var(--fuel-accent);
-  background: linear-gradient(135deg, var(--fuel-accent-deep), rgba(var(--fuel-rgb), .48));
-  color: #f5f8f9;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-history-table {
-  scrollbar-color: var(--fuel-accent-deep) #0b0f12;
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-history-table article {
-  border-bottom-color: rgba(var(--fuel-rgb), .12);
-}
-#app:is(.meter-theme-green, .meter-theme-red-triple):not(.is-fullscreen) .fuel-history-table article:nth-child(even) {
-  background: rgba(var(--fuel-rgb), .025);
-}
 
 /* Selected TANTO / fuel tab in the top bar. */
 #app.meter-theme-green:not(.is-fullscreen) .car-id-button.active {
   border-color: #39ccd4;
   color: #8be9ed;
   box-shadow: inset 0 0 12px rgba(39, 204, 212, .1), 0 0 10px rgba(39, 204, 212, .06);
-}
-#app.meter-theme-red-triple:not(.is-fullscreen) .car-id-button.active {
-  border-color: #e13e56;
-  color: #f398a6;
-  box-shadow: inset 0 0 12px rgba(225, 62, 86, .11), 0 0 10px rgba(225, 62, 86, .07);
 }
 
 /* YouTube cards follow the selected cockpit theme instead of genre colors. */
@@ -7601,30 +7238,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   --z-theme-soft: #dcbcff;
   --z-theme-muted: #9a7cc2;
   --z-theme-deep: #2f0d55;
-}
-#app.meter-theme-aurora:not(.is-fullscreen) {
-  background:
-    radial-gradient(circle at 24% 8%, rgba(162, 89, 240, .14), transparent 31%),
-    radial-gradient(circle at 91% 84%, rgba(84, 43, 150, .14), transparent 34%),
-    linear-gradient(145deg, #0d0716, #030108 70%);
-}
-#app.meter-theme-aurora:not(.is-fullscreen) .brand small,
-#app.meter-theme-aurora:not(.is-fullscreen) footer { color: #a184c8; }
-#app.meter-theme-aurora:not(.is-fullscreen) .car-id,
-#app.meter-theme-aurora:not(.is-fullscreen) .meter-view-button {
-  border-color: rgba(183, 108, 255, .34);
-  background: linear-gradient(180deg, rgba(38, 16, 60, .94), rgba(14, 6, 26, .98));
-  color: #e0c6ff;
-  box-shadow: inset 0 0 14px rgba(160, 92, 238, .07);
-}
-#app.meter-theme-aurora:not(.is-fullscreen) .clock {
-  color: #f8f1ff;
-  text-shadow: 0 0 17px rgba(183, 108, 255, .22);
-}
-#app.meter-theme-aurora:not(.is-fullscreen) .left-panel,
-#app.meter-theme-aurora:not(.is-fullscreen) .right-panel {
-  border-color: rgba(168, 100, 244, .26);
-  background: linear-gradient(145deg, rgba(23, 11, 38, .97), rgba(8, 3, 16, .99));
 }
 #app.meter-theme-aurora.is-fullscreen {
   background:
@@ -7678,23 +7291,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   --z-theme-soft: #ffb066;
   --z-theme-muted: #b3702e;
   --z-theme-deep: #401c00;
-}
-#app.meter-theme-eva:not(.is-fullscreen) {
-  background:
-    radial-gradient(circle at 22% 6%, rgba(255, 110, 20, .1), transparent 30%),
-    linear-gradient(150deg, #0d0805, #050302 70%);
-}
-#app.meter-theme-eva:not(.is-fullscreen) .brand small,
-#app.meter-theme-eva:not(.is-fullscreen) footer { color: #c78d4e; }
-#app.meter-theme-eva:not(.is-fullscreen) .car-id,
-#app.meter-theme-eva:not(.is-fullscreen) .meter-view-button {
-  border-color: rgba(255, 122, 26, .4);
-  background: linear-gradient(180deg, rgba(52, 26, 6, .94), rgba(19, 9, 2, .98));
-  color: #ffc27d;
-}
-#app.meter-theme-eva:not(.is-fullscreen) .clock {
-  color: #fff6ec;
-  text-shadow: 0 0 17px rgba(255, 122, 26, .24);
 }
 #app.meter-theme-eva.is-fullscreen {
   background: linear-gradient(155deg, #0a0503, #030201 75%);
