@@ -2030,9 +2030,7 @@ export default function Home() {
             </small>
           </button>
           <div className="car-status">
-            {showMeter ? (
-              <span className="car-id">{settings.carId}</span>
-            ) : (
+            {!showMeter && (
               <button
                 type="button"
                 className={`car-id car-id-button ${showFuel ? "active" : ""}`}
