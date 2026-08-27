@@ -913,6 +913,7 @@ export default function Home() {
   const liveAccuracyCircleRef = useRef<Circle | null>(null);
   const greenMapElementRef = useRef<HTMLDivElement>(null);
   const greenLeafletMapRef = useRef<LeafletMap | null>(null);
+  const greenMapStyleRef = useRef<"dark" | "voyager" | null>(null);
   const weatherLatitude = location ? Number(location.lat.toFixed(2)) : null;
   const weatherLongitude = location ? Number(location.lng.toFixed(2)) : null;
   const weatherLocationKey =
@@ -1029,6 +1030,7 @@ export default function Home() {
       leafletMapRef.current = null;
       greenLeafletMapRef.current?.remove();
       greenLeafletMapRef.current = null;
+      greenMapStyleRef.current = null;
     };
   }, []);
 
@@ -1486,12 +1488,17 @@ export default function Home() {
   }, [showMeter, showFuel, showMusic]);
 
   useEffect(() => {
+    // Each cockpit uses its own tile style, so a theme switch rebuilds the map.
+    const wantedStyle = settings.meterTheme === "aurora" ? "voyager" : "dark";
     if (
       showMeter &&
-      (settings.meterTheme === "green" || settings.meterTheme === "aurora")
+      (settings.meterTheme === "green" || settings.meterTheme === "aurora") &&
+      (greenMapStyleRef.current === null ||
+        greenMapStyleRef.current === wantedStyle)
     ) return;
     greenLeafletMapRef.current?.remove();
     greenLeafletMapRef.current = null;
+    greenMapStyleRef.current = null;
   }, [showMeter, settings.meterTheme]);
 
   useEffect(() => {
@@ -1526,10 +1533,14 @@ export default function Home() {
         }).setView(focusPoint, GREEN_METER_MAP_ZOOM);
 
         L.tileLayer(
-          "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
+          settings.meterTheme === "aurora"
+            ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            : "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
           { subdomains: "abcd", maxZoom: 20, crossOrigin: true },
         ).addTo(map);
         greenLeafletMapRef.current = map;
+        greenMapStyleRef.current =
+          settings.meterTheme === "aurora" ? "voyager" : "dark";
         window.requestAnimationFrame(() => map.invalidateSize({ pan: false }));
         window.setTimeout(() => map.invalidateSize({ pan: false }), 180);
         window.setTimeout(() => map.invalidateSize({ pan: false }), 650);
@@ -2175,7 +2186,7 @@ export default function Home() {
                             className="aurora-track"
                             cx="170"
                             cy="170"
-                            r="146"
+                            r="150"
                             pathLength="100"
                             style={{ strokeDasharray: "66.67 100" }}
                           />
@@ -2183,7 +2194,7 @@ export default function Home() {
                             className="aurora-progress"
                             cx="170"
                             cy="170"
-                            r="146"
+                            r="150"
                             pathLength="100"
                             stroke="url(#auroraSpeedGrad)"
                             style={{
@@ -2192,6 +2203,59 @@ export default function Home() {
                               } 100`,
                             }}
                           />
+                          <circle
+                            className="aurora-rpm-track"
+                            cx="170"
+                            cy="170"
+                            r="92"
+                            pathLength="100"
+                            style={{ strokeDasharray: "66.67 100" }}
+                          />
+                          <circle
+                            className="aurora-rpm"
+                            cx="170"
+                            cy="170"
+                            r="92"
+                            pathLength="100"
+                            style={{
+                              strokeDasharray: `${
+                                Math.max(0, Math.min(1, (obdData.rpm ?? 0) / 8000)) * 66.67
+                              } 100`,
+                            }}
+                          />
+                        </g>
+                        <g className="aurora-ticks">
+                          {Array.from({ length: 15 }, (_, index) => {
+                            const angle = -120 + (index / 14) * 240;
+                            const major = index % 2 === 0;
+                            const inner = svgPoint(170, 170, major ? 124 : 129, angle);
+                            const outer = svgPoint(170, 170, 138, angle);
+                            return (
+                              <line
+                                key={angle}
+                                className={major ? "major" : undefined}
+                                x1={inner.x}
+                                y1={inner.y}
+                                x2={outer.x}
+                                y2={outer.y}
+                              />
+                            );
+                          })}
+                        </g>
+                        <g className="aurora-nums">
+                          {[0, 40, 80, 120, 140].map((value) => {
+                            const point = svgPoint(
+                              170,
+                              170,
+                              108,
+                              -120 + (value / 140) * 240,
+                            );
+                            return (
+                              <text key={value} x={point.x} y={point.y}>
+                                {value}
+                              </text>
+                            );
+                          })}
                         </g>
                       </svg>
                       <div className="aurora-dial-core">
@@ -2199,21 +2263,8 @@ export default function Home() {
                           {displaySpeed === null ? "--" : Math.round(displaySpeed)}
                         </strong>
                         <span>km/h</span>
+                        <b>{obdData.rpm === null ? "---- rpm" : `${obdData.rpm} rpm`}</b>
                       </div>
-                    </div>
-                    <div className="aurora-rpm-row" aria-label={`Engine ${obdData.rpm ?? 0} RPM`}>
-                      <small>RPM</small>
-                      <div className="aurora-rpm-bar" aria-hidden="true">
-                        <i
-                          style={{
-                            width: `${Math.max(
-                              0,
-                              Math.min(100, ((obdData.rpm ?? 0) / 8000) * 100),
-                            )}%`,
-                          }}
-                        />
-                      </div>
-                      <b>{obdData.rpm ?? "----"}</b>
                     </div>
                     <div className="aurora-vitals">
                       <span className={auroraCoolantWarn ? "warn" : undefined}>
