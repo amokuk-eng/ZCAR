@@ -937,7 +937,6 @@ export default function Home() {
   const liveAccuracyCircleRef = useRef<Circle | null>(null);
   const greenMapElementRef = useRef<HTMLDivElement>(null);
   const greenLeafletMapRef = useRef<LeafletMap | null>(null);
-  const greenMapStyleRef = useRef<"dark" | "gsi" | null>(null);
   const auroraGmapElementRef = useRef<HTMLDivElement>(null);
   // google.maps.Map, typed loosely because the SDK is loaded at runtime.
   const auroraGmapRef = useRef<{
@@ -1059,7 +1058,6 @@ export default function Home() {
       leafletMapRef.current = null;
       greenLeafletMapRef.current?.remove();
       greenLeafletMapRef.current = null;
-      greenMapStyleRef.current = null;
     };
   }, []);
 
@@ -1517,17 +1515,9 @@ export default function Home() {
   }, [showMeter, showFuel, showMusic]);
 
   useEffect(() => {
-    // Each cockpit uses its own tile style, so a theme switch rebuilds the map.
-    const wantedStyle = settings.meterTheme === "aurora" ? "gsi" : "dark";
-    if (
-      showMeter &&
-      (settings.meterTheme === "green" || settings.meterTheme === "aurora") &&
-      (greenMapStyleRef.current === null ||
-        greenMapStyleRef.current === wantedStyle)
-    ) return;
+    if (showMeter && settings.meterTheme === "green") return;
     greenLeafletMapRef.current?.remove();
     greenLeafletMapRef.current = null;
-    greenMapStyleRef.current = null;
   }, [showMeter, settings.meterTheme]);
 
   useEffect(() => {
@@ -1579,7 +1569,7 @@ export default function Home() {
   useEffect(() => {
     if (
       !showMeter ||
-      !(settings.meterTheme === "green" || settings.meterTheme === "aurora") ||
+      settings.meterTheme !== "green" ||
       !greenMapElementRef.current
     ) return;
     let cancelled = false;
@@ -1608,16 +1598,10 @@ export default function Home() {
         }).setView(focusPoint, GREEN_METER_MAP_ZOOM);
 
         L.tileLayer(
-          settings.meterTheme === "aurora"
-            ? "https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png"
-            : "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
-          settings.meterTheme === "aurora"
-            ? { maxZoom: 18, crossOrigin: true }
-            : { subdomains: "abcd", maxZoom: 20, crossOrigin: true },
+          "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
+          { subdomains: "abcd", maxZoom: 20, crossOrigin: true },
         ).addTo(map);
         greenLeafletMapRef.current = map;
-        greenMapStyleRef.current =
-          settings.meterTheme === "aurora" ? "gsi" : "dark";
         window.requestAnimationFrame(() => map.invalidateSize({ pan: false }));
         window.setTimeout(() => map.invalidateSize({ pan: false }), 180);
         window.setTimeout(() => map.invalidateSize({ pan: false }), 650);
@@ -1638,7 +1622,7 @@ export default function Home() {
   useEffect(() => {
     if (
       !showMeter ||
-      !(settings.meterTheme === "green" || settings.meterTheme === "aurora") ||
+      settings.meterTheme !== "green" ||
       !greenMapElementRef.current
     ) return;
     const element = greenMapElementRef.current;
@@ -2229,19 +2213,27 @@ export default function Home() {
                 <div className="aurora-main">
                   <div className="aurora-map-card" aria-label="Live navigation map">
                     <div className="aurora-map-window">
-                      <div className="green-map-rotator" aria-hidden="true">
-                        {settings.googleRoutesApiKey.trim() ? (
+                      {settings.googleRoutesApiKey.trim() ? (
+                        <div className="green-map-rotator" aria-hidden="true">
                           <div ref={auroraGmapElementRef} className="aurora-gmap-canvas" />
-                        ) : (
-                          <div ref={greenMapElementRef} className="green-nav-map-canvas" />
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <div className="aurora-map-placeholder">
+                          <strong>GOOGLE MAP</strong>
+                          <span>
+                            右上の SET から Google APIキーを設定すると
+                            ここに地図が表示されます
+                          </span>
+                        </div>
+                      )}
+                      {settings.googleRoutesApiKey.trim() && (
                       <div className={`aurora-compass ${locationStatus}`} aria-hidden="true">
                         <span className="north">N</span>
                         <span className="east">E</span>
                         <span className="south">S</span>
                         <span className="west">W</span>
                       </div>
+                      )}
                       <div
                         className={`aurora-map-chip${
                           settings.googleRoutesApiKey.trim() ? " top" : ""
@@ -2250,16 +2242,6 @@ export default function Home() {
                         <small>TODAY 本日走行</small>
                         <b>{dailyTripKm.toFixed(1)} km</b>
                       </div>
-                      {!settings.googleRoutesApiKey.trim() && (
-                        <a
-                          className="aurora-map-attribution"
-                          href="https://maps.gsi.go.jp/development/ichiran.html"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          © 国土地理院
-                        </a>
-                      )}
                     </div>
                   </div>
 

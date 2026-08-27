@@ -7894,15 +7894,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 
 @keyframes aurora-pulse { 50% { opacity: .45; } }
 
-/* The turquoise theme tints the shared map canvas green; show the GSI
-   tiles in their natural colors inside the aurora cockpit. */
-.aurora-map-window .green-nav-map-canvas .leaflet-tile-pane {
-  filter: none;
-}
-.aurora-map-window .green-nav-map-canvas {
-  background: #efece6;
-}
-
 /* Google Maps canvas inside the aurora cockpit (used when an API key is set). */
 .aurora-gmap-canvas {
   position: absolute;
@@ -7914,4 +7905,30 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 .aurora-map-chip.top {
   bottom: auto;
   top: 10px;
+}
+
+/* Shown in the aurora map area until a Google API key is configured. */
+.aurora-map-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 0 40px;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(124, 58, 237, .12), transparent 55%),
+    #0a0514;
+}
+.aurora-map-placeholder strong {
+  color: #c996ff;
+  font-size: 18px;
+  letter-spacing: .3em;
+}
+.aurora-map-placeholder span {
+  color: #a887d6;
+  font-size: 12px;
+  letter-spacing: .1em;
+  line-height: 1.9;
 }
