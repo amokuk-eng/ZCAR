@@ -36,6 +36,10 @@ jobs:
 
       - name: Build static site
         working-directory: z-car-chrome
+        env:
+          # 公開先のサブフォルダ名。FTPアカウントの接続先ディレクトリ
+          # (…/public_html/zcar)と一致させること。
+          BASE_PATH: /zcar
         run: npm run build:static
 
       - name: Upload via FTPS
