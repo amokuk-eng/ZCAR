@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import type { Circle, CircleMarker, Map as LeafletMap } from "leaflet";
+import type { Map as LeafletMap } from "leaflet";
 import { useObd2, type ObdConnectionStatus } from "./hooks/use-obd2";
 
 type CarState = "not_departed" | "departed" | "checked_out";
@@ -935,9 +935,17 @@ export default function Home() {
   const fuelResetTimerRef = useRef<number | null>(null);
   const locationWatchRef = useRef<number | null>(null);
   const liveMapElementRef = useRef<HTMLDivElement>(null);
-  const leafletMapRef = useRef<LeafletMap | null>(null);
-  const livePositionMarkerRef = useRef<CircleMarker | null>(null);
-  const liveAccuracyCircleRef = useRef<Circle | null>(null);
+  // google.maps objects, typed loosely because the SDK loads at runtime.
+  const homeGmapRef = useRef<{
+    panTo: (point: { lat: number; lng: number }) => void;
+  } | null>(null);
+  const homeGmapMarkerRef = useRef<{
+    setPosition: (point: { lat: number; lng: number }) => void;
+  } | null>(null);
+  const homeGmapCircleRef = useRef<{
+    setCenter: (point: { lat: number; lng: number }) => void;
+    setRadius: (radius: number) => void;
+  } | null>(null);
   const greenMapElementRef = useRef<HTMLDivElement>(null);
   const greenLeafletMapRef = useRef<LeafletMap | null>(null);
   const auroraGmapElementRef = useRef<HTMLDivElement>(null);
@@ -1057,8 +1065,9 @@ export default function Home() {
       if (locationWatchRef.current !== null && navigator.geolocation) {
         navigator.geolocation.clearWatch(locationWatchRef.current);
       }
-      leafletMapRef.current?.remove();
-      leafletMapRef.current = null;
+      homeGmapRef.current = null;
+      homeGmapMarkerRef.current = null;
+      homeGmapCircleRef.current = null;
       greenLeafletMapRef.current?.remove();
       greenLeafletMapRef.current = null;
     };
@@ -1438,86 +1447,86 @@ export default function Home() {
     };
   }, [weatherLocationKey]);
 
+  const auroraMapKey = settings.googleRoutesApiKey.trim() || DEFAULT_GMAPS_KEY;
+
   useEffect(() => {
     if (!location || !liveMapElementRef.current) return;
     let cancelled = false;
+    const point = { lat: location.lat, lng: location.lng };
+    const accuracyRadius = Math.max(5, location.accuracy);
 
-    const updateLiveMap = async () => {
-      const L = await import("leaflet");
-      if (cancelled || !liveMapElementRef.current) return;
-      const point: [number, number] = [location.lat, location.lng];
+    void loadGoogleMaps(auroraMapKey)
+      .then((maps) => {
+        if (cancelled || !liveMapElementRef.current) return;
+        const mapsApi = maps as {
+          Map: new (
+            element: HTMLElement,
+            options: Record<string, unknown>,
+          ) => { panTo: (target: { lat: number; lng: number }) => void };
+          Marker: new (options: Record<string, unknown>) => {
+            setPosition: (target: { lat: number; lng: number }) => void;
+          };
+          Circle: new (options: Record<string, unknown>) => {
+            setCenter: (target: { lat: number; lng: number }) => void;
+            setRadius: (radius: number) => void;
+          };
+          SymbolPath: { CIRCLE: number };
+        };
 
-      if (!leafletMapRef.current) {
-        const map = L.map(liveMapElementRef.current, {
-          zoomControl: false,
-          attributionControl: true,
-          dragging: false,
-          scrollWheelZoom: false,
-          touchZoom: false,
-          doubleClickZoom: false,
-          boxZoom: false,
-          keyboard: false,
-          zoomAnimation: true,
-        }).setView(point, 16);
+        if (!homeGmapRef.current) {
+          const map = new mapsApi.Map(liveMapElementRef.current, {
+            center: point,
+            zoom: 16,
+            disableDefaultUI: true,
+            clickableIcons: false,
+            gestureHandling: "none",
+            keyboardShortcuts: false,
+          });
+          homeGmapRef.current = map;
+          homeGmapCircleRef.current = new mapsApi.Circle({
+            map,
+            center: point,
+            radius: accuracyRadius,
+            strokeColor: "#4285f4",
+            strokeOpacity: 0.35,
+            strokeWeight: 1,
+            fillColor: "#4285f4",
+            fillOpacity: 0.09,
+            clickable: false,
+          });
+          homeGmapMarkerRef.current = new mapsApi.Marker({
+            map,
+            position: point,
+            clickable: false,
+            icon: {
+              path: mapsApi.SymbolPath.CIRCLE,
+              scale: 9,
+              fillColor: "#4285f4",
+              fillOpacity: 1,
+              strokeColor: "#ffffff",
+              strokeWeight: 3,
+            },
+          });
+          return;
+        }
 
-        L.tileLayer(
-          "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-          {
-            subdomains: "abcd",
-            maxZoom: 20,
-            attribution:
-              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-          },
-        ).addTo(map);
-        map.attributionControl.setPrefix(false);
-        leafletMapRef.current = map;
-        liveAccuracyCircleRef.current = L.circle(point, {
-          radius: Math.max(5, location.accuracy),
-          color: "#5ee6b2",
-          weight: 1,
-          opacity: 0.34,
-          fillColor: "#45d99f",
-          fillOpacity: 0.08,
-          interactive: false,
-        }).addTo(map);
-        livePositionMarkerRef.current = L.circleMarker(point, {
-          radius: 9,
-          color: "#eafff6",
-          weight: 3,
-          fillColor: "#55e7ad",
-          fillOpacity: 1,
-          interactive: false,
-        }).addTo(map);
-        window.setTimeout(() => map.invalidateSize({ pan: false }), 0);
-        return;
-      }
-
-      livePositionMarkerRef.current?.setLatLng(point);
-      liveAccuracyCircleRef.current
-        ?.setLatLng(point)
-        .setRadius(Math.max(5, location.accuracy));
-      leafletMapRef.current.panTo(point, {
-        animate: true,
-        duration: 0.45,
-        easeLinearity: 0.65,
-      });
-    };
-
-    void updateLiveMap();
+        homeGmapMarkerRef.current?.setPosition(point);
+        homeGmapCircleRef.current?.setCenter(point);
+        homeGmapCircleRef.current?.setRadius(accuracyRadius);
+        homeGmapRef.current.panTo(point);
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [location, showMeter, showFuel, showMusic]);
+  }, [location, auroraMapKey, showMeter, showFuel, showMusic]);
 
   useEffect(() => {
     if (!showMeter && !showFuel && !showMusic) return;
-    leafletMapRef.current?.remove();
-    leafletMapRef.current = null;
-    livePositionMarkerRef.current = null;
-    liveAccuracyCircleRef.current = null;
+    homeGmapRef.current = null;
+    homeGmapMarkerRef.current = null;
+    homeGmapCircleRef.current = null;
   }, [showMeter, showFuel, showMusic]);
-
-  const auroraMapKey = settings.googleRoutesApiKey.trim() || DEFAULT_GMAPS_KEY;
 
   useEffect(() => {
     if (showMeter && settings.meterTheme === "green") return;
