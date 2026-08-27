@@ -130,6 +130,9 @@ const FUEL_TANK_CAPACITY_L = 36;
 const FUEL_RESERVE_L = 4;
 const GREEN_METER_MAP_ZOOM = 12;
 const AURORA_GMAP_ZOOM = 15;
+// Referrer-restricted (https://zest7.jp/*) browser key, Maps JavaScript API
+// only — safe to ship in client code. The settings key overrides it.
+const DEFAULT_GMAPS_KEY = "AIzaSyDndPX8sQmYXOCwVyJtmNUXv-GWXLT6Qh8";
 
 // Loads the Google Maps JavaScript API once and caches the promise.
 const loadGoogleMaps = (key: string) => {
@@ -1514,6 +1517,8 @@ export default function Home() {
     liveAccuracyCircleRef.current = null;
   }, [showMeter, showFuel, showMusic]);
 
+  const auroraMapKey = settings.googleRoutesApiKey.trim() || DEFAULT_GMAPS_KEY;
+
   useEffect(() => {
     if (showMeter && settings.meterTheme === "green") return;
     greenLeafletMapRef.current?.remove();
@@ -1526,7 +1531,7 @@ export default function Home() {
   }, [showMeter, settings.meterTheme]);
 
   useEffect(() => {
-    const apiKey = settings.googleRoutesApiKey.trim();
+    const apiKey = auroraMapKey;
     if (
       !showMeter ||
       settings.meterTheme !== "aurora" ||
@@ -1564,7 +1569,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [showMeter, settings.meterTheme, settings.googleRoutesApiKey, location]);
+  }, [showMeter, settings.meterTheme, auroraMapKey, location]);
 
   useEffect(() => {
     if (
@@ -2213,7 +2218,7 @@ export default function Home() {
                 <div className="aurora-main">
                   <div className="aurora-map-card" aria-label="Live navigation map">
                     <div className="aurora-map-window">
-                      {settings.googleRoutesApiKey.trim() ? (
+                      {auroraMapKey ? (
                         <div className="green-map-rotator" aria-hidden="true">
                           <div ref={auroraGmapElementRef} className="aurora-gmap-canvas" />
                         </div>
@@ -2226,7 +2231,7 @@ export default function Home() {
                           </span>
                         </div>
                       )}
-                      {settings.googleRoutesApiKey.trim() && (
+                      {auroraMapKey && (
                       <div className={`aurora-compass ${locationStatus}`} aria-hidden="true">
                         <span className="north">N</span>
                         <span className="east">E</span>
@@ -2236,7 +2241,7 @@ export default function Home() {
                       )}
                       <div
                         className={`aurora-map-chip${
-                          settings.googleRoutesApiKey.trim() ? " top" : ""
+                          auroraMapKey ? " top" : ""
                         }`}
                       >
                         <small>TODAY 本日走行</small>
