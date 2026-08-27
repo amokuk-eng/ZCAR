@@ -913,7 +913,7 @@ export default function Home() {
   const liveAccuracyCircleRef = useRef<Circle | null>(null);
   const greenMapElementRef = useRef<HTMLDivElement>(null);
   const greenLeafletMapRef = useRef<LeafletMap | null>(null);
-  const greenMapStyleRef = useRef<"dark" | "voyager" | null>(null);
+  const greenMapStyleRef = useRef<"dark" | "gsi" | null>(null);
   const weatherLatitude = location ? Number(location.lat.toFixed(2)) : null;
   const weatherLongitude = location ? Number(location.lng.toFixed(2)) : null;
   const weatherLocationKey =
@@ -1489,7 +1489,7 @@ export default function Home() {
 
   useEffect(() => {
     // Each cockpit uses its own tile style, so a theme switch rebuilds the map.
-    const wantedStyle = settings.meterTheme === "aurora" ? "voyager" : "dark";
+    const wantedStyle = settings.meterTheme === "aurora" ? "gsi" : "dark";
     if (
       showMeter &&
       (settings.meterTheme === "green" || settings.meterTheme === "aurora") &&
@@ -1534,13 +1534,15 @@ export default function Home() {
 
         L.tileLayer(
           settings.meterTheme === "aurora"
-            ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            ? "https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png"
             : "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
-          { subdomains: "abcd", maxZoom: 20, crossOrigin: true },
+          settings.meterTheme === "aurora"
+            ? { maxZoom: 18, crossOrigin: true }
+            : { subdomains: "abcd", maxZoom: 20, crossOrigin: true },
         ).addTo(map);
         greenLeafletMapRef.current = map;
         greenMapStyleRef.current =
-          settings.meterTheme === "aurora" ? "voyager" : "dark";
+          settings.meterTheme === "aurora" ? "gsi" : "dark";
         window.requestAnimationFrame(() => map.invalidateSize({ pan: false }));
         window.setTimeout(() => map.invalidateSize({ pan: false }), 180);
         window.setTimeout(() => map.invalidateSize({ pan: false }), 650);
@@ -2157,11 +2159,11 @@ export default function Home() {
                       </div>
                       <a
                         className="aurora-map-attribution"
-                        href="https://www.openstreetmap.org/copyright"
+                        href="https://maps.gsi.go.jp/development/ichiran.html"
                         target="_blank"
                         rel="noreferrer"
                       >
-                        © OSM
+                        © 国土地理院
                       </a>
                     </div>
                   </div>
