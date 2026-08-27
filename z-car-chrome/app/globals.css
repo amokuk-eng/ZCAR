@@ -7963,6 +7963,15 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   transition: width .4s ease;
 }
 .eva-footer button.resetting { animation: eva-alert 0.5s steps(2, jump-none) infinite; }
+/* Activity-limit alarm: blinks red when the remaining range runs low. */
+.eva-footer button.critical {
+  border-color: rgba(255, 45, 26, .8);
+  background: rgba(255, 45, 26, .09);
+  animation: eva-alert 0.8s steps(2, jump-none) infinite;
+}
+.eva-footer button.critical small { color: #ff5f4d; }
+.eva-footer button.critical b { color: #ffe1dc; text-shadow: 0 0 14px rgba(255, 45, 26, .6); }
+.eva-footer button.critical i { background: #ff2d1a; }
 
 @keyframes eva-blink { 50% { opacity: .35; } }
 @keyframes eva-alert {

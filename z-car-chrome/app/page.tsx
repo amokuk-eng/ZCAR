@@ -2135,7 +2135,14 @@ export default function Home() {
                   <span><small>時刻 LOCAL TIME</small><b>{clock}</b></span>
                   <button
                     type="button"
-                    className={fuelResetting ? "resetting" : undefined}
+                    className={
+                      [
+                        fuelResetting ? "resetting" : "",
+                        fuelRangeKm <= 50 ? "critical" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ") || undefined
+                    }
                     onPointerDown={startFuelReset}
                     onPointerUp={cancelFuelReset}
                     onPointerLeave={cancelFuelReset}
@@ -2143,7 +2150,7 @@ export default function Home() {
                     onContextMenu={(event) => event.preventDefault()}
                     aria-label={`Estimated range ${Math.round(fuelRangeKm)} kilometers. Hold to refuel.`}
                   >
-                    <small>航続可能 RANGE</small>
+                    <small>活動限界 ACTIVITY LIMIT</small>
                     <b>{Math.round(fuelRangeKm)} km</b>
                     <i style={{ width: `${fuelPercent}%` }} aria-hidden="true" />
                   </button>
