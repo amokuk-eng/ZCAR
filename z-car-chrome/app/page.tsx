@@ -2052,7 +2052,7 @@ export default function Home() {
                 {showMeter ? "HOME" : "METER"}
               </button>
             )}
-            {!showFuel && !showMusic && (
+            {showMeter && (
               <button
                 type="button"
                 className="meter-theme-button"
