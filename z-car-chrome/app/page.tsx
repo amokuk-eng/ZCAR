@@ -683,6 +683,23 @@ function RedCockpit({
   );
 }
 
+// ビルド時刻(JST)。反映確認用に起動画面の隅に表示する。
+const BUILD_STAMP = (() => {
+  const iso = process.env.NEXT_PUBLIC_BUILD_TIME;
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+})();
+
 export default function Home() {
   const [settings, setSettings] = useState<Settings>(defaults);
   const [draft, setDraft] = useState<Settings>(defaults);
@@ -858,20 +875,7 @@ export default function Home() {
     window.addEventListener("offline", updateOnlineStatus);
     if ("serviceWorker" in navigator) {
       void navigator.serviceWorker
-        .getRegistrations()
-        .then((registrations) =>
-          Promise.all(registrations.map((registration) => registration.unregister())),
-        )
-        .catch(() => undefined);
-    }
-    if ("caches" in window) {
-      void caches
-        .keys()
-        .then((keys) =>
-          Promise.all(
-            keys.filter((key) => key.startsWith("zcar-")).map((key) => caches.delete(key)),
-          ),
-        )
+        .register(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/sw.js`)
         .catch(() => undefined);
     }
     return () => {
@@ -1830,6 +1834,23 @@ export default function Home() {
             <span className="launch-vignette" aria-hidden="true" />
             <span className="launch-target" aria-hidden="true"><i /></span>
           </button>
+          {BUILD_STAMP ? (
+            <span
+              aria-hidden="true"
+              style={{
+                position: "fixed",
+                right: 12,
+                bottom: 8,
+                fontSize: 10,
+                letterSpacing: "0.08em",
+                color: "rgba(255, 255, 255, 0.4)",
+                pointerEvents: "none",
+                zIndex: 10,
+              }}
+            >
+              BUILD {BUILD_STAMP}
+            </span>
+          ) : null}
         </main>
       ) : (
       <div
