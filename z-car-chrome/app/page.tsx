@@ -132,6 +132,17 @@ const AURORA_GMAP_ZOOM = 15;
 // Vector map id (tilt + rotation enabled) created by the owner.
 const AURORA_MAP_ID = "d60d533e83d50b1ae948f1fb";
 const AURORA_GMAP_TILT = 60;
+// Chase-view 3D arrow for the aurora location marker (data-URI icon).
+const AURORA_ARROW_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <ellipse cx="24" cy="40" rx="11" ry="4" fill="rgba(0,0,0,0.4)"/>
+  <path d="M24 3 L41 39 L24 30 Z" fill="#d9a0ff"/>
+  <path d="M24 3 L7 39 L24 30 Z" fill="#8b3fd6"/>
+  <path d="M24 30 L41 39 L24 36 L7 39 Z" fill="#5f2496"/>
+  <path d="M24 3 L41 39 L24 30 L7 39 Z" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linejoin="round"/>
+</svg>`;
+const AURORA_ARROW_ICON_URL = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+  AURORA_ARROW_SVG,
+)}`;
 // Referrer-restricted (https://zest7.jp/*) browser key, Maps JavaScript API
 // only — safe to ship in client code. The settings key overrides it.
 const DEFAULT_GMAPS_KEY = "AIzaSyDndPX8sQmYXOCwVyJtmNUXv-GWXLT6Qh8";
@@ -1676,6 +1687,8 @@ export default function Home() {
             setRadius: (radius: number) => void;
           };
           SymbolPath: { CIRCLE: number; FORWARD_CLOSED_ARROW: number };
+          Size: new (width: number, height: number) => unknown;
+          Point: new (x: number, y: number) => unknown;
         };
         if (!auroraGmapRef.current) {
           const map = new mapsApi.Map(auroraGmapElementRef.current, {
@@ -1707,13 +1720,9 @@ export default function Home() {
             position: focusPoint,
             clickable: false,
             icon: {
-              path: mapsApi.SymbolPath.FORWARD_CLOSED_ARROW,
-              scale: 7,
-              fillColor: "#c26bff",
-              fillOpacity: 1,
-              strokeColor: "#ffffff",
-              strokeWeight: 2,
-              rotation: 0,
+              url: AURORA_ARROW_ICON_URL,
+              scaledSize: new mapsApi.Size(46, 46),
+              anchor: new mapsApi.Point(23, 24),
             },
           });
           return;
