@@ -1039,6 +1039,13 @@ export default function Home() {
     setCenter: (point: { lat: number; lng: number }) => void;
     moveCamera: (camera: Record<string, unknown>) => void;
   } | null>(null);
+  const auroraGmapMarkerRef = useRef<{
+    setPosition: (point: { lat: number; lng: number }) => void;
+  } | null>(null);
+  const auroraGmapCircleRef = useRef<{
+    setCenter: (point: { lat: number; lng: number }) => void;
+    setRadius: (radius: number) => void;
+  } | null>(null);
   const weatherLatitude = location ? Number(location.lat.toFixed(2)) : null;
   const weatherLongitude = location ? Number(location.lng.toFixed(2)) : null;
   const weatherLocationKey =
@@ -1624,6 +1631,8 @@ export default function Home() {
   useEffect(() => {
     if (showMeter && settings.meterTheme === "aurora") return;
     auroraGmapRef.current = null;
+    auroraGmapMarkerRef.current = null;
+    auroraGmapCircleRef.current = null;
   }, [showMeter, settings.meterTheme]);
 
   useEffect(() => {
@@ -1646,20 +1655,30 @@ export default function Home() {
         : ((location.heading % 360) + 360) % 360;
     const heading = (Math.round(rawHeading / 15) * 15) % 360;
 
+    const accuracyRadius = Math.max(5, location?.accuracy ?? 5);
+
     void loadGoogleMaps(apiKey)
       .then((maps) => {
         if (cancelled || !auroraGmapElementRef.current) return;
-        if (!auroraGmapRef.current) {
-          const mapsApi = maps as {
-            Map: new (
-              element: HTMLElement,
-              options: Record<string, unknown>,
-            ) => {
-              setCenter: (point: { lat: number; lng: number }) => void;
-              moveCamera: (camera: Record<string, unknown>) => void;
-            };
+        const mapsApi = maps as {
+          Map: new (
+            element: HTMLElement,
+            options: Record<string, unknown>,
+          ) => {
+            setCenter: (point: { lat: number; lng: number }) => void;
+            moveCamera: (camera: Record<string, unknown>) => void;
           };
-          auroraGmapRef.current = new mapsApi.Map(auroraGmapElementRef.current, {
+          Marker: new (options: Record<string, unknown>) => {
+            setPosition: (point: { lat: number; lng: number }) => void;
+          };
+          Circle: new (options: Record<string, unknown>) => {
+            setCenter: (point: { lat: number; lng: number }) => void;
+            setRadius: (radius: number) => void;
+          };
+          SymbolPath: { CIRCLE: number };
+        };
+        if (!auroraGmapRef.current) {
+          const map = new mapsApi.Map(auroraGmapElementRef.current, {
             center: focusPoint,
             zoom: AURORA_GMAP_ZOOM,
             mapId: AURORA_MAP_ID,
@@ -1671,8 +1690,36 @@ export default function Home() {
             gestureHandling: "none",
             keyboardShortcuts: false,
           });
+          auroraGmapRef.current = map;
+          auroraGmapCircleRef.current = new mapsApi.Circle({
+            map,
+            center: focusPoint,
+            radius: accuracyRadius,
+            strokeColor: "#4285f4",
+            strokeOpacity: 0.35,
+            strokeWeight: 1,
+            fillColor: "#4285f4",
+            fillOpacity: 0.09,
+            clickable: false,
+          });
+          auroraGmapMarkerRef.current = new mapsApi.Marker({
+            map,
+            position: focusPoint,
+            clickable: false,
+            icon: {
+              path: mapsApi.SymbolPath.CIRCLE,
+              scale: 9,
+              fillColor: "#4285f4",
+              fillOpacity: 1,
+              strokeColor: "#ffffff",
+              strokeWeight: 3,
+            },
+          });
           return;
         }
+        auroraGmapMarkerRef.current?.setPosition(focusPoint);
+        auroraGmapCircleRef.current?.setCenter(focusPoint);
+        auroraGmapCircleRef.current?.setRadius(accuracyRadius);
         auroraGmapRef.current.moveCamera({
           center: focusPoint,
           heading,
