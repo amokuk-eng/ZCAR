@@ -229,6 +229,16 @@ const NIGHT_MAP_STYLES = [
   },
 ];
 
+// ターコイズメーターの円形窓用: 夜間配色に加えて、スポット等の
+// アイコン類を非表示にしたレーダー向けスタイル。ラスター地図でのみ
+// 有効(ベクター+Map IDの地図はクラウド側スタイルが優先される)。
+const GREEN_METER_MAP_STYLES = [
+  ...NIGHT_MAP_STYLES,
+  { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+  { featureType: "poi", elementType: "labels.text", stylers: [{ visibility: "off" }] },
+  { featureType: "transit", stylers: [{ visibility: "off" }] },
+];
+
 // Loads the Google Maps JavaScript API once and caches the promise.
 const loadGoogleMaps = (key: string) => {
   const w = window as unknown as {
@@ -1753,14 +1763,9 @@ export default function Home() {
     const focusPoint = location
       ? { lat: location.lat, lng: location.lng }
       : { lat: 34.6937, lng: 135.5023 };
-    const rawHeading =
-      location?.heading === null ||
-      location?.heading === undefined ||
-      Number.isNaN(location?.heading)
-        ? 0
-        : ((location.heading % 360) + 360) % 360;
-    const heading = (Math.round(rawHeading / 15) * 15) % 360;
 
+    // ラスター地図(スタイル指定でアイコン非表示にするため)。heading は
+    // ベクター専用なので、進行方向の回転は --green-map-rotation のCSSで行う。
     void loadGoogleMaps(auroraMapKey)
       .then((maps) => {
         if (cancelled || !greenMapElementRef.current) return;
@@ -1777,9 +1782,7 @@ export default function Home() {
           greenGmapRef.current = new mapsApi.Map(greenMapElementRef.current, {
             center: focusPoint,
             zoom: GREEN_METER_MAP_ZOOM,
-            mapId: AURORA_MAP_ID,
-            colorScheme: "DARK",
-            heading,
+            styles: GREEN_METER_MAP_STYLES,
             disableDefaultUI: true,
             clickableIcons: false,
             gestureHandling: "none",
@@ -1787,7 +1790,7 @@ export default function Home() {
           });
           return;
         }
-        greenGmapRef.current.moveCamera({ center: focusPoint, heading });
+        greenGmapRef.current.setCenter(focusPoint);
       })
       .catch(() => undefined);
     return () => {
