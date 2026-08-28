@@ -8095,7 +8095,9 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 }
 
 /* Tint the Google tiles into the black-and-turquoise radar palette
-   (complements the aperture treatment above). */
+   (complements the aperture treatment above). The cluster-wide
+   hue-rotate(48deg) on .performance-cluster stacks on top of this,
+   so 90deg here lands on the ring accent hue (~174) after both. */
 #app.meter-theme-green.is-fullscreen .green-nav-map-canvas {
-  filter: grayscale(1) sepia(1) hue-rotate(135deg) saturate(3.4) brightness(.92) contrast(1.4);
+  filter: grayscale(1) sepia(1) hue-rotate(90deg) saturate(3.4) brightness(.92) contrast(1.4);
 }
