@@ -7957,37 +7957,38 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 
 /* Turquoise Google Maps instrument finish */
 #app.meter-theme-green.is-fullscreen .green-gauge-map-window {
-  border-color: rgba(140, 255, 152, .95);
+  border-color: rgba(91, 255, 110, .78);
   background: #000701;
   box-shadow:
-    0 0 0 7px rgba(0, 8, 1, .96),
-    0 0 0 9px rgba(96, 255, 120, .6),
-    0 0 14px 3px rgba(96, 255, 120, .55),
-    0 0 34px 8px rgba(70, 245, 95, .4),
-    0 0 72px 16px rgba(50, 230, 75, .22),
+    0 0 0 8px rgba(0, 8, 1, .96),
+    0 0 0 10px rgba(96, 255, 120, .55),
+    0 0 26px 12px rgba(96, 255, 120, .42),
+    0 0 58px 20px rgba(70, 245, 95, .3),
+    0 0 110px 32px rgba(50, 230, 75, .18),
     inset 0 0 26px rgba(0, 0, 0, .62);
   animation: green-ring-glow 3.6s ease-in-out infinite;
 }
 
-/* Slow breathing pulse on the map-window ring glow. Colors here are
-   pre-shifted -47deg like the rest of this block. */
+/* Slow breathing pulse on the map-window ring glow. The 8px dark gap
+   ring stays constant so the halo blooms outward, never inward.
+   Colors here are pre-shifted -47deg like the rest of this block. */
 @keyframes green-ring-glow {
   0%, 100% {
     box-shadow:
-      0 0 0 7px rgba(0, 8, 1, .96),
-      0 0 0 9px rgba(96, 255, 120, .6),
-      0 0 14px 3px rgba(96, 255, 120, .55),
-      0 0 34px 8px rgba(70, 245, 95, .4),
-      0 0 72px 16px rgba(50, 230, 75, .22),
+      0 0 0 8px rgba(0, 8, 1, .96),
+      0 0 0 10px rgba(96, 255, 120, .55),
+      0 0 26px 12px rgba(96, 255, 120, .42),
+      0 0 58px 20px rgba(70, 245, 95, .3),
+      0 0 110px 32px rgba(50, 230, 75, .18),
       inset 0 0 26px rgba(0, 0, 0, .62);
   }
   50% {
     box-shadow:
-      0 0 0 7px rgba(0, 8, 1, .96),
-      0 0 0 9px rgba(120, 255, 140, .85),
-      0 0 20px 5px rgba(110, 255, 130, .75),
-      0 0 48px 12px rgba(80, 250, 105, .55),
-      0 0 96px 22px rgba(55, 235, 80, .32),
+      0 0 0 8px rgba(0, 8, 1, .96),
+      0 0 0 10px rgba(120, 255, 140, .8),
+      0 0 34px 16px rgba(110, 255, 130, .6),
+      0 0 76px 26px rgba(80, 250, 105, .45),
+      0 0 140px 40px rgba(55, 235, 80, .26),
       inset 0 0 26px rgba(0, 0, 0, .62);
   }
 }
