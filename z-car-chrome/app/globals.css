@@ -8167,35 +8167,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
     0 0 60px 18px rgba(60, 240, 85, .28),
     0 0 120px 30px rgba(45, 228, 70, .16),
     0 18px 46px rgba(0, 0, 0, .68);
-  animation: green-bezel-glow 3.6s ease-in-out infinite;
-}
-
-/* Slow breathing pulse on the outer bezel ring only - the inner map
-   window keeps its calm rim. Colors are pre-shifted -47deg like the
-   rest of this block. */
-@keyframes green-bezel-glow {
-  0%, 100% {
-    box-shadow:
-      inset 0 0 68px rgba(0, 0, 0, .96),
-      inset 0 0 0 2px rgba(84, 236, 106, .3),
-      0 0 0 3px rgba(3, 44, 14, .96),
-      0 0 0 6px rgba(26, 157, 53, .55),
-      0 0 26px 8px rgba(80, 250, 105, .4),
-      0 0 60px 18px rgba(60, 240, 85, .28),
-      0 0 120px 30px rgba(45, 228, 70, .16),
-      0 18px 46px rgba(0, 0, 0, .68);
-  }
-  50% {
-    box-shadow:
-      inset 0 0 68px rgba(0, 0, 0, .96),
-      inset 0 0 0 2px rgba(84, 236, 106, .3),
-      0 0 0 3px rgba(3, 44, 14, .96),
-      0 0 0 6px rgba(30, 175, 60, .7),
-      0 0 36px 12px rgba(95, 255, 120, .58),
-      0 0 84px 24px rgba(70, 248, 95, .42),
-      0 0 150px 38px rgba(50, 232, 75, .24),
-      0 18px 46px rgba(0, 0, 0, .68);
-  }
 }
 
 #app.meter-theme-green.is-fullscreen .green-map-gauge .performance-rpm-track {
