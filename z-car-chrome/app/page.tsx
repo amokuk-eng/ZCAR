@@ -130,6 +130,9 @@ const FUEL_TANK_CAPACITY_L = 36;
 const FUEL_RESERVE_L = 4;
 const GREEN_METER_MAP_ZOOM = 12;
 const AURORA_GMAP_ZOOM = 15;
+// Vector map id (tilt + rotation enabled) created by the owner.
+const AURORA_MAP_ID = "d60d533e83d50b1ae948f1fb";
+const AURORA_GMAP_TILT = 60;
 // Referrer-restricted (https://zest7.jp/*) browser key, Maps JavaScript API
 // only — safe to ship in client code. The settings key overrides it.
 const DEFAULT_GMAPS_KEY = "AIzaSyDndPX8sQmYXOCwVyJtmNUXv-GWXLT6Qh8";
@@ -1034,6 +1037,7 @@ export default function Home() {
   // google.maps.Map, typed loosely because the SDK is loaded at runtime.
   const auroraGmapRef = useRef<{
     setCenter: (point: { lat: number; lng: number }) => void;
+    moveCamera: (camera: Record<string, unknown>) => void;
   } | null>(null);
   const weatherLatitude = location ? Number(location.lat.toFixed(2)) : null;
   const weatherLongitude = location ? Number(location.lng.toFixed(2)) : null;
@@ -1634,6 +1638,13 @@ export default function Home() {
     const focusPoint = location
       ? { lat: location.lat, lng: location.lng }
       : { lat: 34.6937, lng: 135.5023 };
+    const rawHeading =
+      location?.heading === null ||
+      location?.heading === undefined ||
+      Number.isNaN(location?.heading)
+        ? 0
+        : ((location.heading % 360) + 360) % 360;
+    const heading = (Math.round(rawHeading / 15) * 15) % 360;
 
     void loadGoogleMaps(apiKey)
       .then((maps) => {
@@ -1643,20 +1654,30 @@ export default function Home() {
             Map: new (
               element: HTMLElement,
               options: Record<string, unknown>,
-            ) => { setCenter: (point: { lat: number; lng: number }) => void };
+            ) => {
+              setCenter: (point: { lat: number; lng: number }) => void;
+              moveCamera: (camera: Record<string, unknown>) => void;
+            };
           };
           auroraGmapRef.current = new mapsApi.Map(auroraGmapElementRef.current, {
             center: focusPoint,
             zoom: AURORA_GMAP_ZOOM,
+            mapId: AURORA_MAP_ID,
+            colorScheme: "DARK",
+            heading,
+            tilt: AURORA_GMAP_TILT,
             disableDefaultUI: true,
             clickableIcons: false,
             gestureHandling: "none",
             keyboardShortcuts: false,
-            styles: NIGHT_MAP_STYLES,
           });
           return;
         }
-        auroraGmapRef.current.setCenter(focusPoint);
+        auroraGmapRef.current.moveCamera({
+          center: focusPoint,
+          heading,
+          tilt: AURORA_GMAP_TILT,
+        });
       })
       .catch(() => undefined);
     return () => {
@@ -2312,9 +2333,11 @@ export default function Home() {
                   <div className="aurora-map-card" aria-label="Live navigation map">
                     <div className="aurora-map-window">
                       {auroraMapKey ? (
-                        <div className="green-map-rotator" aria-hidden="true">
-                          <div ref={auroraGmapElementRef} className="aurora-gmap-canvas" />
-                        </div>
+                        <div
+                          ref={auroraGmapElementRef}
+                          className="aurora-gmap-canvas"
+                          aria-hidden="true"
+                        />
                       ) : (
                         <div className="aurora-map-placeholder">
                           <strong>GOOGLE MAP</strong>
@@ -2325,12 +2348,12 @@ export default function Home() {
                         </div>
                       )}
                       {auroraMapKey && (
-                      <div className={`aurora-compass ${locationStatus}`} aria-hidden="true">
-                        <span className="north">N</span>
-                        <span className="east">E</span>
-                        <span className="south">S</span>
-                        <span className="west">W</span>
-                      </div>
+                        <div className="aurora-north" aria-hidden="true">
+                          <i style={{ transform: `rotate(${-greenMeterHeading}deg)` }}>
+                            ▲
+                          </i>
+                          <b>N</b>
+                        </div>
                       )}
                       <div
                         className={`aurora-map-chip${
