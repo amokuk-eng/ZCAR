@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useObd2, type ObdConnectionStatus } from "./hooks/use-obd2";
 
 type CarState = "not_departed" | "departed" | "checked_out";
@@ -1476,7 +1476,7 @@ export default function Home() {
           current: "temperature_2m,weather_code,is_day",
           hourly: "temperature_2m,weather_code,is_day",
           daily: "sunrise,sunset",
-          forecast_hours: "13",
+          forecast_hours: "16",
           forecast_days: "1",
           timezone: "auto",
         });
@@ -1505,7 +1505,7 @@ export default function Home() {
         ) {
           throw new Error("Weather data unavailable");
         }
-        const hours = [3, 6].flatMap((index) => {
+        const hours = [3, 6, 9, 12, 15].flatMap((index) => {
           const time = hourly.time?.[index];
           const temperature = hourly.temperature_2m?.[index];
           const code = hourly.weather_code?.[index];
@@ -2522,7 +2522,7 @@ export default function Home() {
                       {weather ? `${Math.round(weather.temperature)}°C` : "--"}
                     </b>
                     {weather ? (
-                      <div className="aurora-weather-row" aria-label="現在から6時間先までの天気">
+                      <div className="aurora-weather-row" aria-label="現在から15時間先までの天気">
                         <span>
                           <svg viewBox="0 0 48 48" aria-hidden="true">
                             <WeatherGlyph code={weather.code} isDay={weather.isDay} x={24} y={24} size={40} />
@@ -2530,12 +2530,17 @@ export default function Home() {
                           <small>NOW</small>
                         </span>
                         {weather.hours.map((hour, index) => (
-                          <span key={hour.time}>
-                            <svg viewBox="0 0 48 48" aria-hidden="true">
-                              <WeatherGlyph code={hour.code} isDay={hour.isDay} x={24} y={24} size={40} />
-                            </svg>
-                            <small>{index === 0 ? "+3H" : "+6H"}</small>
-                          </span>
+                          <Fragment key={hour.time}>
+                            {index === 2 && (
+                              <i className="aurora-weather-divider" aria-hidden="true" />
+                            )}
+                            <span>
+                              <svg viewBox="0 0 48 48" aria-hidden="true">
+                                <WeatherGlyph code={hour.code} isDay={hour.isDay} x={24} y={24} size={40} />
+                              </svg>
+                              <small>{`+${(index + 1) * 3}H`}</small>
+                            </span>
+                          </Fragment>
                         ))}
                       </div>
                     ) : (
@@ -2716,7 +2721,7 @@ export default function Home() {
                         </svg>
                         <b>{weatherLabel(weather.code)}</b>
                       </span>
-                      {weather.hours.map((hour, index) => (
+                      {weather.hours.slice(0, 2).map((hour, index) => (
                         <span key={hour.time}>
                           <small>{index === 0 ? "+3H" : "+6H"}</small>
                           <svg viewBox="0 0 48 48" aria-hidden="true">

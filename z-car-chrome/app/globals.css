@@ -7830,8 +7830,15 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 .aurora-weather-cell > b { font-size: 21px; }
 .aurora-weather-row {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
   justify-content: flex-start;
+}
+.aurora-weather-divider {
+  align-self: stretch;
+  width: 1px;
+  margin: 2px 2px;
+  background: rgba(183, 108, 255, .35);
 }
 .aurora-weather-row span { display: grid; justify-items: center; gap: 0; }
 .aurora-weather-row svg { width: 30px; height: 30px; }
