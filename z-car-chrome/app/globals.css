@@ -7957,13 +7957,13 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 
 /* Turquoise Google Maps instrument finish */
 #app.meter-theme-green.is-fullscreen .green-gauge-map-window {
-  border-color: rgba(91, 255, 238, .78);
-  background: #000706;
+  border-color: rgba(91, 255, 110, .78);
+  background: #000701;
   box-shadow:
-    0 0 0 7px rgba(0, 8, 7, .96),
-    0 0 0 9px rgba(76, 243, 224, .2),
+    0 0 0 7px rgba(0, 8, 1, .96),
+    0 0 0 9px rgba(76, 243, 93, .2),
     inset 0 0 26px rgba(0, 0, 0, .62),
-    0 0 34px rgba(45, 232, 211, .2);
+    0 0 34px rgba(45, 232, 65, .2);
 }
 
 #app.meter-theme-green.is-fullscreen .green-gauge-map-window::before {
@@ -7973,8 +7973,8 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   inset: 0;
   border-radius: inherit;
   background:
-    linear-gradient(180deg, rgba(0, 14, 13, .3), transparent 32% 68%, rgba(0, 8, 7, .48)),
-    radial-gradient(circle at 50% 50%, rgba(28, 244, 221, .025) 0 40%, rgba(0, 5, 5, .34) 82%, rgba(0, 2, 2, .72) 100%);
+    linear-gradient(180deg, rgba(0, 14, 2, .3), transparent 32% 68%, rgba(0, 8, 1, .48)),
+    radial-gradient(circle at 50% 50%, rgba(28, 244, 52, .025) 0 40%, rgba(0, 5, 1, .34) 82%, rgba(0, 2, 0, .72) 100%);
   pointer-events: none;
 }
 
@@ -7988,9 +7988,9 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   height: 0;
   transform: translateX(-50%);
   border-right: 5px solid transparent;
-  border-bottom: 9px solid #dffffb;
+  border-bottom: 9px solid #dfffe2;
   border-left: 5px solid transparent;
-  filter: drop-shadow(0 0 6px rgba(76, 255, 236, .92));
+  filter: drop-shadow(0 0 6px rgba(76, 255, 96, .92));
   pointer-events: none;
 }
 
@@ -7998,15 +7998,15 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   inset: -3%;
   width: 106%;
   height: 106%;
-  background: #000706;
+  background: #000701;
 }
 
 #app.meter-theme-green.is-fullscreen .green-map-grid {
   opacity: 1;
   background:
-    radial-gradient(circle, transparent 0 23%, rgba(87, 255, 237, .07) 23.4% 23.8%, transparent 24.2% 45%, rgba(87, 255, 237, .055) 45.4% 45.8%, transparent 46.2%),
-    linear-gradient(90deg, transparent calc(50% - .5px), rgba(91, 255, 238, .1) 50%, transparent calc(50% + .5px)),
-    linear-gradient(transparent calc(50% - .5px), rgba(91, 255, 238, .1) 50%, transparent calc(50% + .5px));
+    radial-gradient(circle, transparent 0 23%, rgba(87, 255, 105, .07) 23.4% 23.8%, transparent 24.2% 45%, rgba(87, 255, 105, .055) 45.4% 45.8%, transparent 46.2%),
+    linear-gradient(90deg, transparent calc(50% - .5px), rgba(91, 255, 110, .1) 50%, transparent calc(50% + .5px)),
+    linear-gradient(transparent calc(50% - .5px), rgba(91, 255, 110, .1) 50%, transparent calc(50% + .5px));
   -webkit-mask-image: radial-gradient(circle, #000 0 68%, transparent 92%);
   mask-image: radial-gradient(circle, #000 0 68%, transparent 92%);
 }
@@ -8017,10 +8017,10 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   position: absolute;
   left: 50%;
   top: 50%;
-  border: 1px solid rgba(109, 255, 241, .3);
+  border: 1px solid rgba(109, 255, 127, .3);
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  box-shadow: 0 0 9px rgba(60, 242, 223, .09);
+  box-shadow: 0 0 9px rgba(60, 242, 80, .09);
 }
 
 #app.meter-theme-green.is-fullscreen .green-map-grid::before {
@@ -8031,28 +8031,28 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 #app.meter-theme-green.is-fullscreen .green-map-grid::after {
   width: 3px;
   height: 3px;
-  border-color: rgba(224, 255, 251, .88);
-  background: #8ffff4;
-  box-shadow: 0 0 8px rgba(84, 255, 236, .88);
+  border-color: rgba(224, 255, 227, .88);
+  background: #8fff9c;
+  box-shadow: 0 0 8px rgba(84, 255, 102, .88);
 }
 
 #app.meter-theme-green.is-fullscreen .green-map-vignette {
   background:
-    repeating-linear-gradient(180deg, rgba(117, 255, 242, .012) 0 1px, transparent 1px 4px),
-    radial-gradient(circle, transparent 0 55%, rgba(0, 8, 7, .12) 73%, rgba(0, 3, 3, .76) 100%);
+    repeating-linear-gradient(180deg, rgba(117, 255, 134, .012) 0 1px, transparent 1px 4px),
+    radial-gradient(circle, transparent 0 55%, rgba(0, 8, 1, .12) 73%, rgba(0, 3, 1, .76) 100%);
   box-shadow:
     inset 0 0 42px rgba(0, 0, 0, .64),
-    inset 0 0 0 1px rgba(113, 255, 241, .1);
+    inset 0 0 0 1px rgba(113, 255, 130, .1);
 }
 
 #app.meter-theme-green.is-fullscreen .green-compass-bearing {
-  border-color: rgba(94, 255, 239, .3);
+  border-color: rgba(94, 255, 113, .3);
 }
 
 #app.meter-theme-green.is-fullscreen .green-compass-bearing::before {
   background: repeating-conic-gradient(
     from 0deg,
-    rgba(105, 255, 241, .58) 0deg 1deg,
+    rgba(105, 255, 123, .58) 0deg 1deg,
     transparent 1deg 10deg
   );
 }
@@ -8060,38 +8060,46 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 #app.meter-theme-green.is-fullscreen .green-compass-bearing::after {
   background: repeating-conic-gradient(
     from 0deg,
-    rgba(225, 255, 251, .9) 0deg 1.7deg,
+    rgba(225, 255, 227, .9) 0deg 1.7deg,
     transparent 1.7deg 45deg
   );
 }
 
 #app.meter-theme-green.is-fullscreen .green-compass-bearing span {
-  color: #a9fff5;
+  color: #a9ffb2;
   text-shadow:
-    0 0 9px rgba(77, 255, 235, .76),
+    0 0 9px rgba(77, 255, 96, .76),
     0 1px 0 rgba(0, 0, 0, .92);
 }
 
 #app.meter-theme-green.is-fullscreen .green-compass-bearing .north {
-  color: #f1fffd;
+  color: #f1fff2;
 }
 
 #app.meter-theme-green.is-fullscreen .green-gauge-speed {
-  border-color: rgba(92, 255, 238, .28);
-  background: linear-gradient(90deg, transparent, rgba(0, 11, 10, .92) 14% 86%, transparent);
-  text-shadow: 0 0 13px rgba(63, 255, 234, .34);
+  border-color: rgba(92, 255, 110, .28);
+  background: linear-gradient(90deg, transparent, rgba(0, 11, 1, .92) 14% 86%, transparent);
+  text-shadow: 0 0 13px rgba(63, 255, 84, .34);
 }
 
 #app.meter-theme-green.is-fullscreen .green-gauge-speed small {
-  color: #6fcfc4;
+  color: #6fcf79;
 }
 
 #app.meter-theme-green.is-fullscreen .green-gauge-speed strong {
-  text-shadow: 0 0 21px rgba(66, 255, 234, .42);
+  text-shadow: 0 0 21px rgba(66, 255, 86, .42);
 }
 
 #app.meter-theme-green.is-fullscreen .green-gauge-speed span {
-  color: #91c8c1;
+  color: #91c896;
+}
+
+/* Tint the Google tiles into the black-and-turquoise radar palette
+   (complements the aperture treatment above). The cluster-wide
+   hue-rotate(48deg) on .performance-cluster stacks on top of this,
+   so 90deg here lands on the ring accent hue (~174) after both. */
+#app.meter-theme-green.is-fullscreen .green-nav-map-canvas {
+  filter: grayscale(1) sepia(1) hue-rotate(90deg) saturate(3.4) brightness(.92) contrast(1.4);
 }
 
 
