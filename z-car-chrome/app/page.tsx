@@ -1675,7 +1675,7 @@ export default function Home() {
             setCenter: (point: { lat: number; lng: number }) => void;
             setRadius: (radius: number) => void;
           };
-          SymbolPath: { CIRCLE: number };
+          SymbolPath: { CIRCLE: number; FORWARD_CLOSED_ARROW: number };
         };
         if (!auroraGmapRef.current) {
           const map = new mapsApi.Map(auroraGmapElementRef.current, {
@@ -1695,10 +1695,10 @@ export default function Home() {
             map,
             center: focusPoint,
             radius: accuracyRadius,
-            strokeColor: "#4285f4",
+            strokeColor: "#c26bff",
             strokeOpacity: 0.35,
             strokeWeight: 1,
-            fillColor: "#4285f4",
+            fillColor: "#c26bff",
             fillOpacity: 0.09,
             clickable: false,
           });
@@ -1707,12 +1707,13 @@ export default function Home() {
             position: focusPoint,
             clickable: false,
             icon: {
-              path: mapsApi.SymbolPath.CIRCLE,
-              scale: 9,
-              fillColor: "#4285f4",
+              path: mapsApi.SymbolPath.FORWARD_CLOSED_ARROW,
+              scale: 7,
+              fillColor: "#c26bff",
               fillOpacity: 1,
               strokeColor: "#ffffff",
-              strokeWeight: 3,
+              strokeWeight: 2,
+              rotation: 0,
             },
           });
           return;
