@@ -8101,3 +8101,116 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 #app.meter-theme-green.is-fullscreen .green-nav-map-canvas {
   filter: grayscale(1) sepia(1) hue-rotate(90deg) saturate(3.4) brightness(.92) contrast(1.4);
 }
+
+
+/* TURQUOISE BLUE palette correction
+   (colors are pre-shifted -47deg: the cluster-wide hue-rotate(48deg)
+   on .performance-cluster brings them back to the intended cyans) */
+#app.meter-theme-green.is-fullscreen {
+  --turquoise-main: #28e746;
+  --turquoise-bright: #9cffa9;
+  --turquoise-deep: #0a581e;
+  --turquoise-muted: #69aa72;
+}
+
+#app.meter-theme-green.is-fullscreen .green-nav-cluster {
+  background:
+    linear-gradient(90deg, rgba(40, 231, 70, .018) 1px, transparent 1px) 0 0 / 26px 26px,
+    linear-gradient(rgba(40, 231, 70, .018) 1px, transparent 1px) 0 0 / 26px 26px,
+    radial-gradient(ellipse at 52% 60%, rgba(12, 130, 41, .18), transparent 52%),
+    linear-gradient(180deg, #050b07, #010403 76%);
+}
+
+#app.meter-theme-green.is-fullscreen .green-nav-cluster .green-instrument-rail {
+  border-color: rgba(63, 218, 88, .22);
+  background: rgba(2, 10, 5, .95);
+  box-shadow:
+    inset 0 0 0 1px rgba(126, 255, 145, .03),
+    0 12px 24px rgba(0, 0, 0, .24);
+}
+
+#app.meter-theme-green.is-fullscreen .green-nav-cluster .green-instrument-rail::after {
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(55, 236, 82, .68) 12% 88%,
+    transparent
+  );
+  box-shadow: 0 0 7px rgba(40, 231, 70, .26);
+}
+
+#app.meter-theme-green.is-fullscreen .green-nav-cluster .green-instrument-rail > article,
+#app.meter-theme-green.is-fullscreen .green-nav-cluster .green-instrument-rail > button {
+  border-top-color: rgba(83, 222, 104, .13);
+}
+
+#app.meter-theme-green.is-fullscreen .green-instrument-rail small,
+#app.meter-theme-green.is-fullscreen .green-instrument-rail > article > span,
+#app.meter-theme-green.is-fullscreen .green-obd-card > span {
+  color: var(--turquoise-muted);
+}
+
+#app.meter-theme-green.is-fullscreen .green-map-gauge {
+  border-color: #11822e;
+  box-shadow:
+    inset 0 0 68px rgba(0, 0, 0, .96),
+    inset 0 0 0 2px rgba(84, 236, 106, .3),
+    0 0 0 3px rgba(3, 44, 14, .96),
+    0 0 0 6px rgba(26, 157, 53, .4),
+    0 0 38px rgba(40, 231, 70, .24),
+    0 18px 46px rgba(0, 0, 0, .68);
+}
+
+#app.meter-theme-green.is-fullscreen .green-map-gauge .performance-rpm-track {
+  background: repeating-conic-gradient(
+    from 210deg,
+    rgba(24, 89, 38, .84) 0 4.2deg,
+    transparent 4.2deg 6deg
+  );
+  filter: drop-shadow(0 0 4px rgba(40, 231, 70, .28));
+}
+
+#app.meter-theme-green.is-fullscreen .green-map-gauge .performance-rpm-track::after {
+  background: repeating-conic-gradient(
+    from 210deg,
+    var(--turquoise-bright) 0 4.2deg,
+    transparent 4.2deg 6deg
+  );
+  filter: drop-shadow(0 0 5px rgba(77, 255, 103, .86));
+}
+
+#app.meter-theme-green.is-fullscreen .green-map-gauge .performance-rpm-title,
+#app.meter-theme-green.is-fullscreen .green-map-gauge .performance-rpm-labels,
+#app.meter-theme-green.is-fullscreen .green-map-gauge .performance-rpm-digital small,
+#app.meter-theme-green.is-fullscreen .green-map-gauge .performance-rpm-digital span {
+  color: #79c884;
+}
+
+#app.meter-theme-green.is-fullscreen .green-map-gauge .performance-rpm-digital b {
+  color: #edffef;
+  text-shadow: 0 0 12px rgba(40, 231, 70, .36);
+}
+
+#app.meter-theme-green.is-fullscreen .green-weather .weather-glyph {
+  color: #7eff90;
+  filter: drop-shadow(0 0 5px rgba(40, 231, 70, .48));
+}
+
+#app.meter-theme-green.is-fullscreen .green-range-scale i,
+#app.meter-theme-green.is-fullscreen .green-speed-scale i {
+  background: linear-gradient(90deg, #0b6921, #55f56c);
+  box-shadow: 0 0 9px rgba(40, 231, 70, .68);
+}
+
+#app.meter-theme-green.is-fullscreen .green-map-footer span i {
+  background: #62f878;
+  box-shadow: 0 0 7px rgba(40, 231, 70, .88);
+}
+
+#app.meter-theme-green.is-fullscreen .green-world-times-card,
+#app.meter-theme-green.is-fullscreen .green-average-fuel-card {
+  box-shadow:
+    inset 3px 0 var(--turquoise-main),
+    inset 0 1px rgba(255, 255, 255, .025),
+    0 8px 20px rgba(0, 0, 0, .22);
+}
