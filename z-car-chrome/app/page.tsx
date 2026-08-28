@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import type { Map as LeafletMap } from "leaflet";
 import { useObd2, type ObdConnectionStatus } from "./hooks/use-obd2";
 
 type CarState = "not_departed" | "departed" | "checked_out";
@@ -1032,7 +1031,10 @@ export default function Home() {
     setRadius: (radius: number) => void;
   } | null>(null);
   const greenMapElementRef = useRef<HTMLDivElement>(null);
-  const greenLeafletMapRef = useRef<LeafletMap | null>(null);
+  const greenGmapRef = useRef<{
+    setCenter: (point: { lat: number; lng: number }) => void;
+    moveCamera: (camera: Record<string, unknown>) => void;
+  } | null>(null);
   const auroraGmapElementRef = useRef<HTMLDivElement>(null);
   // google.maps.Map, typed loosely because the SDK is loaded at runtime.
   const auroraGmapRef = useRef<{
@@ -1161,8 +1163,7 @@ export default function Home() {
       homeGmapRef.current = null;
       homeGmapMarkerRef.current = null;
       homeGmapCircleRef.current = null;
-      greenLeafletMapRef.current?.remove();
-      greenLeafletMapRef.current = null;
+      greenGmapRef.current = null;
     };
   }, []);
 
@@ -1624,8 +1625,7 @@ export default function Home() {
 
   useEffect(() => {
     if (showMeter && settings.meterTheme === "green") return;
-    greenLeafletMapRef.current?.remove();
-    greenLeafletMapRef.current = null;
+    greenGmapRef.current = null;
   }, [showMeter, settings.meterTheme]);
 
   useEffect(() => {
@@ -1736,74 +1736,54 @@ export default function Home() {
     if (
       !showMeter ||
       settings.meterTheme !== "green" ||
+      !auroraMapKey ||
       !greenMapElementRef.current
     ) return;
     let cancelled = false;
+    const focusPoint = location
+      ? { lat: location.lat, lng: location.lng }
+      : { lat: 34.6937, lng: 135.5023 };
+    const rawHeading =
+      location?.heading === null ||
+      location?.heading === undefined ||
+      Number.isNaN(location?.heading)
+        ? 0
+        : ((location.heading % 360) + 360) % 360;
+    const heading = (Math.round(rawHeading / 15) * 15) % 360;
 
-    const updateGreenMap = async () => {
-      const L = await import("leaflet");
-      if (cancelled || !greenMapElementRef.current) return;
-      const fallbackPoint: [number, number] = [34.6937, 135.5023];
-      const focusPoint = !location
-        ? fallbackPoint
-        : ([location.lat, location.lng] as [number, number]);
-
-      if (!greenLeafletMapRef.current) {
-        const map = L.map(greenMapElementRef.current, {
-          zoomControl: false,
-          attributionControl: false,
-          dragging: false,
-          scrollWheelZoom: false,
-          touchZoom: false,
-          doubleClickZoom: false,
-          boxZoom: false,
-          keyboard: false,
-          zoomAnimation: false,
-          fadeAnimation: false,
-          markerZoomAnimation: false,
-        }).setView(focusPoint, GREEN_METER_MAP_ZOOM);
-
-        L.tileLayer(
-          "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
-          { subdomains: "abcd", maxZoom: 20, crossOrigin: true },
-        ).addTo(map);
-        greenLeafletMapRef.current = map;
-        window.requestAnimationFrame(() => map.invalidateSize({ pan: false }));
-        window.setTimeout(() => map.invalidateSize({ pan: false }), 180);
-        window.setTimeout(() => map.invalidateSize({ pan: false }), 650);
-        return;
-      }
-
-      greenLeafletMapRef.current.setView(focusPoint, GREEN_METER_MAP_ZOOM, {
-        animate: false,
-      });
-    };
-
-    void updateGreenMap();
+    void loadGoogleMaps(auroraMapKey)
+      .then((maps) => {
+        if (cancelled || !greenMapElementRef.current) return;
+        const mapsApi = maps as {
+          Map: new (
+            element: HTMLElement,
+            options: Record<string, unknown>,
+          ) => {
+            setCenter: (point: { lat: number; lng: number }) => void;
+            moveCamera: (camera: Record<string, unknown>) => void;
+          };
+        };
+        if (!greenGmapRef.current) {
+          greenGmapRef.current = new mapsApi.Map(greenMapElementRef.current, {
+            center: focusPoint,
+            zoom: GREEN_METER_MAP_ZOOM,
+            mapId: AURORA_MAP_ID,
+            colorScheme: "DARK",
+            heading,
+            disableDefaultUI: true,
+            clickableIcons: false,
+            gestureHandling: "none",
+            keyboardShortcuts: false,
+          });
+          return;
+        }
+        greenGmapRef.current.moveCamera({ center: focusPoint, heading });
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [showMeter, location, settings.meterTheme]);
-
-  useEffect(() => {
-    if (
-      !showMeter ||
-      settings.meterTheme !== "green" ||
-      !greenMapElementRef.current
-    ) return;
-    const element = greenMapElementRef.current;
-    const refreshMapSize = () =>
-      greenLeafletMapRef.current?.invalidateSize({ pan: false });
-    const observer = new ResizeObserver(refreshMapSize);
-    observer.observe(element);
-    const firstRefresh = window.setTimeout(refreshMapSize, 60);
-    const finalRefresh = window.setTimeout(refreshMapSize, 500);
-    return () => {
-      observer.disconnect();
-      window.clearTimeout(firstRefresh);
-      window.clearTimeout(finalRefresh);
-    };
-  }, [showMeter, settings.meterTheme]);
+  }, [showMeter, location, settings.meterTheme, auroraMapKey]);
 
   useEffect(() => {
     if (!ready) return;
@@ -2796,9 +2776,11 @@ export default function Home() {
                 <small className="performance-rpm-title">ENGINE SPEED · ×1000 RPM</small>
 
                 <div className="green-gauge-map-window">
-                  <div className="green-map-rotator" aria-hidden="true">
-                    <div ref={greenMapElementRef} className="green-nav-map-canvas" />
-                  </div>
+                  <div
+                    ref={greenMapElementRef}
+                    className="green-nav-map-canvas"
+                    aria-hidden="true"
+                  />
                   <div className="green-map-grid" aria-hidden="true" />
                   <div className="green-map-vignette" aria-hidden="true" />
                   <div className={`green-compass-bearing ${locationStatus}`} aria-hidden="true">
@@ -2812,7 +2794,6 @@ export default function Home() {
                     <strong>{greenCenterSpeed ?? "—"}</strong>
                     <span>km/h</span>
                   </div>
-                  <a className="green-gauge-attribution" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OSM</a>
                 </div>
 
                 <div className="performance-rpm-digital">
