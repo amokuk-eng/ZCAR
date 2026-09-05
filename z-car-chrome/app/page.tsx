@@ -29,7 +29,7 @@ type Settings = {
   state: CarState;
   departedAt: string;
   checkedOutAt: string;
-  meterTheme: "green" | "red-triple" | "aurora" | "eva";
+  meterTheme: "green" | "eva";
 };
 type RouteEta = {
   arrivalAt: number;
@@ -128,26 +128,11 @@ const HOME_RANDOM_PLAYLISTS = [
 const FUEL_TANK_CAPACITY_L = 36;
 const FUEL_RESERVE_L = 4;
 const GREEN_METER_MAP_ZOOM = 12;
-const AURORA_GMAP_ZOOM = 15;
-// Vector map id (tilt + rotation enabled) created by the owner.
-const AURORA_MAP_ID = "d60d533e83d50b1ae948f1fb";
-const AURORA_GMAP_TILT = 60;
-// Chase-view 3D arrow for the aurora location marker (data-URI icon).
-const AURORA_ARROW_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-  <ellipse cx="24" cy="40" rx="11" ry="4" fill="rgba(0,0,0,0.4)"/>
-  <path d="M24 3 L41 39 L24 30 Z" fill="#d9a0ff"/>
-  <path d="M24 3 L7 39 L24 30 Z" fill="#8b3fd6"/>
-  <path d="M24 30 L41 39 L24 36 L7 39 Z" fill="#5f2496"/>
-  <path d="M24 3 L41 39 L24 30 L7 39 Z" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linejoin="round"/>
-</svg>`;
-const AURORA_ARROW_ICON_URL = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
-  AURORA_ARROW_SVG,
-)}`;
 // Referrer-restricted (https://zest7.jp/*) browser key, Maps JavaScript API
 // only — safe to ship in client code. The settings key overrides it.
 const DEFAULT_GMAPS_KEY = "AIzaSyDndPX8sQmYXOCwVyJtmNUXv-GWXLT6Qh8";
 
-// Google's night-mode map styling, shared by the home and aurora maps.
+// Google's night-mode map styling, shared by the home and meter maps.
 const NIGHT_MAP_STYLES = [
   { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
   { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
@@ -410,181 +395,6 @@ function WeatherGlyph({
   );
 }
 
-function RedSideGauge({
-  side, label, level, value, unit, topMark, bottomMark, detail,
-}: {
-  side: "left" | "right";
-  label: string;
-  level: number;
-  value: number | string;
-  unit: string;
-  topMark: string;
-  bottomMark: string;
-  detail?: string;
-}) {
-  const left = side === "left";
-  const centerX = left ? 210 : -20;
-  const angles = Array.from({ length: 9 }, (_, index) =>
-    left ? 130 + index * 12.5 : 50 - index * 12.5,
-  );
-  const arcPath = left
-    ? "M 123.2 263.4 A 135 135 0 0 1 123.2 56.6"
-    : "M 66.8 263.4 A 135 135 0 0 0 66.8 56.6";
-
-  return (
-    <aside className={`red-side-gauge ${side}`}>
-      <small>{label}</small>
-      <svg viewBox="0 0 190 320" role="img" aria-label={`${label} ${value} ${unit}`}>
-        <path className="red-side-outer" d={arcPath} />
-        <path className="red-side-track" d={arcPath} pathLength="100" />
-        <path
-          className="red-side-active"
-          d={arcPath}
-          pathLength="100"
-          style={{ strokeDasharray: `${Math.max(0, Math.min(100, level))} 100` }}
-        />
-        <g className="red-side-ticks" aria-hidden="true">
-          {angles.map((angle, index) => {
-            const inner = svgPoint(centerX, 160, index % 4 === 0 ? 119 : 124, angle + 90);
-            const outer = svgPoint(centerX, 160, 143, angle + 90);
-            return <line key={angle} x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} />;
-          })}
-        </g>
-        <text className="red-side-mark top" x={left ? 126 : 64} y="48">{topMark}</text>
-        <text className="red-side-mark bottom" x={left ? 126 : 64} y="282">{bottomMark}</text>
-      </svg>
-      <div className="red-side-reading"><strong>{value}</strong><em>{unit}</em></div>
-      {detail && <b>{detail}</b>}
-    </aside>
-  );
-}
-
-function RedTachometer({ rpm, speed }: { rpm: number | null; speed: number | null }) {
-  const progress = Math.max(0, Math.min(260, ((rpm ?? 0) / 8000) * 260));
-  const style = { "--needle-angle": `${-130 + progress}deg` } as CSSProperties;
-  const tickAngles = Array.from({ length: 41 }, (_, index) => -130 + index * 6.5);
-  const digits = Array.from({ length: 9 }, (_, index) => ({
-    index,
-    point: svgPoint(210, 210, 158, -130 + index * 32.5),
-  }));
-
-  return (
-    <article className="red-tachometer" style={style} aria-label={`Engine ${rpm ?? 0} RPM, speed ${speed ?? 0} kilometers per hour`}>
-      <svg className="red-tach-svg" viewBox="0 0 420 420" role="img">
-        <defs>
-          <radialGradient id="redDialFace" cx="50%" cy="44%" r="62%">
-            <stop offset="0%" stopColor="#161315" />
-            <stop offset="70%" stopColor="#050405" />
-            <stop offset="100%" stopColor="#000" />
-          </radialGradient>
-          <linearGradient id="redMetalRing" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#242124" />
-            <stop offset="28%" stopColor="#aaa5a8" />
-            <stop offset="52%" stopColor="#383437" />
-            <stop offset="78%" stopColor="#8c878a" />
-            <stop offset="100%" stopColor="#171517" />
-          </linearGradient>
-        </defs>
-        <circle className="red-tach-shadow" cx="210" cy="210" r="198" />
-        <circle className="red-tach-metal" cx="210" cy="210" r="188" fill="none" stroke="url(#redMetalRing)" />
-        <circle className="red-tach-face" cx="210" cy="210" r="176" fill="url(#redDialFace)" />
-        <path className="red-tach-white-band" d={svgArc(210, 210, 164, -130, 97.5)} />
-        <path className="red-tach-red-band" d={svgArc(210, 210, 164, 97.5, 130)} />
-        <g className="red-tach-ticks" aria-hidden="true">
-          {tickAngles.map((angle, index) => {
-            const major = index % 5 === 0;
-            const inner = svgPoint(210, 210, major ? 140 : 148, angle);
-            const outer = svgPoint(210, 210, 174, angle);
-            return <line key={angle} x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} />;
-          })}
-        </g>
-        <g className="red-tach-digits">
-          {digits.map(({ index, point }) => (
-            <text key={index} className={index >= 7 ? "red-zone-number" : "white-zone-number"} x={point.x} y={point.y}>{index}</text>
-          ))}
-        </g>
-        <g className="red-tach-needle" aria-hidden="true">
-          <line x1="210" y1="224" x2="210" y2="76" />
-          <circle cx="210" cy="210" r="15" />
-          <circle cx="210" cy="210" r="6" />
-        </g>
-        <circle className="red-speed-disc" cx="210" cy="210" r="87" />
-        <text className="red-speed-label" x="210" y="164">SPEED</text>
-        <text className="red-speed-value" x="210" y="222">{speed ?? "—"}</text>
-        <text className="red-speed-unit" x="210" y="246">km/h</text>
-        <line className="red-speed-rule" x1="164" y1="263" x2="256" y2="263" />
-        <text className="red-rpm-caption" x="210" y="283">ENGINE ×1000 RPM</text>
-      </svg>
-    </article>
-  );
-}
-
-const sevenSegmentMap: Record<string, number[]> = {
-  "0": [0, 1, 2, 3, 4, 5],
-  "1": [1, 2],
-  "2": [0, 1, 6, 4, 3],
-  "3": [0, 1, 6, 2, 3],
-  "4": [5, 6, 1, 2],
-  "5": [0, 5, 6, 2, 3],
-  "6": [0, 5, 6, 4, 2, 3],
-  "7": [0, 1, 2],
-  "8": [0, 1, 2, 3, 4, 5, 6],
-  "9": [0, 1, 2, 3, 5, 6],
-  "-": [6],
-};
-
-const sevenSegmentRects = [
-  { x: 4, y: 0, width: 18, height: 4 },
-  { x: 22, y: 4, width: 4, height: 18 },
-  { x: 22, y: 26, width: 4, height: 18 },
-  { x: 4, y: 44, width: 18, height: 4 },
-  { x: 0, y: 26, width: 4, height: 18 },
-  { x: 0, y: 4, width: 4, height: 18 },
-  { x: 4, y: 22, width: 18, height: 4 },
-];
-
-function SevenSegmentNumber({
-  value,
-  x,
-  y,
-  scale,
-  className,
-}: {
-  value: number | null;
-  x: number;
-  y: number;
-  scale: number;
-  className: string;
-}) {
-  const characters = value === null ? ["-"] : String(Math.max(0, Math.round(value))).split("");
-  const cellWidth = 31;
-  const totalWidth = (characters.length * cellWidth - 5) * scale;
-
-  return (
-    <g
-      className={className}
-      transform={`translate(${x - totalWidth / 2} ${y}) scale(${scale})`}
-      aria-hidden="true"
-    >
-      {characters.map((character, characterIndex) => {
-        const activeSegments = sevenSegmentMap[character] ?? sevenSegmentMap["-"];
-        return (
-          <g key={`${character}-${characterIndex}`} transform={`translate(${characterIndex * cellWidth} 0)`}>
-            {sevenSegmentRects.map((segment, segmentIndex) => (
-              <rect
-                key={segmentIndex}
-                {...segment}
-                rx="1.4"
-                className={activeSegments.includes(segmentIndex) ? "active" : "inactive"}
-              />
-            ))}
-          </g>
-        );
-      })}
-    </g>
-  );
-}
-
 function EvaCockpit({
   rpm,
   speed,
@@ -717,236 +527,6 @@ function EvaCockpit({
   );
 }
 
-function RedCockpit({
-  rpm,
-  speed,
-  coolant,
-  voltage,
-  weather,
-  weatherStatus,
-}: {
-  rpm: number | null;
-  speed: number | null;
-  coolant: number | null;
-  voltage: number | null;
-  weather: WeatherData | null;
-  weatherStatus: "idle" | "loading" | "ready" | "error";
-}) {
-  const rpmLevel = Math.max(0, Math.min(100, ((rpm ?? 0) / 8000) * 100));
-  const coolantLevel = Math.max(0, Math.min(100, (((coolant ?? 40) - 40) / 80) * 100));
-  const needleAngle = -130 + rpmLevel * 2.6;
-  const mainTicks = Array.from({ length: 41 }, (_, index) => -130 + index * 6.5);
-  const digits = Array.from({ length: 9 }, (_, index) => ({
-    index,
-    point: svgPoint(490, 205, 132, -130 + index * 32.5),
-  }));
-  const sideSegments = Array.from({ length: 16 }, (_, index) => {
-    const startAngle = -143 + index * 6.75;
-    return {
-      index,
-      path: svgArcForward(490, 205, 242, startAngle, startAngle + 4.8),
-    };
-  });
-  const activeCoolantBars = Math.round((coolantLevel / 100) * sideSegments.length);
-  const activeRpmBars = Math.round((rpmLevel / 100) * sideSegments.length);
-  const centerSpeed = speed === null ? null : Math.round(speed);
-  const forecastPoints = weather?.hours.slice(0, 4) ?? [];
-  const mainArc = svgArcForward(490, 205, 169, -130, 130);
-  const leftArc = svgArcForward(490, 205, 242, -145, -35);
-  const style = { "--cockpit-needle": `${needleAngle}deg` } as CSSProperties;
-
-  return (
-    <div className="red-cockpit" style={style}>
-      <svg className="red-cockpit-svg" viewBox="0 0 980 410" role="img" aria-label={`Speed ${speed ?? 0} kilometers per hour, engine ${rpm ?? 0} RPM, coolant ${coolant ?? 0} degrees`}>
-        <defs>
-          <radialGradient id="cockpitFace" cx="50%" cy="44%" r="64%">
-            <stop offset="0%" stopColor="#171419" />
-            <stop offset="62%" stopColor="#070607" />
-            <stop offset="100%" stopColor="#010102" />
-          </radialGradient>
-          <linearGradient id="cockpitMetal" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#262329" />
-            <stop offset="22%" stopColor="#89848a" />
-            <stop offset="48%" stopColor="#242126" />
-            <stop offset="75%" stopColor="#706b70" />
-            <stop offset="100%" stopColor="#171519" />
-          </linearGradient>
-          <linearGradient id="cockpitSideMetal" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#080709" />
-            <stop offset="28%" stopColor="#565158" />
-            <stop offset="48%" stopColor="#171419" />
-            <stop offset="72%" stopColor="#777178" />
-            <stop offset="100%" stopColor="#09080a" />
-          </linearGradient>
-          <linearGradient id="cockpitTrackMetal" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#5c565d" />
-            <stop offset="50%" stopColor="#211e22" />
-            <stop offset="100%" stopColor="#4a454b" />
-          </linearGradient>
-          <radialGradient id="cockpitGlass" cx="38%" cy="24%" r="76%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity=".13" />
-            <stop offset="28%" stopColor="#ffffff" stopOpacity=".025" />
-            <stop offset="63%" stopColor="#000000" stopOpacity="0" />
-            <stop offset="100%" stopColor="#000000" stopOpacity=".2" />
-          </radialGradient>
-          <linearGradient id="cockpitDigitalScreen" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#16070b" />
-            <stop offset="48%" stopColor="#070305" />
-            <stop offset="100%" stopColor="#020102" />
-          </linearGradient>
-          <filter id="cockpitGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
-
-        <path className="cockpit-wing-line" d="M 40 205 H 236" />
-        <path className="cockpit-wing-line" d="M 744 205 H 940" />
-
-        <g className="cockpit-outside-temperature">
-          <text className="cockpit-weather-eyebrow" x="132" y="48">OUTSIDE TEMP</text>
-          <text className="cockpit-outside-value" x="124" y="112">
-            {weather ? Math.round(weather.temperature) : "—"}
-          </text>
-          <text className="cockpit-outside-unit" x="175" y="112">°C</text>
-          <line className="cockpit-weather-rule" x1="78" y1="132" x2="186" y2="132" />
-          <text className="cockpit-weather-source" x="132" y="151">
-            {weatherStatus === "error" ? "LOCATION UNAVAILABLE" : weatherStatus === "ready" ? "CURRENT LOCATION" : "LOCATING"}
-          </text>
-        </g>
-
-        <g className="cockpit-weather-forecast">
-          <text className="cockpit-weather-eyebrow" x="848" y="34">12 HOUR FORECAST</text>
-          {weather ? (
-            <>
-              <WeatherGlyph code={weather.code} isDay={weather.isDay} x={848} y={71} size={44} />
-              <text className="cockpit-weather-condition" x="848" y="105">{weatherLabel(weather.code)}</text>
-              <g className="cockpit-hourly-weather">
-                {forecastPoints.map((point, index) => {
-                  const x = 790 + index * 39;
-                  return (
-                    <g key={`${point.time}-${index}`}>
-                      <text className="cockpit-hour-time" x={x} y="128">{point.time}</text>
-                      <WeatherGlyph code={point.code} isDay={point.isDay} x={x} y={150} size={18} />
-                      <text className="cockpit-hour-temp" x={x} y="181">{Math.round(point.temperature)}°</text>
-                    </g>
-                  );
-                })}
-              </g>
-            </>
-          ) : (
-            <text className="cockpit-weather-wait" x="848" y="96">
-              {weatherStatus === "error" ? "WEATHER UNAVAILABLE" : "ACQUIRING WEATHER"}
-            </text>
-          )}
-        </g>
-
-        <path className="cockpit-readout-frame" d="M 48 82 H 172 L 210 120 V 238 H 48 Z" transform="translate(0 140)" />
-        <path className="cockpit-readout-frame right" d="M 932 82 H 808 L 770 120 V 238 H 932 Z" transform="translate(0 140)" />
-
-        <g className="cockpit-side-geometry left">
-          <path className="cockpit-side-bezel" d={leftArc} />
-          <path className="cockpit-side-shell" d={leftArc} />
-          <path className="cockpit-side-track" d={leftArc} pathLength="100" />
-          <g className="cockpit-digital-graph" aria-hidden="true">
-            {sideSegments.map(({ index, path }) => (
-              <path
-                key={index}
-                className={`cockpit-digital-bar${index < activeCoolantBars ? " active" : ""}${index === activeCoolantBars - 1 ? " peak" : ""}`}
-                d={path}
-              />
-            ))}
-          </g>
-          <path className="cockpit-side-highlight" d={leftArc} />
-        </g>
-
-        <g className="cockpit-side-readout left">
-          <g transform="translate(0 140)">
-            <text className="cockpit-side-title" x="132" y="112">COOLANT</text>
-            <text className="cockpit-side-number" x="132" y="178">{coolant ?? "—"}</text>
-            <text className="cockpit-side-unit" x="132" y="202">°C</text>
-          </g>
-          <text className="cockpit-side-limit" x="292" y="48">H</text>
-          <text className="cockpit-side-limit" x="292" y="374">C</text>
-        </g>
-
-        <g className="cockpit-side-geometry right" transform="translate(980 0) scale(-1 1)">
-          <path className="cockpit-side-bezel" d={leftArc} />
-          <path className="cockpit-side-shell" d={leftArc} />
-          <path className="cockpit-side-track" d={leftArc} pathLength="100" />
-          <g className="cockpit-digital-graph" aria-hidden="true">
-            {sideSegments.map(({ index, path }) => (
-              <path
-                key={index}
-                className={`cockpit-digital-bar${index < activeRpmBars ? " active" : ""}${index === activeRpmBars - 1 ? " peak" : ""}`}
-                d={path}
-              />
-            ))}
-          </g>
-          <path className="cockpit-side-highlight" d={leftArc} />
-        </g>
-
-        <g className="cockpit-side-readout right">
-          <g transform="translate(0 140)">
-            <text className="cockpit-side-title" x="848" y="112">VOLTAGE</text>
-            <text className="cockpit-side-number" x="848" y="178">{voltage?.toFixed(1) ?? "—"}</text>
-            <text className="cockpit-side-unit" x="848" y="202">V</text>
-            <text className="cockpit-side-detail" x="848" y="222">BATTERY SYSTEM</text>
-          </g>
-          <text className="cockpit-side-limit" x="688" y="48">8</text>
-          <text className="cockpit-side-limit" x="688" y="374">0</text>
-        </g>
-
-        <circle className="cockpit-main-shadow" cx="490" cy="205" r="196" />
-        <circle className="cockpit-main-metal" cx="490" cy="205" r="188" fill="none" stroke="url(#cockpitMetal)" />
-        <circle className="cockpit-main-face" cx="490" cy="205" r="179" fill="url(#cockpitFace)" />
-        <circle className="cockpit-main-inner-ring" cx="490" cy="205" r="175" />
-        <path className="cockpit-main-bezel-shine" d={svgArcForward(490, 205, 188, -126, -18)} />
-        <path className="cockpit-main-track" d={mainArc} />
-        <path className="cockpit-main-progress" d={mainArc} pathLength="100" style={{ strokeDasharray: `${rpmLevel} 100` }} />
-        <path className="cockpit-redline" d={svgArcForward(490, 205, 169, 97.5, 130)} />
-
-        <g className="cockpit-main-ticks">
-          {mainTicks.map((angle, index) => {
-            const major = index % 5 === 0;
-            const inner = svgPoint(490, 205, major ? 148 : 155, angle);
-            const outer = svgPoint(490, 205, 174, angle);
-            return <line key={angle} className={index >= 35 ? "hot" : undefined} x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} />;
-          })}
-        </g>
-
-        <g className="cockpit-main-digits">
-          {digits.map(({ index, point }) => (
-            <text key={index} className={index >= 7 ? "hot" : undefined} x={point.x} y={point.y}>{index}</text>
-          ))}
-        </g>
-
-        <g className="cockpit-needle">
-          <line x1="490" y1="220" x2="490" y2="64" />
-        </g>
-
-        <circle className="cockpit-speed-ring" cx="490" cy="205" r="83" />
-        <circle className="cockpit-speed-face" cx="490" cy="205" r="77" />
-        <circle className="cockpit-speed-glass" cx="490" cy="205" r="75" />
-        <text className="cockpit-speed-label" x="490" y="145">SPEED</text>
-        <SevenSegmentNumber value={centerSpeed} x={490} y={177} scale={1.3} className="cockpit-speed-segments" />
-        <text className="cockpit-speed-unit" x="490" y="238">km/h</text>
-        <line className="cockpit-speed-divider" x1="450" y1="254" x2="530" y2="254" />
-        <text className="cockpit-rpm-label" x="490" y="273">×1000 RPM</text>
-
-        <g className="cockpit-rpm-digital">
-          <path className="cockpit-rpm-digital-frame" d="M 426 304 H 554 L 564 314 V 354 L 554 364 H 426 L 416 354 V 314 Z" />
-          <path className="cockpit-rpm-digital-screen" d="M 432 309 H 548 L 558 319 V 349 L 548 359 H 432 L 422 349 V 319 Z" />
-          <line className="cockpit-rpm-digital-accent" x1="438" y1="312" x2="542" y2="312" />
-          <text className="cockpit-rpm-digital-label" x="490" y="318">ENGINE RPM</text>
-          <SevenSegmentNumber value={rpm} x={478} y={329} scale={0.64} className="cockpit-rpm-segments" />
-          <text className="cockpit-rpm-digital-unit" x="540" y="344">rpm</text>
-        </g>
-      </svg>
-    </div>
-  );
-}
-
 // ビルド時刻(JST)。反映確認用に起動画面の隅に表示する。
 const BUILD_STAMP = (() => {
   const iso = process.env.NEXT_PUBLIC_BUILD_TIME;
@@ -1056,19 +636,6 @@ export default function Home() {
     setCenter: (point: { lat: number; lng: number }) => void;
     moveCamera: (camera: Record<string, unknown>) => void;
   } | null>(null);
-  const auroraGmapElementRef = useRef<HTMLDivElement>(null);
-  // google.maps.Map, typed loosely because the SDK is loaded at runtime.
-  const auroraGmapRef = useRef<{
-    setCenter: (point: { lat: number; lng: number }) => void;
-    moveCamera: (camera: Record<string, unknown>) => void;
-  } | null>(null);
-  const auroraGmapMarkerRef = useRef<{
-    setPosition: (point: { lat: number; lng: number }) => void;
-  } | null>(null);
-  const auroraGmapCircleRef = useRef<{
-    setCenter: (point: { lat: number; lng: number }) => void;
-    setRadius: (radius: number) => void;
-  } | null>(null);
   const weatherLatitude = location ? Number(location.lat.toFixed(2)) : null;
   const weatherLongitude = location ? Number(location.lng.toFixed(2)) : null;
   const weatherLocationKey =
@@ -1083,6 +650,11 @@ export default function Home() {
         ...defaults,
         ...stored,
         carId: !stored.carId || stored.carId === "CAR-01" ? "Tanto" : stored.carId,
+        // 廃止したテーマ(RED / AURORA VIOLET)が保存されていたら初期値に戻す。
+        meterTheme:
+          stored.meterTheme === "green" || stored.meterTheme === "eva"
+            ? stored.meterTheme
+            : defaults.meterTheme,
       });
       const savedFuelTrip = Number.parseFloat(
         localStorage.getItem("zcar-fuel-trip-km") || "0",
@@ -1562,7 +1134,7 @@ export default function Home() {
     };
   }, [weatherLocationKey]);
 
-  const auroraMapKey = settings.googleRoutesApiKey.trim() || DEFAULT_GMAPS_KEY;
+  const mapsApiKey = settings.googleRoutesApiKey.trim() || DEFAULT_GMAPS_KEY;
 
   useEffect(() => {
     if (!location || !liveMapElementRef.current) return;
@@ -1570,7 +1142,7 @@ export default function Home() {
     const point = { lat: location.lat, lng: location.lng };
     const accuracyRadius = Math.max(5, location.accuracy);
 
-    void loadGoogleMaps(auroraMapKey)
+    void loadGoogleMaps(mapsApiKey)
       .then((maps) => {
         if (cancelled || !liveMapElementRef.current) return;
         const mapsApi = maps as {
@@ -1635,7 +1207,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [location, auroraMapKey, showMeter, showFuel, showMusic]);
+  }, [location, mapsApiKey, showMeter, showFuel, showMusic]);
 
   useEffect(() => {
     if (!showMeter && !showFuel && !showMusic) return;
@@ -1650,113 +1222,10 @@ export default function Home() {
   }, [showMeter, settings.meterTheme]);
 
   useEffect(() => {
-    if (showMeter && settings.meterTheme === "aurora") return;
-    auroraGmapRef.current = null;
-    auroraGmapMarkerRef.current = null;
-    auroraGmapCircleRef.current = null;
-  }, [showMeter, settings.meterTheme]);
-
-  useEffect(() => {
-    const apiKey = auroraMapKey;
-    if (
-      !showMeter ||
-      settings.meterTheme !== "aurora" ||
-      !apiKey ||
-      !auroraGmapElementRef.current
-    ) return;
-    let cancelled = false;
-    const focusPoint = location
-      ? { lat: location.lat, lng: location.lng }
-      : { lat: 34.6937, lng: 135.5023 };
-    const rawHeading =
-      location?.heading === null ||
-      location?.heading === undefined ||
-      Number.isNaN(location?.heading)
-        ? 0
-        : ((location.heading % 360) + 360) % 360;
-    const heading = (Math.round(rawHeading / 15) * 15) % 360;
-
-    const accuracyRadius = Math.max(5, location?.accuracy ?? 5);
-
-    void loadGoogleMaps(apiKey)
-      .then((maps) => {
-        if (cancelled || !auroraGmapElementRef.current) return;
-        const mapsApi = maps as {
-          Map: new (
-            element: HTMLElement,
-            options: Record<string, unknown>,
-          ) => {
-            setCenter: (point: { lat: number; lng: number }) => void;
-            moveCamera: (camera: Record<string, unknown>) => void;
-          };
-          Marker: new (options: Record<string, unknown>) => {
-            setPosition: (point: { lat: number; lng: number }) => void;
-          };
-          Circle: new (options: Record<string, unknown>) => {
-            setCenter: (point: { lat: number; lng: number }) => void;
-            setRadius: (radius: number) => void;
-          };
-          SymbolPath: { CIRCLE: number; FORWARD_CLOSED_ARROW: number };
-          Size: new (width: number, height: number) => unknown;
-          Point: new (x: number, y: number) => unknown;
-        };
-        if (!auroraGmapRef.current) {
-          const map = new mapsApi.Map(auroraGmapElementRef.current, {
-            center: focusPoint,
-            zoom: AURORA_GMAP_ZOOM,
-            mapId: AURORA_MAP_ID,
-            colorScheme: "DARK",
-            heading,
-            tilt: AURORA_GMAP_TILT,
-            disableDefaultUI: true,
-            clickableIcons: false,
-            gestureHandling: "none",
-            keyboardShortcuts: false,
-          });
-          auroraGmapRef.current = map;
-          auroraGmapCircleRef.current = new mapsApi.Circle({
-            map,
-            center: focusPoint,
-            radius: accuracyRadius,
-            strokeColor: "#c26bff",
-            strokeOpacity: 0.35,
-            strokeWeight: 1,
-            fillColor: "#c26bff",
-            fillOpacity: 0.09,
-            clickable: false,
-          });
-          auroraGmapMarkerRef.current = new mapsApi.Marker({
-            map,
-            position: focusPoint,
-            clickable: false,
-            icon: {
-              url: AURORA_ARROW_ICON_URL,
-              scaledSize: new mapsApi.Size(46, 46),
-              anchor: new mapsApi.Point(23, 24),
-            },
-          });
-          return;
-        }
-        auroraGmapMarkerRef.current?.setPosition(focusPoint);
-        auroraGmapCircleRef.current?.setCenter(focusPoint);
-        auroraGmapCircleRef.current?.setRadius(accuracyRadius);
-        auroraGmapRef.current.moveCamera({
-          center: focusPoint,
-          heading,
-          tilt: AURORA_GMAP_TILT,
-        });
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [showMeter, settings.meterTheme, auroraMapKey, location]);
-
-  useEffect(() => {
     if (
       !showMeter ||
       settings.meterTheme !== "green" ||
-      !auroraMapKey ||
+      !mapsApiKey ||
       !greenMapElementRef.current
     ) return;
     let cancelled = false;
@@ -1766,7 +1235,7 @@ export default function Home() {
 
     // ラスター地図(スタイル指定でアイコン非表示にするため)。heading は
     // ベクター専用なので、進行方向の回転は --green-map-rotation のCSSで行う。
-    void loadGoogleMaps(auroraMapKey)
+    void loadGoogleMaps(mapsApiKey)
       .then((maps) => {
         if (cancelled || !greenMapElementRef.current) return;
         const mapsApi = maps as {
@@ -1796,7 +1265,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [showMeter, location, settings.meterTheme, auroraMapKey]);
+  }, [showMeter, location, settings.meterTheme, mapsApiKey]);
 
   useEffect(() => {
     if (!ready) return;
@@ -1914,8 +1383,6 @@ export default function Home() {
   const greenCenterSpeed =
     displaySpeed === null ? null : Math.round(displaySpeed);
   const dailyTripKm = dailyTrip.date === today ? dailyTrip.distanceKm : 0;
-  const auroraCoolantWarn = obdData.coolant !== null && obdData.coolant >= 100;
-  const auroraVoltageWarn = obdData.voltage !== null && obdData.voltage <= 11.8;
   const performanceDate = `${today.slice(5, 7)}.${today.slice(8, 10)}`;
   const performanceWeekday = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Tokyo",
@@ -2223,11 +1690,7 @@ export default function Home() {
       ) : (
       <div
         id="app"
-        className={`${showMeter ? "is-fullscreen " : ""}${isFullscreen ? "browser-fullscreen " : ""}${
-          settings.meterTheme === "aurora"
-            ? "meter-theme-green meter-theme-aurora"
-            : `meter-theme-${settings.meterTheme}`
-        }`}
+        className={`${showMeter ? "is-fullscreen " : ""}${isFullscreen ? "browser-fullscreen " : ""}meter-theme-${settings.meterTheme}`}
         aria-label="Z CAR カーナビホーム"
       >
         <header className="topbar">
@@ -2310,304 +1773,7 @@ export default function Home() {
 
         {showMeter && (
           <main className="fullscreen-obd" aria-label="CARISTA OBD2 vehicle monitor">
-            {settings.meterTheme === "red-triple" ? (
-              <section className="fusion-cluster" aria-label="Red integrated meter cluster">
-                <header className={`triple-status ${obdStatus}`}>
-                  <strong>DRIVE MONITOR</strong>
-                  <span><i aria-hidden="true" />{obdStatusLabelEn}</span>
-                  <b>
-                    {routeMinutesRemaining === null
-                      ? "ETA --"
-                      : `DESTINATION ${routeMinutesRemaining} MIN`}
-                  </b>
-                </header>
-
-                <div className="red-cockpit-stage">
-                  <RedCockpit
-                    rpm={obdData.rpm}
-                    speed={displaySpeed}
-                    coolant={obdData.coolant}
-                    voltage={obdData.voltage}
-                    weather={weather}
-                    weatherStatus={locationStatus === "unavailable" ? "error" : weatherStatus}
-                  />
-                </div>
-
-                <footer className="triple-footer fusion-footer">
-                  <span><small>LOCAL TIME</small><b>{clock}</b></span>
-                  <button
-                    type="button"
-                    className={fuelResetting ? "resetting" : undefined}
-                    onPointerDown={startFuelReset}
-                    onPointerUp={cancelFuelReset}
-                    onPointerLeave={cancelFuelReset}
-                    onPointerCancel={cancelFuelReset}
-                    onContextMenu={(event) => event.preventDefault()}
-                    aria-label={`Estimated range ${Math.round(fuelRangeKm)} kilometers. Hold to refuel.`}
-                  >
-                    <small>ESTIMATED RANGE</small>
-                    <b>{Math.round(fuelRangeKm)} km</b>
-                    <i style={{ width: `${fuelPercent}%` }} aria-hidden="true" />
-                  </button>
-                  <span><small>ARRIVAL</small><b>{routeArrivalTime ?? "--:--"}</b></span>
-                </footer>
-              </section>
-            ) : settings.meterTheme === "aurora" ? (
-              <section
-                className="aurora-cluster"
-                style={greenCockpitStyle}
-                aria-label="Aurora violet driving cockpit"
-              >
-                <header className={`aurora-topline ${obdStatus}`}>
-                  <strong>AURORA DRIVE</strong>
-                  <span><i aria-hidden="true" />{obdStatusLabelEn}</span>
-                  <b>
-                    {settings.carId.toUpperCase()}
-                    {routeMinutesRemaining === null
-                      ? " · ETA --"
-                      : ` · ETA ${routeMinutesRemaining} MIN`}
-                  </b>
-                </header>
-
-                <div className="aurora-main">
-                  <div className="aurora-map-card" aria-label="Live navigation map">
-                    <div className="aurora-map-window">
-                      {auroraMapKey ? (
-                        <div
-                          ref={auroraGmapElementRef}
-                          className="aurora-gmap-canvas"
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <div className="aurora-map-placeholder">
-                          <strong>GOOGLE MAP</strong>
-                          <span>
-                            右上の SET から Google APIキーを設定すると
-                            ここに地図が表示されます
-                          </span>
-                        </div>
-                      )}
-                      {auroraMapKey && (
-                        <div className="aurora-north" aria-hidden="true">
-                          <i style={{ transform: `rotate(${-greenMeterHeading}deg)` }}>
-                            ▲
-                          </i>
-                          <b>N</b>
-                        </div>
-                      )}
-                      <div
-                        className={`aurora-map-chip${
-                          auroraMapKey ? " top" : ""
-                        }`}
-                      >
-                        <small>TODAY 本日走行</small>
-                        <b>{dailyTripKm.toFixed(1)} km</b>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="aurora-drive">
-                    <div
-                      className="aurora-speedblock"
-                      aria-label={`Speed ${displaySpeed ?? 0} kilometers per hour, engine ${obdData.rpm ?? 0} RPM`}
-                    >
-                      <svg viewBox="0 0 340 340" aria-hidden="true">
-                        <defs>
-                          <linearGradient id="auroraSpeedGrad" x1="0" y1="1" x2="1" y2="0">
-                            <stop offset="0" stopColor="#6d28d9" />
-                            <stop offset="0.55" stopColor="#c26bff" />
-                            <stop offset="1" stopColor="#ff5fd2" />
-                          </linearGradient>
-                        </defs>
-                        <g transform="rotate(150 170 170)">
-                          <circle
-                            className="aurora-track"
-                            cx="170"
-                            cy="170"
-                            r="150"
-                            pathLength="100"
-                            style={{ strokeDasharray: "66.67 100" }}
-                          />
-                          <circle
-                            className="aurora-progress"
-                            cx="170"
-                            cy="170"
-                            r="150"
-                            pathLength="100"
-                            stroke="url(#auroraSpeedGrad)"
-                            style={{
-                              strokeDasharray: `${
-                                Math.max(0, Math.min(1, (displaySpeed ?? 0) / 140)) * 66.67
-                              } 100`,
-                            }}
-                          />
-                          <circle
-                            className="aurora-rpm-track"
-                            cx="170"
-                            cy="170"
-                            r="92"
-                            pathLength="100"
-                            style={{ strokeDasharray: "66.67 100" }}
-                          />
-                          <circle
-                            className="aurora-rpm"
-                            cx="170"
-                            cy="170"
-                            r="92"
-                            pathLength="100"
-                            style={{
-                              strokeDasharray: `${
-                                Math.max(0, Math.min(1, (obdData.rpm ?? 0) / 8000)) * 66.67
-                              } 100`,
-                            }}
-                          />
-                        </g>
-                        <g className="aurora-ticks">
-                          {Array.from({ length: 15 }, (_, index) => {
-                            const angle = -120 + (index / 14) * 240;
-                            const major = index % 2 === 0;
-                            const inner = svgPoint(170, 170, major ? 124 : 129, angle);
-                            const outer = svgPoint(170, 170, 138, angle);
-                            return (
-                              <line
-                                key={angle}
-                                className={major ? "major" : undefined}
-                                x1={inner.x}
-                                y1={inner.y}
-                                x2={outer.x}
-                                y2={outer.y}
-                              />
-                            );
-                          })}
-                        </g>
-                        <g className="aurora-nums">
-                          {[0, 40, 80, 120, 140].map((value) => {
-                            const point = svgPoint(
-                              170,
-                              170,
-                              108,
-                              -120 + (value / 140) * 240,
-                            );
-                            return (
-                              <text key={value} x={point.x} y={point.y}>
-                                {value}
-                              </text>
-                            );
-                          })}
-                        </g>
-                      </svg>
-                      <div className="aurora-dial-core">
-                        <strong>
-                          {displaySpeed === null ? "--" : Math.round(displaySpeed)}
-                        </strong>
-                        <span>km/h</span>
-                        <b>{obdData.rpm === null ? "---- rpm" : `${obdData.rpm} rpm`}</b>
-                      </div>
-                    </div>
-                    <div className="aurora-vitals">
-                      <span className={auroraCoolantWarn ? "warn" : undefined}>
-                        <small>COOLANT 水温</small>
-                        <b>{obdData.coolant ?? "--"}°C</b>
-                      </span>
-                      <span className={auroraVoltageWarn ? "warn" : undefined}>
-                        <small>VOLT 電圧</small>
-                        <b>{obdData.voltage?.toFixed(1) ?? "--"}V</b>
-                      </span>
-                      <span className={obdStatus === "live" ? undefined : "warn"}>
-                        <small>LINK 接続</small>
-                        <b>{obdStatus === "live" ? "ONLINE" : "OFFLINE"}</b>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <footer className="aurora-footer">
-                  <div className="aurora-cell aurora-clock-cell">
-                    <b className="aurora-clock">{clock}</b>
-                    <small>{performanceDate} {performanceWeekday} · JST</small>
-                    <small className="aurora-sun">
-                      ▲{solarSunrise ?? "--:--"} ▼{solarSunset ?? "--:--"}
-                    </small>
-                  </div>
-                  <div className={`aurora-cell aurora-weather-cell ${weatherStatus}`}>
-                    <b>
-                      {weather ? `${Math.round(weather.temperature)}°C` : "--"}
-                    </b>
-                    {weather ? (
-                      <div className="aurora-weather-row" aria-label="現在から15時間先までの天気">
-                        <span>
-                          <svg viewBox="0 0 48 48" aria-hidden="true">
-                            <WeatherGlyph code={weather.code} isDay={weather.isDay} x={24} y={24} size={40} />
-                          </svg>
-                          <small>NOW</small>
-                        </span>
-                        {weather.hours.map((hour, index) => (
-                          <Fragment key={hour.time}>
-                            {index === 2 && (
-                              <i className="aurora-weather-divider" aria-hidden="true" />
-                            )}
-                            <span>
-                              <svg viewBox="0 0 48 48" aria-hidden="true">
-                                <WeatherGlyph code={hour.code} isDay={hour.isDay} x={24} y={24} size={40} />
-                              </svg>
-                              <small>{`+${(index + 1) * 3}H`}</small>
-                            </span>
-                          </Fragment>
-                        ))}
-                      </div>
-                    ) : (
-                      <small>WEATHER {weatherStatus === "loading" ? "···" : "--"}</small>
-                    )}
-                  </div>
-                  <div className="aurora-cell aurora-world-cell" aria-label="World time">
-                    <span><small>CALIFORNIA</small><b>{californiaClock}</b></span>
-                    <span><small>RUSSIA</small><b>{russiaClock}</b></span>
-                    <span><small>CHINA</small><b>{chinaClock}</b></span>
-                  </div>
-                  <button
-                    type="button"
-                    className={
-                      [
-                        "aurora-cell aurora-range-cell",
-                        fuelResetting ? "resetting" : "",
-                        estimatedRemainingLiters !== null &&
-                        estimatedRemainingLiters <= FUEL_RESERVE_L
-                          ? "critical"
-                          : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")
-                    }
-                    onPointerDown={startFuelReset}
-                    onPointerUp={cancelFuelReset}
-                    onPointerLeave={cancelFuelReset}
-                    onPointerCancel={cancelFuelReset}
-                    onContextMenu={(event) => event.preventDefault()}
-                    aria-label={`Estimated range ${Math.round(fuelRangeKm)} kilometers. Hold to refuel.`}
-                  >
-                    <small>RANGE 航続可能</small>
-                    <b>{Math.round(fuelRangeKm)} km</b>
-                    <div className="aurora-fe-scale" aria-hidden="true">
-                      <em>E</em>
-                      <div><i style={{ width: `${fuelPercent}%` }} /></div>
-                      <em>F</em>
-                    </div>
-                  </button>
-                  <div className="aurora-cell aurora-fuel-cell">
-                    <small>EST AVG FUEL 平均燃費</small>
-                    <b>
-                      {estimatedAverageFuelEconomy === null
-                        ? "-- km/L"
-                        : `${estimatedAverageFuelEconomy.toFixed(1)} km/L`}
-                    </b>
-                    <small>
-                      TRIP {Math.round(fuelTripKm)} km · EST{" "}
-                      {estimatedRemainingLiters?.toFixed(1) ?? "--"} L
-                    </small>
-                  </div>
-                </footer>
-              </section>
-            ) : settings.meterTheme === "eva" ? (
+            {settings.meterTheme === "eva" ? (
               <section className="eva-cluster" aria-label="Pattern orange command cockpit">
                 <header className={`eva-topline ${obdStatus}`}>
                   <strong>特別警戒 DRIVE MONITOR</strong>
@@ -3233,34 +2399,6 @@ export default function Home() {
               </i>
               <span><b>TURQUOISE BLUE</b><small>TURQUOISE COCKPIT THEME</small></span>
               <em>{settings.meterTheme === "green" ? "ACTIVE" : "SELECT"}</em>
-            </button>
-            <button
-              type="button"
-              className={settings.meterTheme === "red-triple" ? "selected red" : "red"}
-              onClick={() => {
-                setSettings({ ...settings, meterTheme: "red-triple" });
-                themeDialog.current?.close();
-              }}
-            >
-              <i className="theme-preview red" aria-hidden="true">
-                <span>RED</span>
-              </i>
-              <span><b>RED</b><small>RED COCKPIT THEME</small></span>
-              <em>{settings.meterTheme === "red-triple" ? "ACTIVE" : "SELECT"}</em>
-            </button>
-            <button
-              type="button"
-              className={settings.meterTheme === "aurora" ? "selected aurora" : "aurora"}
-              onClick={() => {
-                setSettings({ ...settings, meterTheme: "aurora" });
-                themeDialog.current?.close();
-              }}
-            >
-              <i className="theme-preview aurora" aria-hidden="true">
-                <span>AURORA VIOLET</span>
-              </i>
-              <span><b>AURORA VIOLET</b><small>TURQUOISE BASE × VIOLET NEON</small></span>
-              <em>{settings.meterTheme === "aurora" ? "ACTIVE" : "SELECT"}</em>
             </button>
             <button
               type="button"
