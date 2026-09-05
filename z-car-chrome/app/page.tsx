@@ -128,6 +128,8 @@ const HOME_RANDOM_PLAYLISTS = [
 const FUEL_TANK_CAPACITY_L = 36;
 const FUEL_RESERVE_L = 4;
 const GREEN_METER_MAP_ZOOM = 12;
+// 地図タイルが来るまでの下地。フィルタ後もほぼ黒に沈む暗色。
+const GREEN_METER_MAP_BACKGROUND = "#03150b";
 // Referrer-restricted (https://zest7.jp/*) browser key, Maps JavaScript API
 // only — safe to ship in client code. The settings key overrides it.
 const DEFAULT_GMAPS_KEY = "AIzaSyDndPX8sQmYXOCwVyJtmNUXv-GWXLT6Qh8";
@@ -632,6 +634,8 @@ export default function Home() {
     setRadius: (radius: number) => void;
   } | null>(null);
   const greenMapElementRef = useRef<HTMLDivElement>(null);
+  // 中央メーターの地図タイルが1枚でも描画できたか(待機表示の出し分け用)。
+  const [greenMapReady, setGreenMapReady] = useState(false);
   const greenGmapRef = useRef<{
     setCenter: (point: { lat: number; lng: number }) => void;
     moveCamera: (camera: Record<string, unknown>) => void;
@@ -1219,6 +1223,7 @@ export default function Home() {
   useEffect(() => {
     if (showMeter && settings.meterTheme === "green") return;
     greenGmapRef.current = null;
+    setGreenMapReady(false);
   }, [showMeter, settings.meterTheme]);
 
   useEffect(() => {
@@ -1246,16 +1251,30 @@ export default function Home() {
             setCenter: (point: { lat: number; lng: number }) => void;
             moveCamera: (camera: Record<string, unknown>) => void;
           };
+          event: {
+            addListenerOnce: (
+              instance: unknown,
+              eventName: string,
+              handler: () => void,
+            ) => void;
+          };
         };
         if (!greenGmapRef.current) {
-          greenGmapRef.current = new mapsApi.Map(greenMapElementRef.current, {
+          const map = new mapsApi.Map(greenMapElementRef.current, {
             center: focusPoint,
             zoom: GREEN_METER_MAP_ZOOM,
             styles: GREEN_METER_MAP_STYLES,
+            // タイル未読込の間に出る既定の明るい下地(#e5e3df)が、
+            // メーターのフィルタを通ると白く光ってしまうので暗色にする。
+            backgroundColor: GREEN_METER_MAP_BACKGROUND,
             disableDefaultUI: true,
             clickableIcons: false,
             gestureHandling: "none",
             keyboardShortcuts: false,
+          });
+          greenGmapRef.current = map;
+          mapsApi.event.addListenerOnce(map, "tilesloaded", () => {
+            if (!cancelled) setGreenMapReady(true);
           });
           return;
         }
@@ -1965,6 +1984,13 @@ export default function Home() {
                     className="green-nav-map-canvas"
                     aria-hidden="true"
                   />
+                  <div
+                    className={`green-map-standby${greenMapReady ? " is-ready" : ""}`}
+                    aria-hidden="true"
+                  >
+                    <i className="green-map-standby-sweep" />
+                    <b>ACQUIRING MAP</b>
+                  </div>
                   <div className="green-map-grid" aria-hidden="true" />
                   <div className="green-map-vignette" aria-hidden="true" />
                   <div className={`green-compass-bearing ${locationStatus}`} aria-hidden="true">
