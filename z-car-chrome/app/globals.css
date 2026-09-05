@@ -3646,6 +3646,76 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   box-shadow: inset 0 0 48px rgba(0, 0, 0, .72);
 }
 
+/* 地図タイルが届くまでの待機表示。Google の既定下地(明るいグレー)が
+   メーターのフィルタを通ると白く光ってしまうので、レーダー風の暗い面で
+   覆っておき、タイルが1枚描画できた時点で静かに消す。
+   読み込みに失敗した場合はそのまま残るので、白いままにはならない。 */
+.green-map-standby {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(24, 96, 38, .26), transparent 64%),
+    repeating-radial-gradient(circle at 50% 50%, transparent 0 26px, rgba(91, 255, 108, .085) 26px 27px),
+    #02120a;
+  transition: opacity .8s ease;
+  pointer-events: none;
+}
+
+.green-map-standby::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent calc(50% - 1px), rgba(91, 255, 108, .14) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)),
+    linear-gradient(180deg, transparent calc(50% - 1px), rgba(91, 255, 108, .14) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px));
+}
+
+/* ゆっくり一定速度で回るスイープ(明滅はしない)。 */
+.green-map-standby-sweep {
+  position: absolute;
+  inset: -24%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(91, 255, 108, .2),
+    rgba(91, 255, 108, .085) 11%,
+    rgba(91, 255, 108, .022) 27%,
+    transparent 48%
+  );
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 0 34%, transparent 62%);
+  mask-image: radial-gradient(circle at 50% 50%, #000 0 34%, transparent 62%);
+  animation: green-map-sweep 4.6s linear infinite;
+}
+
+.green-map-standby b {
+  position: relative;
+  transform: translateY(76px);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .34em;
+  color: rgba(155, 255, 168, .6);
+  text-shadow: 0 0 10px rgba(91, 255, 108, .3);
+}
+
+.green-map-standby.is-ready {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.green-map-standby.is-ready .green-map-standby-sweep { animation: none; }
+
+@keyframes green-map-sweep {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .green-map-standby-sweep { animation: none; }
+}
+
 .green-map-hud {
   position: absolute;
   z-index: 7;
