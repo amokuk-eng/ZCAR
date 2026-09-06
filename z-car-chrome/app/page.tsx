@@ -1273,8 +1273,11 @@ export default function Home() {
             keyboardShortcuts: false,
           });
           greenGmapRef.current = map;
+          // tilesloaded は地図インスタンスのイベントで、この effect の実行回とは
+          // 無関係。位置情報が更新されるたび cleanup で cancelled が立つため、
+          // ここで cancelled を見ると待機表示が永久に消えなくなる。
           mapsApi.event.addListenerOnce(map, "tilesloaded", () => {
-            if (!cancelled) setGreenMapReady(true);
+            setGreenMapReady(true);
           });
           return;
         }
