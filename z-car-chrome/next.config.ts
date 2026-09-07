@@ -16,6 +16,9 @@ const nextConfig: NextConfig = {
   ...(staticExport
     ? {
         output: "export" as const,
+        // /zcar/settings/ のようなディレクトリ形式で書き出し、Apache の
+        // 静的配信(index.html)でそのまま開けるようにする。
+        trailingSlash: true,
         ...(basePath ? { basePath } : {}),
         images: { unoptimized: true },
         // The Cloudflare-only modules (cloudflare:workers) are unresolvable
