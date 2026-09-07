@@ -17,6 +17,7 @@ import {
   sanitizeSyncedSettings,
   writeSettings,
   type MapDestination,
+  type PlayCommand,
   type MeterTheme,
   type Playlist,
   type Settings,
@@ -37,6 +38,10 @@ export default function PhoneSettingsPage() {
   const [syncState, setSyncState] = useState<SyncState>("idle");
   const [handoffDone, setHandoffDone] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  // 車に再生を頼んだ結果の表示("送信中" / プレイリスト名 / エラー)。
+  const [playState, setPlayState] = useState<
+    { kind: "sending" | "sent" | "error"; label: string } | null
+  >(null);
 
   useEffect(() => {
     let stored = readSettings();
@@ -118,6 +123,31 @@ export default function PhoneSettingsPage() {
     }));
     setSaved(false);
     setSyncState("idle");
+  };
+
+  const syncKey = draft.syncKey.trim();
+  const canReachCar = syncKey.length >= MIN_SYNC_KEY_LENGTH;
+
+  /** 車に「これを再生して」と伝える。設定と同じ経路で送る。 */
+  const playOnCar = async (entry: Playlist) => {
+    const playlistId = extractPlaylistId(entry.playlistId);
+    if (!playlistId || !canReachCar) return;
+    const label = entry.label.trim() || "MUSIC";
+    const command: PlayCommand = {
+      playlistId,
+      label,
+      requestedAt: Date.now(),
+    };
+    const next = { ...draft, nowPlaying: command };
+    setDraft(next);
+    writeSettings(next);
+    setPlayState({ kind: "sending", label });
+    try {
+      await pushSharedSettings(syncKey, next);
+      setPlayState({ kind: "sent", label });
+    } catch {
+      setPlayState({ kind: "error", label });
+    }
   };
 
   const updatePlaylist = (index: number, patch: Partial<Playlist>) => {
@@ -379,14 +409,24 @@ export default function PhoneSettingsPage() {
                 }
               />
               {extractPlaylistId(playlist.playlistId) ? (
-                <a
-                  className="zsetup-playlist-play"
-                  href={`https://www.youtube.com/playlist?list=${extractPlaylistId(playlist.playlistId)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  ▶ このジャンルを再生
-                </a>
+                <div className="zsetup-playlist-play-row">
+                  <button
+                    type="button"
+                    className="zsetup-playlist-play"
+                    disabled={!canReachCar}
+                    onClick={() => void playOnCar(playlist)}
+                  >
+                    ▶ 車で再生
+                  </button>
+                  <a
+                    className="zsetup-playlist-open"
+                    href={`https://www.youtube.com/playlist?list=${extractPlaylistId(playlist.playlistId)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    スマホで開く
+                  </a>
+                </div>
               ) : null}
             </div>
           ))}
@@ -401,11 +441,39 @@ export default function PhoneSettingsPage() {
             ? `追加できるのは${MAX_PLAYLISTS}件までです`
             : "ジャンルを追加"}
         </button>
+        <p className="zsetup-play-state" role="status">
+          {playState?.kind === "sending"
+            ? `${playState.label} を車に送信中…`
+            : playState?.kind === "sent"
+              ? `${playState.label} を車に送りました（30秒以内に鳴ります）`
+              : playState?.kind === "error"
+                ? "車に送れませんでした（通信を確認してください）"
+                : ""}
+        </p>
+        {canReachCar ? null : (
+          <label className="zsetup-field zsetup-pairing">
+            <span>合言葉（車で再生するのに必要）</span>
+            <input
+              autoComplete="off"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder={`${MIN_SYNC_KEY_LENGTH}文字以上`}
+              value={draft.syncKey}
+              onChange={(event) => update("syncKey", event.target.value)}
+            />
+            <small>
+              車の画面でも同じ合言葉を入れてください（設定 →「詳細設定ページを開く」）。
+              合言葉を知っている端末どうしだけがつながります。
+            </small>
+          </label>
+        )}
         <p className="zsetup-sync-note">
           YouTubeでプレイリストを開いて、アドレスをそのまま貼り付けてください
           （アドレスの中の list= の部分だけ自動で読み取ります）。
-          「再生」を押すとYouTubeアプリで開きます。運転中の操作は危険なので、
-          出発前に選んでおいてください。音楽はこの端末だけで、車の画面には出しません。
+          「車で再生」を押すと、車の画面がそのプレイリストを鳴らします。
+          「スマホで開く」はこの端末のYouTubeアプリで開きます。
+          運転中の操作は危険なので、出発前に選んでおいてください。
         </p>
       </section>
 

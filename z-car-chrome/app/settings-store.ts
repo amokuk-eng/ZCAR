@@ -53,6 +53,35 @@ const sanitizePlaylists = (value: unknown): Playlist[] => {
   return cleaned.length > 0 ? cleaned : defaultPlaylists;
 };
 
+/**
+ * スマホから車へ「これを再生して」と伝えるための指示。
+ * 設定と同じ入れ物で運ぶが、中身は設定ではなく一度きりの指示。
+ */
+export type PlayCommand = {
+  playlistId: string;
+  label: string;
+  /** 指示を出した時刻(ミリ秒)。古い指示を再生し直さないための目印。 */
+  requestedAt: number;
+};
+
+/**
+ * 指示の有効期限。これより古い指示は無視する。
+ * 車のブラウザを開き直したときに、前回の指示で急に音が鳴らないようにするため。
+ */
+export const PLAY_COMMAND_MAX_AGE_MS = 5 * 60 * 1000;
+
+const sanitizePlayCommand = (value: unknown): PlayCommand | null => {
+  if (!value || typeof value !== "object") return null;
+  const { playlistId, label, requestedAt } = value as Partial<PlayCommand>;
+  const id = typeof playlistId === "string" ? extractPlaylistId(playlistId) : "";
+  if (!id || !Number.isFinite(requestedAt)) return null;
+  return {
+    playlistId: id,
+    label: (typeof label === "string" ? label : "").slice(0, MAX_PLAYLIST_LABEL),
+    requestedAt: Number(requestedAt),
+  };
+};
+
 /** 車のマップ画面に並ぶ 1〜5 のナビ目的地1件分。 */
 export type MapDestination = {
   /** ボタンに出す短い名前(例: ケーズ)。空なら未登録。 */
@@ -112,6 +141,8 @@ export type Settings = {
   playlists: Playlist[];
   /** 車のマップ画面の 1〜5 のナビ目的地。 */
   mapDestinations: MapDestination[];
+  /** スマホから車へ送る再生指示。指示が無ければ null。 */
+  nowPlaying: PlayCommand | null;
 };
 
 export const defaults: Settings = {
@@ -129,6 +160,7 @@ export const defaults: Settings = {
   syncedAt: 0,
   playlists: defaultPlaylists,
   mapDestinations: defaultMapDestinations,
+  nowPlaying: null,
 };
 
 /** サーバーと共有する項目。走行状態やAPIキーは端末ごとなので送らない。 */
@@ -141,6 +173,7 @@ export const SYNCED_FIELDS = [
   "carId",
   "playlists",
   "mapDestinations",
+  "nowPlaying",
 ] as const;
 
 export type SyncedSettings = Pick<Settings, (typeof SYNCED_FIELDS)[number]>;
@@ -171,6 +204,7 @@ export const pickSyncedFields = (settings: Settings): SyncedSettings => ({
   carId: settings.carId,
   playlists: settings.playlists,
   mapDestinations: settings.mapDestinations,
+  nowPlaying: settings.nowPlaying,
 });
 
 const postSync = async (payload: Record<string, unknown>) => {
@@ -198,7 +232,13 @@ export const sanitizeSyncedSettings = (
   if (!value || typeof value !== "object") return {};
   const cleaned: Partial<SyncedSettings> = {};
   for (const field of SYNCED_FIELDS) {
-    if (field === "playlists" || field === "mapDestinations") continue;
+    if (
+      field === "playlists" ||
+      field === "mapDestinations" ||
+      field === "nowPlaying"
+    ) {
+      continue;
+    }
     const entry = value[field];
     if (typeof entry === "string") cleaned[field] = entry as never;
   }
@@ -212,6 +252,9 @@ export const sanitizeSyncedSettings = (
   }
   if (Array.isArray(value.mapDestinations)) {
     cleaned.mapDestinations = sanitizeMapDestinations(value.mapDestinations);
+  }
+  if (value.nowPlaying !== undefined) {
+    cleaned.nowPlaying = sanitizePlayCommand(value.nowPlaying);
   }
   return cleaned;
 };
@@ -229,6 +272,31 @@ export const pushSharedSettings = async (key: string, settings: Settings) =>
   });
 
 export const SETTINGS_STORAGE_KEY = "zcar";
+
+/**
+ * 最後に反応した再生指示の時刻を端末に覚えておくためのキー。
+ * これが無いと、車の画面を開き直すたびに前の指示で音が鳴ってしまう。
+ */
+const HANDLED_PLAY_KEY = "zcar-handled-play";
+
+export const readHandledPlayAt = () => {
+  if (typeof window === "undefined") return 0;
+  try {
+    const value = Number(window.localStorage.getItem(HANDLED_PLAY_KEY));
+    return Number.isFinite(value) ? value : 0;
+  } catch {
+    return 0;
+  }
+};
+
+export const writeHandledPlayAt = (requestedAt: number) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(HANDLED_PLAY_KEY, String(requestedAt));
+  } catch {
+    // 保存できなくても、その画面を開いている間は覚えている。
+  }
+};
 
 export const METER_THEMES: {
   id: MeterTheme;
@@ -273,6 +341,7 @@ export const readSettings = (): Settings => {
       syncedAt: Number.isFinite(stored.syncedAt) ? Number(stored.syncedAt) : 0,
       playlists: sanitizePlaylists(stored.playlists),
       mapDestinations: sanitizeMapDestinations(stored.mapDestinations),
+      nowPlaying: sanitizePlayCommand(stored.nowPlaying),
     };
   } catch {
     return defaults;
