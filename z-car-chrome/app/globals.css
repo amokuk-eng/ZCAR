@@ -2302,7 +2302,7 @@ button { cursor: pointer; }
 .right-panel {
   grid-area: monitor;
   display: grid;
-  grid-template-rows: 68px 170px minmax(0, 1fr);
+  grid-template-rows: 68px minmax(0, 1fr);
   gap: 8px;
 }
 
@@ -2396,24 +2396,6 @@ button { cursor: pointer; }
   letter-spacing: .12em;
   text-align: right;
   white-space: nowrap;
-}
-
-.youtube-window {
-  grid-row: 3;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 13px;
-  background: #07090b;
-}
-
-.youtube-window iframe {
-  display: block;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  border: 0;
 }
 
 .shift-monitor {
@@ -2630,7 +2612,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   .start-navigation small { font-size: 8px; }
   .two-actions button { min-height: 42px; font-size: 12px; }
   .right-panel {
-    grid-template-rows: 56px 150px minmax(145px, 1fr);
+    grid-template-rows: 56px minmax(0, 1fr);
     gap: 6px;
   }
   .home-weather-card {
@@ -2643,8 +2625,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   .home-weather-icon svg { width: 38px; height: 38px; }
   .home-weather-copy strong { font-size: 12px; }
   .home-weather-temperature strong { font-size: 23px; }
-  .youtube-window,
-  .youtube-window iframe { min-height: 145px; border-radius: 12px; }
+ 
   footer { display: none; }}
 
 @media (orientation: portrait) {
@@ -2656,9 +2637,8 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
     grid-template-columns: 1fr;
     grid-template-areas: "navigation" "monitor";
   }
-  .right-panel { grid-template-rows: auto auto auto; }
-  .youtube-window,
-  .youtube-window iframe { min-height: 220px; }
+  .right-panel { grid-template-rows: auto minmax(0, 1fr); }
+ 
   footer { display: block; }}
 
 /* Fullscreen cockpit design study — local draft */
@@ -3413,11 +3393,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   letter-spacing: .12em;
 }
 
-.meter-view-button.music-nav-button {
-  min-width: 56px;
-  padding-inline: 14px;
-}
-
 .meter-view-button.active {
   border-color: rgba(92, 224, 113, .52);
   color: #a6f2b1;
@@ -3713,8 +3688,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .green-map-standby-sweep { animation: none; }
-}
+  .green-map-standby-sweep { animation: none; }}
 
 .green-map-hud {
   position: absolute;
@@ -4637,64 +4611,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   .green-heading-readout { transform: scale(.9); transform-origin: right top; }
   .green-navigation-map { margin-top: 6px; margin-bottom: 5px; }}
 
-/* Home meter launcher */
-.home-random-youtube {
-  grid-row: 3;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  display: grid;
-  grid-template-rows: 28px minmax(0, 1fr);
-  border: 1px solid #74313a;
-  border-radius: 13px;
-  background: #07090b;
-  box-shadow: inset 0 0 24px rgba(0, 0, 0, .5), 0 0 18px rgba(241, 70, 90, .045);
-}
-.home-random-youtube > header {
-  min-width: 0;
-  padding: 0 9px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  border-bottom: 1px solid #4e252c;
-  color: #f08391;
-  font-size: 7px;
-  font-weight: 900;
-  letter-spacing: .13em;
-}
-.home-random-youtube > header span {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.home-random-youtube > header i {
-  flex: 0 0 auto;
-  width: 7px;
-  height: 7px;
-  border-radius: 2px;
-  background: #f1465a;
-  box-shadow: 0 0 8px rgba(241, 70, 90, .55);
-}
-.home-random-youtube > header b {
-  flex: 0 0 auto;
-  color: #8e6269;
-  font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 7px;
-  letter-spacing: .11em;
-}
-.home-random-youtube iframe {
-  display: block;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  border: 0;
-}
-
 .meter-launch-card {
   grid-row: 3;
   position: relative;
@@ -5106,129 +5022,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 }
 .meter-launch-green .meter-card-green-tach-scale { color: #5f999f; }
 
-/* Music library */
-.music-page {
-  flex: 1;
-  min-height: 0;
-  padding: 10px;
-  display: grid;
-  grid-template-rows: 45px minmax(0, 1fr);
-  gap: 9px;
-  overflow: hidden;
-  border: 1px solid #28333b;
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at 14% 0, rgba(75, 156, 215, .14), transparent 31%),
-    radial-gradient(circle at 92% 90%, rgba(102, 71, 184, .12), transparent 33%),
-    linear-gradient(145deg, #0b1014, #07090d 68%);
-  box-shadow: inset 0 0 44px rgba(0, 0, 0, .52);
-}
-.music-page-heading {
-  padding: 0 5px 6px;
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  border-bottom: 1px solid rgba(113, 170, 211, .16);
-}
-.music-page-heading span { display: grid; gap: 1px; }
-.music-page-heading small { color: #6b9fc3; font-family: "SFMono-Regular", Consolas, monospace; font-size: 7px; font-weight: 900; letter-spacing: .2em; }
-.music-page-heading h1 { margin: 0; color: #f1f7fb; font-size: 22px; line-height: 1; letter-spacing: .14em; }
-.music-page-heading p { margin: 0 0 2px; color: #647683; font-size: 9px; }
-.music-page-switcher {
-  height: 30px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.music-page-switcher small {
-  margin-right: 3px;
-  color: #607889;
-  font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 6px;
-  font-weight: 900;
-  letter-spacing: .18em;
-}
-.music-page-switcher button {
-  width: 35px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  border: 1px solid #334654;
-  border-radius: 7px;
-  background: #101820;
-  color: #718896;
-  font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 10px;
-  font-weight: 900;
-}
-.music-page-switcher button.active {
-  border-color: #cf9e52;
-  background: linear-gradient(180deg, #42331d, #241b10);
-  color: #ffd58d;
-  box-shadow: inset 0 0 10px rgba(223, 166, 78, .12), 0 0 10px rgba(223, 166, 78, .08);
-}
-.music-card-grid {
-  min-height: 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-.music-content-card {
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  display: grid;
-  grid-template-rows: 28px minmax(0, 1fr);
-  border: 1px solid #283741;
-  border-radius: 12px;
-  background: linear-gradient(145deg, #111820, #090d12);
-  box-shadow: inset 0 0 18px rgba(0, 0, 0, .35);
-}
-.music-content-card > header {
-  padding: 0 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #23313a;
-  color: #7591a4;
-  font-size: 7px;
-  font-weight: 900;
-  letter-spacing: .13em;
-}
-.music-content-card > header span { display: flex; align-items: center; gap: 6px; }
-.music-content-card > header b { color: #4f697c; font-family: "SFMono-Regular", Consolas, monospace; font-size: 7px; }
-.music-youtube-card { border-color: #74313a; background: #07090b; }
-.music-youtube-card > header { border-bottom-color: #4e252c; color: #f08391; }
-.music-youtube-card > header i { width: 7px; height: 7px; border-radius: 2px; background: #f1465a; box-shadow: 0 0 8px rgba(241, 70, 90, .55); }
-.music-youtube-card iframe { display: block; width: 100%; height: 100%; min-height: 0; border: 0; }
-.music-anime-card { border-color: #6e3f85; }
-.music-anime-card > header { border-bottom-color: #4a2b59; color: #dc9cff; }
-.music-anime-card > header i { background: #bc63ed; box-shadow: 0 0 8px rgba(188, 99, 237, .62); }
-.music-reggae-card { border-color: #2e6b48; }
-.music-reggae-card > header { border-bottom-color: #234b35; color: #79d99e; }
-.music-reggae-card > header i { background: #46bd74; box-shadow: 0 0 8px rgba(70, 189, 116, .6); }
-.music-edm-card { border-color: #265d83; }
-.music-edm-card > header { border-bottom-color: #20435d; color: #6ec5ff; }
-.music-edm-card > header i { background: #31aefb; box-shadow: 0 0 8px rgba(49, 174, 251, .62); }
-.music-empty-card > div {
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: 6px;
-  color: #344651;
-  background:
-    linear-gradient(rgba(105, 145, 170, .025) 1px, transparent 1px) 0 0 / 16px 16px,
-    linear-gradient(90deg, rgba(105, 145, 170, .025) 1px, transparent 1px) 0 0 / 16px 16px;
-}
-.music-empty-card > div i { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid #2c3b45; border-radius: 50%; font-size: 21px; font-style: normal; font-weight: 300; }
-.music-empty-card > div small { font-size: 6px; font-weight: 900; letter-spacing: .2em; }
-
 @media (max-height: 520px) {
-  .music-page { padding: 7px; grid-template-rows: 35px minmax(0, 1fr); gap: 6px; }
-  .music-page-heading h1 { font-size: 18px; }
-  .music-card-grid { gap: 6px; }
-  .music-content-card { grid-template-rows: 24px minmax(0, 1fr); }
   .meter-launch-card { grid-template-rows: minmax(0, 1fr); }
   .meter-launch-visual > i { width: 88px; }
   .meter-launch-visual strong { font-size: 30px; }
@@ -5481,28 +5275,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   border-color: #39ccd4;
   color: #8be9ed;
   box-shadow: inset 0 0 12px rgba(39, 204, 212, .1), 0 0 10px rgba(39, 204, 212, .06);
-}
-
-/* YouTube cards follow the selected cockpit theme instead of genre colors. */
-#app.meter-theme-green .music-youtube-card {
-  border-color: rgba(var(--z-theme-rgb), .42);
-  background:
-    linear-gradient(145deg, rgba(var(--z-theme-rgb), .075), transparent 54%),
-    #07090b;
-  box-shadow:
-    inset 0 0 24px rgba(0, 0, 0, .48),
-    0 0 17px rgba(var(--z-theme-rgb), .065);
-}
-#app.meter-theme-green .music-youtube-card > header {
-  border-bottom-color: rgba(var(--z-theme-rgb), .3);
-  color: var(--z-theme-soft);
-}
-#app.meter-theme-green .music-youtube-card > header i {
-  background: var(--z-theme);
-  box-shadow: 0 0 8px rgba(var(--z-theme-rgb), .6);
-}
-#app.meter-theme-green .music-youtube-card > header b {
-  color: var(--z-theme-muted);
 }
 
 /* ZEST aurora-violet: turquoise cockpit layout re-tinted with a violet neon
@@ -6424,4 +6196,20 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   border-color: var(--line);
   color: #5d6b78;
   cursor: default;
+}
+
+/* 設定ページ: プレイリストをこの端末で再生するリンク。 */
+.zsetup-playlist-play {
+  display: grid;
+  place-items: center;
+  min-height: 42px;
+  border: 1px solid #2f7f84;
+  border-radius: 10px;
+  background: rgba(57, 204, 212, .08);
+  color: #b9f2f5;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
 }
