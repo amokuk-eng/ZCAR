@@ -290,32 +290,6 @@ export default function PhoneSettingsPage() {
 
       <section className="zsetup-section">
         <h2>
-          車両とAPI<small>車両名と到着予定時間の取得</small>
-        </h2>
-        <label className="zsetup-field">
-          <span>車両ID</span>
-          <input
-            value={draft.carId}
-            onChange={(event) => update("carId", event.target.value)}
-          />
-        </label>
-        <label className="zsetup-field">
-          <span>Google Routes APIキー</span>
-          <input
-            type="password"
-            autoComplete="off"
-            placeholder="未入力なら既定のキーを使用"
-            value={draft.googleRoutesApiKey}
-            onChange={(event) =>
-              update("googleRoutesApiKey", event.target.value)
-            }
-          />
-          <small>この端末の中だけに保存され、到着予定時間の取得に使われます。</small>
-        </label>
-      </section>
-
-      <section className="zsetup-section">
-        <h2>
           ミュージック<small>この端末で聴く YouTube プレイリスト</small>
         </h2>
         <div className="zsetup-playlists">
