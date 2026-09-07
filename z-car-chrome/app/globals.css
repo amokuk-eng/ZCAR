@@ -6060,7 +6060,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 /* --- 下部のリンク --- */
 .zsetup-links { display: grid; gap: 10px; }
 
-.zsetup-open,
 .zsetup-reset {
   display: grid;
   place-items: center;
