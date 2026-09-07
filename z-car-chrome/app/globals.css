@@ -6430,3 +6430,42 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   padding: 0 10px;
   font-size: 11px;
 }
+
+/* 「▶ 再生」を押したあとは、♪ の小さなボタンだけ残して畳む。
+   iframe を消したり display:none にすると音まで止まるので、
+   1pxの透明なまま残しておく。 */
+.car-player.is-collapsed {
+  grid-template-columns: auto;
+  gap: 0;
+  padding: 0;
+  border-color: rgba(47, 127, 132, .5);
+  background: rgba(6, 12, 14, .8);
+}
+
+.car-player.is-collapsed iframe {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.car-player-badge {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: #7fe3e9;
+  font-family: inherit;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app.is-fullscreen .car-player.is-collapsed { padding: 0; opacity: .8; }
+#app.is-fullscreen .car-player-badge { width: 38px; height: 38px; font-size: 17px; }
+
+/* 畳んだときのサイズ指定が、メーター表示中の指定に負けないようにする。 */
+#app .car-player.is-collapsed iframe { width: 1px; height: 1px; }
