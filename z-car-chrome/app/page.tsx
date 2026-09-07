@@ -5,7 +5,6 @@ import { useObd2, type ObdConnectionStatus } from "./hooks/use-obd2";
 import {
   defaults,
   fetchSharedSettings,
-  isPhoneViewport,
   MIN_SYNC_KEY_LENGTH,
   pickSyncedFields,
   pushSharedSettings,
@@ -249,8 +248,6 @@ const loadGoogleMaps = (key: string) => {
 };
 // 他の端末での設定変更を取りに行く間隔。
 const SYNC_POLL_MS = 30000;
-// スマホでダッシュボードを選んだことを覚えておくキー(そのタブの間だけ)。
-const PHONE_SETUP_SKIP_KEY = "zcar-skip-setup";
 const FUEL_LOG_STORAGE_KEY = "zcar-fuel-log-v1";
 const DAILY_TRIP_STORAGE_KEY = "zcar-daily-trip-v1";
 const IMPORTED_FUEL_ENTRIES: FuelEntry[] = [
@@ -640,26 +637,6 @@ export default function Home() {
     weatherLatitude === null || weatherLongitude === null
       ? ""
       : `${weatherLatitude},${weatherLongitude}`;
-
-  // スマホ(iPhoneなど)で開いたときは、車載用のダッシュボードではなく
-  // 専用の設定ページへ送る。?app=1 を付ければダッシュボードのまま開ける。
-  useEffect(() => {
-    let skip = false;
-    try {
-      if (new URLSearchParams(window.location.search).has("app")) {
-        sessionStorage.setItem(PHONE_SETUP_SKIP_KEY, "1");
-        skip = true;
-      } else {
-        skip = sessionStorage.getItem(PHONE_SETUP_SKIP_KEY) === "1";
-      }
-    } catch {
-      // sessionStorage が使えない環境では毎回判定するだけ。
-    }
-    if (skip || !isPhoneViewport()) return;
-    window.location.replace(
-      `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/settings/`,
-    );
-  }, []);
 
   useEffect(() => {
     try {

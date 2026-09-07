@@ -1,7 +1,22 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { PHONE_MAX_EDGE, PHONE_SETUP_SKIP_KEY } from "./settings-store";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
+/**
+ * スマホから開いたときに設定ページへ送るための先読みスクリプト。
+ * React の読み込みを待つとダッシュボードが一瞬映ってしまうので、
+ * HTML を読んでいる途中(まだ何も描画されていない時点)で判定する。
+ */
+const phoneRedirectScript = `(function(){try{
+var b=${JSON.stringify(basePath)};
+if(location.pathname.indexOf(b+"/settings")===0)return;
+if(/[?&]app(=|&|$)/.test(location.search)){try{sessionStorage.setItem(${JSON.stringify(PHONE_SETUP_SKIP_KEY)},"1")}catch(e){}return}
+try{if(sessionStorage.getItem(${JSON.stringify(PHONE_SETUP_SKIP_KEY)})==="1")return}catch(e){}
+if(Math.min(window.innerWidth,window.innerHeight)>=${PHONE_MAX_EDGE})return;
+location.replace(b+"/settings/")
+}catch(e){}})();`;
 
 export const metadata: Metadata = {
   title: "Z CAR",
@@ -38,7 +53,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ja">
-      <body>{children}</body>
+      <body>
+        <script dangerouslySetInnerHTML={{ __html: phoneRedirectScript }} />
+        {children}
+      </body>
     </html>
   );
 }
