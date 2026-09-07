@@ -180,9 +180,12 @@ export const writeSettings = (settings: Settings) => {
 };
 
 /**
- * スマホかどうかの判定。短辺で見るので、縦持ち・横持ちのどちらでも同じ結果になる。
- * 車載機(PORMIDO G10 は 1024×600)は短辺 600px なので対象外。
+ * スマホ判定のしきい値(px)。画面の短辺がこれ未満ならスマホとみなす。
+ * 縦持ち・横持ちのどちらでも同じ結果になり、車載機(PORMIDO G10 は
+ * 1024×600 で短辺600px)は対象外になる。
+ * この値は layout.tsx の先読みスクリプトでも使う。
  */
-export const isPhoneViewport = () =>
-  typeof window !== "undefined" &&
-  Math.min(window.innerWidth, window.innerHeight) < 500;
+export const PHONE_MAX_EDGE = 500;
+
+/** スマホでダッシュボードを開いたままにする印(そのタブの間だけ)。 */
+export const PHONE_SETUP_SKIP_KEY = "zcar-skip-setup";
