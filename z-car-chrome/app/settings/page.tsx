@@ -24,12 +24,19 @@ import {
 
 type SyncState = "idle" | "sending" | "done" | "error";
 
+/** Googleマップを案内モードで開くURL。車側の目的地ボタンと同じ形式。 */
+const navigationUrl = (destination: string) =>
+  "https://www.google.com/maps/dir/?api=1&destination=" +
+  encodeURIComponent(destination) +
+  "&travelmode=driving&dir_action=navigate";
+
 export default function PhoneSettingsPage() {
   const [draft, setDraft] = useState<Settings>(defaults);
   const [ready, setReady] = useState(false);
   const [saved, setSaved] = useState(false);
   const [syncState, setSyncState] = useState<SyncState>("idle");
   const [handoffDone, setHandoffDone] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     let stored = readSettings();
@@ -96,6 +103,11 @@ export default function PhoneSettingsPage() {
       setSyncState("error");
     }
   };
+
+  // 住所が入っている目的地だけをナビの候補にする(番号は設定の並び順)。
+  const navigableDestinations = draft.mapDestinations
+    .map((entry, index) => ({ entry, number: index + 1 }))
+    .filter(({ entry }) => entry.destination.trim() !== "");
 
   const updateDestination = (index: number, patch: Partial<MapDestination>) => {
     setDraft((current) => ({
@@ -181,6 +193,44 @@ export default function PhoneSettingsPage() {
             : "この端末（スマートフォン）に保存される設定です。"}
         </p>
       </header>
+
+      <section className="zsetup-section zsetup-nav">
+        <h2>
+          ナビ<small>設定した目的地へGoogleマップで案内を開始します</small>
+        </h2>
+        <button
+          type="button"
+          className="zsetup-nav-toggle"
+          aria-expanded={navOpen}
+          onClick={() => setNavOpen((open) => !open)}
+        >
+          {navOpen ? "閉じる" : "ナビ開始"}
+        </button>
+        {navOpen ? (
+          <div className="zsetup-nav-list">
+            {navigableDestinations.length > 0 ? (
+              navigableDestinations.map(({ entry, number }) => (
+                <a
+                  className="zsetup-nav-target"
+                  key={number}
+                  href={navigationUrl(entry.destination.trim())}
+                >
+                  <b>{number}</b>
+                  <span>
+                    <strong>{entry.label.trim() || "目的地"}</strong>
+                    <small>{entry.destination.trim()}</small>
+                  </span>
+                  <em>案内開始</em>
+                </a>
+              ))
+            ) : (
+              <p className="zsetup-nav-empty">
+                下の「ナビの目的地」に住所を入れると、ここに並びます。
+              </p>
+            )}
+          </div>
+        ) : null}
+      </section>
 
       <section className="zsetup-section">
         <h2>
