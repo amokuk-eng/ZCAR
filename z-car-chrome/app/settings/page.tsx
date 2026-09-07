@@ -3,12 +3,27 @@
 import { useEffect, useState } from "react";
 import {
   defaults,
+  fetchSharedSettings,
   METER_THEMES,
+  MIN_SYNC_KEY_LENGTH,
+  pushSharedSettings,
   readSettings,
   writeSettings,
   type MeterTheme,
   type Settings,
 } from "../settings-store";
+
+type SyncState = "idle" | "sending" | "done" | "error";
+
+const formatSyncTime = (value: number) =>
+  value > 0
+    ? new Intl.DateTimeFormat("ja-JP", {
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(value))
+    : null;
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
@@ -16,10 +31,24 @@ export default function PhoneSettingsPage() {
   const [draft, setDraft] = useState<Settings>(defaults);
   const [ready, setReady] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [syncState, setSyncState] = useState<SyncState>("idle");
 
   useEffect(() => {
-    setDraft(readSettings());
+    const stored = readSettings();
+    setDraft(stored);
     setReady(true);
+    // 車側で先に変更されているかもしれないので、開いた時点で一度取りに行く。
+    const key = stored.syncKey.trim();
+    if (key.length < MIN_SYNC_KEY_LENGTH) return;
+    void fetchSharedSettings(key)
+      .then((result) => {
+        const updatedAt = result.updatedAt ?? 0;
+        if (!result.ok || !result.settings || updatedAt <= stored.syncedAt) return;
+        const merged = { ...stored, ...result.settings, syncedAt: updatedAt };
+        setDraft(merged);
+        writeSettings(merged);
+      })
+      .catch(() => undefined);
   }, []);
 
   // 保存後の「保存しました」表示は数秒で消す。
@@ -32,6 +61,27 @@ export default function PhoneSettingsPage() {
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) => {
     setDraft((current) => ({ ...current, [key]: value }));
     setSaved(false);
+    setSyncState("idle");
+  };
+
+  const syncKey = draft.syncKey.trim();
+  const canSync = syncKey.length >= MIN_SYNC_KEY_LENGTH;
+  const lastSyncLabel = formatSyncTime(draft.syncedAt);
+
+  /** 保存した内容を車側にも届ける。 */
+  const sendToCar = async (settings: Settings) => {
+    if (settings.syncKey.trim().length < MIN_SYNC_KEY_LENGTH) return;
+    setSyncState("sending");
+    try {
+      const result = await pushSharedSettings(settings.syncKey.trim(), settings);
+      const updatedAt = result.updatedAt ?? Date.now();
+      const synced = { ...settings, syncedAt: updatedAt };
+      setDraft(synced);
+      writeSettings(synced);
+      setSyncState("done");
+    } catch {
+      setSyncState("error");
+    }
   };
 
   const save = () => {
@@ -46,6 +96,7 @@ export default function PhoneSettingsPage() {
     setDraft(next);
     writeSettings(next);
     setSaved(true);
+    void sendToCar(next);
   };
 
   const resetAll = () => {
@@ -170,14 +221,49 @@ export default function PhoneSettingsPage() {
         </p>
       </div>
 
-      <section className="zsetup-section zsetup-note">
+      <section className="zsetup-section">
         <h2>
-          設定は端末ごとです<small>車の画面には自動で反映されません</small>
+          車と同期<small>同じ合言葉を入れた端末どうしで設定を共有</small>
         </h2>
-        <p>
-          設定はブラウザの中に端末ごとに保存されます。ここで変えた内容は、
-          このスマートフォンで Z CAR を開いたときに反映されます。
-          車載機（PORMIDO）の表示を変えるときは、車の画面側でも同じ設定をしてください。
+        <label className="zsetup-field">
+          <span>合言葉（{MIN_SYNC_KEY_LENGTH}文字以上）</span>
+          <input
+            autoComplete="off"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
+            placeholder="未入力なら同期しない"
+            value={draft.syncKey}
+            onChange={(event) => update("syncKey", event.target.value)}
+          />
+          <small>
+            車載機の設定ページでも同じ合言葉を入れてください。
+            合言葉を知っている端末だけが読み書きできます。
+          </small>
+        </label>
+        <div className="zsetup-sync">
+          <button
+            type="button"
+            className="zsetup-send"
+            disabled={!canSync || syncState === "sending"}
+            onClick={() => void sendToCar(draft)}
+          >
+            {syncState === "sending" ? "送信中…" : "いま車に送る"}
+          </button>
+          <p className="zsetup-sync-state" role="status">
+            {syncState === "error"
+              ? "送信できませんでした（通信を確認してください）"
+              : canSync
+                ? lastSyncLabel
+                  ? `最終同期 ${lastSyncLabel}`
+                  : "まだ同期していません"
+                : "合言葉を入れると同期できます"}
+          </p>
+        </div>
+        <p className="zsetup-sync-note">
+          同期されるのは メーターテーマ・店舗名・店舗住所・勤務開始・自宅住所・車両ID
+          です。APIキーと走行状態（出勤/退勤）は端末ごとのままです。
+          車側は30秒おきに確認して反映します。
         </p>
       </section>
 

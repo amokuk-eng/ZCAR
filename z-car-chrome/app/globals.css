@@ -6317,3 +6317,55 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   .zsetup-actions,
   .zsetup-links { max-width: 560px; margin-inline: auto; }
 }
+
+/* --- 設定ページ: 車との同期 --- */
+.zsetup-sync { margin-bottom: 14px; }
+
+.zsetup-send {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid #2f7f84;
+  border-radius: 12px;
+  background: rgba(57, 204, 212, .1);
+  color: #b9f2f5;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.zsetup-send:disabled {
+  border-color: var(--line);
+  background: transparent;
+  color: #5d6b78;
+  cursor: default;
+}
+
+.zsetup-sync-state {
+  margin: 9px 0 0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  color: var(--muted);
+}
+
+.zsetup-sync-note {
+  margin: 0 0 16px;
+  font-size: 11px;
+  line-height: 1.7;
+  color: #7d8894;
+}
+
+/* 車載機の設定ダイアログから設定ページへ渡すリンク。 */
+.settings-page-link {
+  display: block;
+  margin: 2px 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: #6fe3ea;
+  text-decoration: none;
+}

@@ -4,7 +4,11 @@ import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react
 import { useObd2, type ObdConnectionStatus } from "./hooks/use-obd2";
 import {
   defaults,
+  fetchSharedSettings,
   isPhoneViewport,
+  MIN_SYNC_KEY_LENGTH,
+  pickSyncedFields,
+  pushSharedSettings,
   readSettings,
   SETTINGS_STORAGE_KEY,
   writeSettings,
@@ -243,6 +247,8 @@ const loadGoogleMaps = (key: string) => {
   }
   return w.__gmapsPromise;
 };
+// 他の端末での設定変更を取りに行く間隔。
+const SYNC_POLL_MS = 30000;
 // スマホでダッシュボードを選んだことを覚えておくキー(そのタブの間だけ)。
 const PHONE_SETUP_SKIP_KEY = "zcar-skip-setup";
 const FUEL_LOG_STORAGE_KEY = "zcar-fuel-log-v1";
@@ -592,6 +598,9 @@ export default function Home() {
   >("idle");
   const homeDialog = useRef<HTMLDialogElement>(null);
   const settingsDialog = useRef<HTMLDialogElement>(null);
+  // 同期用: 最新の設定と、最後にサーバーへ送った内容を覚えておく。
+  const settingsRef = useRef<Settings>(defaults);
+  const lastPushedRef = useRef<string | null>(null);
   const themeDialog = useRef<HTMLDialogElement>(null);
   const fuelMotionRef = useRef<{
     speed: number | null;
@@ -762,6 +771,74 @@ export default function Home() {
   useEffect(() => {
     if (ready) writeSettings(settings);
   }, [ready, settings]);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  });
+
+  // --- 設定の同期 ---
+  // 合言葉を入れておくと、スマホ側で変えたメーターの色などをここでも取り込む。
+  // 走行状態やAPIキーは端末ごとの値なので同期しない(settings-store の SYNCED_FIELDS)。
+  const syncKey = settings.syncKey.trim();
+  const syncEnabled = ready && syncKey.length >= MIN_SYNC_KEY_LENGTH;
+
+  useEffect(() => {
+    if (!syncEnabled) return;
+    let active = true;
+
+    const pull = async () => {
+      try {
+        const result = await fetchSharedSettings(syncKey);
+        if (!active || !result.ok) return;
+        const current = settingsRef.current;
+        if (!result.settings) {
+          // サーバーにまだ何も無ければ、この端末の設定を最初の1件として置く。
+          const seeded = await pushSharedSettings(syncKey, current);
+          if (!active || !seeded.updatedAt) return;
+          lastPushedRef.current = JSON.stringify(pickSyncedFields(current));
+          setSettings((now) => ({ ...now, syncedAt: seeded.updatedAt as number }));
+          return;
+        }
+        const updatedAt = result.updatedAt ?? 0;
+        if (updatedAt <= current.syncedAt) return;
+        const merged = { ...current, ...result.settings, syncedAt: updatedAt };
+        // 取り込んだ内容をそのまま送り返さないよう、送信済みとして覚えておく。
+        lastPushedRef.current = JSON.stringify(pickSyncedFields(merged));
+        setSettings(merged);
+      } catch {
+        // 圏外や一時的なエラーは次の周期に任せる。
+      }
+    };
+
+    void pull();
+    const timer = window.setInterval(pull, SYNC_POLL_MS);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [syncEnabled, syncKey]);
+
+  useEffect(() => {
+    if (!syncEnabled) {
+      lastPushedRef.current = null;
+      return;
+    }
+    const payload = JSON.stringify(pickSyncedFields(settings));
+    if (lastPushedRef.current === null) {
+      // 合言葉を入れた直後の1回目は、まず pull 側の判断に任せる。
+      lastPushedRef.current = payload;
+      return;
+    }
+    if (lastPushedRef.current === payload) return;
+    lastPushedRef.current = payload;
+    void pushSharedSettings(syncKey, settings)
+      .then((result) => {
+        if (result.updatedAt) {
+          setSettings((now) => ({ ...now, syncedAt: result.updatedAt as number }));
+        }
+      })
+      .catch(() => undefined);
+  }, [syncEnabled, syncKey, settings]);
 
   useEffect(() => {
     if (!ready || showMeter || showFuel || showMusic) return;
@@ -2506,6 +2583,12 @@ export default function Home() {
               }
             />
           </label>
+          <a
+            className="settings-page-link"
+            href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/settings/`}
+          >
+            詳細設定ページを開く（メーターの色・車との同期）
+          </a>
           <div className="two-actions">
             <button onClick={() => settingsDialog.current?.close()}>
               キャンセル
