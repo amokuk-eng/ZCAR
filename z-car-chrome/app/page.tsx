@@ -489,6 +489,8 @@ export default function Home() {
     playlistId: string;
     label: string;
     reloadKey: number;
+    /** 再生を押したあとは表示を畳んで、音だけ鳴らし続ける。 */
+    collapsed: boolean;
   } | null>(null);
   // 一度反応した指示を覚えておき、同じものを繰り返し再生しないようにする。
   const handledPlayRef = useRef(0);
@@ -732,6 +734,7 @@ export default function Home() {
       playlistId: command.playlistId,
       label: command.label,
       reloadKey: command.requestedAt,
+      collapsed: false,
     });
   }, [settings.nowPlaying]);
 
@@ -2329,7 +2332,11 @@ export default function Home() {
         {/* メーター表示中でも消えないよう、画面の切り替えとは別のところに置く。
             ここで消すと iframe が作り直されて音が止まってしまう。 */}
         {carPlaying ? (
-          <aside className="car-player" aria-label="スマホから指定された音楽">
+          <aside
+            className={`car-player${carPlaying.collapsed ? " is-collapsed" : ""}`}
+            aria-label="スマホから指定された音楽"
+          >
+            {/* 畳んでいる間も iframe は残す。消すと音まで止まってしまう。 */}
             <iframe
               key={carPlaying.reloadKey}
               src={`https://www.youtube.com/embed/videoseries?list=${carPlaying.playlistId}&autoplay=1&playsinline=1&rel=0&loop=1`}
@@ -2337,22 +2344,41 @@ export default function Home() {
               allow="autoplay; encrypted-media; picture-in-picture"
               referrerPolicy="strict-origin-when-cross-origin"
             />
-            <span className="car-player-name">{carPlaying.label || "MUSIC"}</span>
-            <div className="car-player-actions">
+            {carPlaying.collapsed ? (
               <button
                 type="button"
+                className="car-player-badge"
+                aria-label={`再生中: ${carPlaying.label || "MUSIC"} の操作を開く`}
                 onClick={() =>
                   setCarPlaying((current) =>
-                    current ? { ...current, reloadKey: Date.now() } : current,
+                    current ? { ...current, collapsed: false } : current,
                   )
                 }
               >
-                ▶ 再生
+                ♪
               </button>
-              <button type="button" onClick={() => setCarPlaying(null)}>
-                停止
-              </button>
-            </div>
+            ) : (
+              <>
+                <span className="car-player-name">{carPlaying.label || "MUSIC"}</span>
+                <div className="car-player-actions">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCarPlaying((current) =>
+                        current
+                          ? { ...current, reloadKey: Date.now(), collapsed: true }
+                          : current,
+                      )
+                    }
+                  >
+                    ▶ 再生
+                  </button>
+                  <button type="button" onClick={() => setCarPlaying(null)}>
+                    停止
+                  </button>
+                </div>
+              </>
+            )}
           </aside>
         ) : null}
       </div>

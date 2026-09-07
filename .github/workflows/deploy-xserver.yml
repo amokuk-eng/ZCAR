@@ -42,10 +42,10 @@ jobs:
           BASE_PATH: /zcar
         run: npm run build:static
 
-      # サーバーへのFTPS接続はまれにタイムアウトするため、
-      # 1回目が失敗したら自動でもう一度だけ試す。
+      # サーバーへのFTPS接続はまれにタイムアウトする(Timeout (control socket))。
+      # 立て続けに繋ぎ直しても失敗しやすいので、間を空けて最大3回試す。
       - name: Upload via FTPS
-        id: deploy
+        id: deploy1
         continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -57,8 +57,31 @@ jobs:
           local-dir: z-car-chrome/out/
           server-dir: ${{ secrets.FTP_TARGET_DIR }}
 
-      - name: Upload via FTPS (retry)
-        if: steps.deploy.outcome == 'failure'
+      - name: Wait before retry
+        if: steps.deploy1.outcome == 'failure'
+        run: sleep 45
+
+      - name: Upload via FTPS (retry 1)
+        id: deploy2
+        if: steps.deploy1.outcome == 'failure'
+        continue-on-error: true
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          timeout: 120000
+          local-dir: z-car-chrome/out/
+          server-dir: ${{ secrets.FTP_TARGET_DIR }}
+
+      - name: Wait before final retry
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
+        run: sleep 90
+
+      # 3回目も失敗したらジョブを失敗として終わらせる(黙って成功にしない)。
+      - name: Upload via FTPS (retry 2)
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
