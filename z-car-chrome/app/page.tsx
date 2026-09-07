@@ -2255,10 +2255,7 @@ export default function Home() {
             </div>
           </section>
 
-          <section
-            className={`right-panel${carPlaying ? " has-player" : ""}`}
-            aria-label="映像とシフトモニター"
-          >
+          <section className="right-panel" aria-label="映像とシフトモニター">
             <article className={`home-weather-card ${weatherStatus}`} aria-live="polite">
               <div className="home-weather-icon" aria-hidden="true">
                 {weather ? (
@@ -2293,38 +2290,6 @@ export default function Home() {
                 <small>現在地</small>
               </div>
             </article>
-            {carPlaying ? (
-              <article className="car-player" aria-label="スマホから指定された音楽">
-                <header>
-                  <span><i aria-hidden="true" />{carPlaying.label || "MUSIC"}</span>
-                  <div className="car-player-actions">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setCarPlaying((current) =>
-                          current
-                            ? { ...current, reloadKey: Date.now() }
-                            : current,
-                        )
-                      }
-                    >
-                      ▶ 再生
-                    </button>
-                    <button type="button" onClick={() => setCarPlaying(null)}>
-                      停止
-                    </button>
-                  </div>
-                </header>
-                <iframe
-                  key={carPlaying.reloadKey}
-                  src={`https://www.youtube.com/embed/videoseries?list=${carPlaying.playlistId}&autoplay=1&playsinline=1&rel=0&loop=1`}
-                  title={`${carPlaying.label || "MUSIC"} プレイリスト`}
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                  allowFullScreen
-                  referrerPolicy="strict-origin-when-cross-origin"
-                />
-              </article>
-            ) : null}
             <div className="shift-monitor" aria-live="polite">
               <header>
                 <span className="schedule-mini-icon" aria-hidden="true">Z</span>
@@ -2360,6 +2325,36 @@ export default function Home() {
         <footer>
           安全運転を最優先してください
         </footer>
+
+        {/* メーター表示中でも消えないよう、画面の切り替えとは別のところに置く。
+            ここで消すと iframe が作り直されて音が止まってしまう。 */}
+        {carPlaying ? (
+          <aside className="car-player" aria-label="スマホから指定された音楽">
+            <iframe
+              key={carPlaying.reloadKey}
+              src={`https://www.youtube.com/embed/videoseries?list=${carPlaying.playlistId}&autoplay=1&playsinline=1&rel=0&loop=1`}
+              title={`${carPlaying.label || "MUSIC"} プレイリスト`}
+              allow="autoplay; encrypted-media; picture-in-picture"
+              referrerPolicy="strict-origin-when-cross-origin"
+            />
+            <span className="car-player-name">{carPlaying.label || "MUSIC"}</span>
+            <div className="car-player-actions">
+              <button
+                type="button"
+                onClick={() =>
+                  setCarPlaying((current) =>
+                    current ? { ...current, reloadKey: Date.now() } : current,
+                  )
+                }
+              >
+                ▶ 再生
+              </button>
+              <button type="button" onClick={() => setCarPlaying(null)}>
+                停止
+              </button>
+            </div>
+          </aside>
+        ) : null}
       </div>
       )}
 
