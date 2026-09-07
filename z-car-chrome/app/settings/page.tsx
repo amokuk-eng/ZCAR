@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import QRCode from "qrcode";
 import {
+  buildSyncHandoffUrl,
   defaults,
   fetchSharedSettings,
+  generateSyncKey,
   METER_THEMES,
   MIN_SYNC_KEY_LENGTH,
   pushSharedSettings,
   readSettings,
+  readSyncKeyFromHash,
   writeSettings,
   type MeterTheme,
   type Settings,
@@ -32,19 +36,36 @@ export default function PhoneSettingsPage() {
   const [ready, setReady] = useState(false);
   const [saved, setSaved] = useState(false);
   const [syncState, setSyncState] = useState<SyncState>("idle");
+  const [qrDataUrl, setQrDataUrl] = useState("");
+  const [showQr, setShowQr] = useState(false);
+  const [handoffDone, setHandoffDone] = useState(false);
 
   useEffect(() => {
-    const stored = readSettings();
+    let stored = readSettings();
+
+    // QRを読み取って来た場合、URLの「#」以降に合言葉が入っている。
+    const handedOff = readSyncKeyFromHash(window.location.hash);
+    if (handedOff) {
+      // 合言葉が変わったら、それまでの同期時刻は無効。0に戻して車側の内容を取り込む。
+      stored = { ...stored, syncKey: handedOff, syncedAt: 0 };
+      writeSettings(stored);
+      setHandoffDone(true);
+      // 合言葉を履歴やアドレスバーに残さない。
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+
     setDraft(stored);
     setReady(true);
+
     // 車側で先に変更されているかもしれないので、開いた時点で一度取りに行く。
     const key = stored.syncKey.trim();
     if (key.length < MIN_SYNC_KEY_LENGTH) return;
+    const base = stored;
     void fetchSharedSettings(key)
       .then((result) => {
         const updatedAt = result.updatedAt ?? 0;
-        if (!result.ok || !result.settings || updatedAt <= stored.syncedAt) return;
-        const merged = { ...stored, ...result.settings, syncedAt: updatedAt };
+        if (!result.ok || !result.settings || updatedAt <= base.syncedAt) return;
+        const merged = { ...base, ...result.settings, syncedAt: updatedAt };
         setDraft(merged);
         writeSettings(merged);
       })
@@ -99,6 +120,36 @@ export default function PhoneSettingsPage() {
     void sendToCar(next);
   };
 
+  /** 合言葉を渡すためのQRを作る。中身は合言葉入りのURL(「#」以降なので送信されない)。 */
+  const buildQr = useCallback(async (key: string) => {
+    const url = buildSyncHandoffUrl(key);
+    const image = await QRCode.toDataURL(url, {
+      // 実寸より大きめに作り、CSS側で縮小して表示する(粗さが出ないように)。
+      width: 720,
+      margin: 1,
+      errorCorrectionLevel: "M",
+      color: { dark: "#04110c", light: "#e6fbf7" },
+    });
+    setQrDataUrl(image);
+    setShowQr(true);
+  }, []);
+
+  /** 合言葉が無ければ作ってから、QRを表示する。 */
+  const openQr = async () => {
+    let next = draft;
+    if (!canSync) {
+      next = { ...draft, syncKey: generateSyncKey(), syncedAt: 0 };
+      setDraft(next);
+      writeSettings(next);
+      void sendToCar(next);
+    }
+    try {
+      await buildQr(next.syncKey.trim());
+    } catch {
+      setSyncState("error");
+    }
+  };
+
   const resetAll = () => {
     if (!window.confirm("この端末の設定を初期状態に戻します。よろしいですか？")) {
       return;
@@ -114,7 +165,9 @@ export default function PhoneSettingsPage() {
         <p className="zsetup-eyebrow">Z PORTAL | CAR</p>
         <h1>Z CAR 設定</h1>
         <p className="zsetup-lead">
-          この端末（スマートフォン）に保存される設定です。
+          {handoffDone
+            ? "QRから合言葉を読み込みました。車と同じ設定になります。"
+            : "この端末（スマートフォン）に保存される設定です。"}
         </p>
       </header>
 
@@ -259,6 +312,31 @@ export default function PhoneSettingsPage() {
                   : "まだ同期していません"
                 : "合言葉を入れると同期できます"}
           </p>
+        </div>
+        <div className="zsetup-qr">
+          <button type="button" className="zsetup-qr-toggle" onClick={() => void openQr()}>
+            {canSync ? "QRで他の端末に渡す" : "合言葉を作ってQRを表示"}
+          </button>
+          {showQr && qrDataUrl ? (
+            <div className="zsetup-qr-panel">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={qrDataUrl} alt="同期用QRコード" width={720} height={720} />
+              <p className="zsetup-qr-help">
+                車の画面でこれを表示し、iPhoneのカメラでかざしてください。
+                設定ページが開いて合言葉が自動で入ります。
+              </p>
+              <p className="zsetup-qr-warn">
+                このQRは合言葉そのものです。他の人に見せたり撮影させたりしないでください。
+              </p>
+              <button
+                type="button"
+                className="zsetup-qr-close"
+                onClick={() => setShowQr(false)}
+              >
+                QRを隠す
+              </button>
+            </div>
+          ) : null}
         </div>
         <p className="zsetup-sync-note">
           同期されるのは メーターテーマ・店舗名・店舗住所・勤務開始・自宅住所・車両ID
