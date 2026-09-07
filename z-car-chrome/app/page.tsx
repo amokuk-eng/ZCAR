@@ -8,6 +8,9 @@ import {
   MIN_SYNC_KEY_LENGTH,
   sanitizeSyncedSettings,
   pickSyncedFields,
+  PLAY_COMMAND_MAX_AGE_MS,
+  readHandledPlayAt,
+  writeHandledPlayAt,
   pushSharedSettings,
   readSettings,
   SETTINGS_STORAGE_KEY,
@@ -480,6 +483,16 @@ const BUILD_STAMP = (() => {
 
 export default function Home() {
   const [settings, setSettings] = useState<Settings>(defaults);
+  // スマホから送られてきた再生指示で鳴らしているプレイリスト。
+  // reloadKey は「音が出ないときのタップ」で作り直すための目印。
+  const [carPlaying, setCarPlaying] = useState<{
+    playlistId: string;
+    label: string;
+    reloadKey: number;
+  } | null>(null);
+  // 一度反応した指示を覚えておき、同じものを繰り返し再生しないようにする。
+  const handledPlayRef = useRef(0);
+
   // マップ画面の 1〜5 のナビ目的地。設定ページから編集できる。
   const mapDestinations = settings.mapDestinations;
   // 出勤・退勤は設定した店舗/自宅住所を使い、未入力なら1番・2番で代用する。
@@ -703,6 +716,24 @@ export default function Home() {
   useEffect(() => {
     settingsRef.current = settings;
   });
+
+  // スマホからの再生指示を受け取る。開き直したときに古い指示で急に音が
+  // 鳴らないよう、新しくて期限内のものだけを対象にする。
+  useEffect(() => {
+    const command = settings.nowPlaying;
+    if (!command) return;
+    // 反応済みの指示は端末にも記録してあるので、開き直しても鳴り直さない。
+    const handled = Math.max(handledPlayRef.current, readHandledPlayAt());
+    if (command.requestedAt <= handled) return;
+    handledPlayRef.current = command.requestedAt;
+    writeHandledPlayAt(command.requestedAt);
+    if (Date.now() - command.requestedAt > PLAY_COMMAND_MAX_AGE_MS) return;
+    setCarPlaying({
+      playlistId: command.playlistId,
+      label: command.label,
+      reloadKey: command.requestedAt,
+    });
+  }, [settings.nowPlaying]);
 
   // --- 設定の同期 ---
   // 合言葉を入れておくと、スマホ側で変えたメーターの色などをここでも取り込む。
@@ -2224,7 +2255,10 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="right-panel" aria-label="映像とシフトモニター">
+          <section
+            className={`right-panel${carPlaying ? " has-player" : ""}`}
+            aria-label="映像とシフトモニター"
+          >
             <article className={`home-weather-card ${weatherStatus}`} aria-live="polite">
               <div className="home-weather-icon" aria-hidden="true">
                 {weather ? (
@@ -2259,6 +2293,38 @@ export default function Home() {
                 <small>現在地</small>
               </div>
             </article>
+            {carPlaying ? (
+              <article className="car-player" aria-label="スマホから指定された音楽">
+                <header>
+                  <span><i aria-hidden="true" />{carPlaying.label || "MUSIC"}</span>
+                  <div className="car-player-actions">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCarPlaying((current) =>
+                          current
+                            ? { ...current, reloadKey: Date.now() }
+                            : current,
+                        )
+                      }
+                    >
+                      ▶ 再生
+                    </button>
+                    <button type="button" onClick={() => setCarPlaying(null)}>
+                      停止
+                    </button>
+                  </div>
+                </header>
+                <iframe
+                  key={carPlaying.reloadKey}
+                  src={`https://www.youtube.com/embed/videoseries?list=${carPlaying.playlistId}&autoplay=1&playsinline=1&rel=0&loop=1`}
+                  title={`${carPlaying.label || "MUSIC"} プレイリスト`}
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                />
+              </article>
+            ) : null}
             <div className="shift-monitor" aria-live="polite">
               <header>
                 <span className="schedule-mini-icon" aria-hidden="true">Z</span>

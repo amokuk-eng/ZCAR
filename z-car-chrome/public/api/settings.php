@@ -163,6 +163,28 @@ if (isset($incoming['mapDestinations']) && is_array($incoming['mapDestinations']
     $clean['mapDestinations'] = $destinations;
 }
 
+// スマホからの再生指示。設定ではなく一度きりの指示なので、null も受け付ける。
+if (array_key_exists('nowPlaying', $incoming)) {
+    $command = $incoming['nowPlaying'];
+    $clean['nowPlaying'] = null;
+    if (is_array($command)) {
+        $id = isset($command['playlistId']) && is_string($command['playlistId'])
+            ? $command['playlistId']
+            : '';
+        $requestedAt = isset($command['requestedAt']) ? (int) $command['requestedAt'] : 0;
+        if ($requestedAt > 0 && preg_match('/^[A-Za-z0-9_-]{2,64}$/', $id)) {
+            $label = isset($command['label']) && is_string($command['label'])
+                ? mb_substr($command['label'], 0, MAX_PLAYLIST_LABEL, 'UTF-8')
+                : '';
+            $clean['nowPlaying'] = [
+                'playlistId' => $id,
+                'label' => $label,
+                'requestedAt' => $requestedAt,
+            ];
+        }
+    }
+}
+
 if ($clean === []) {
     fail(400, 'nothing to save');
 }

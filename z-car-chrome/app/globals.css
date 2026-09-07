@@ -6197,21 +6197,57 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   cursor: default;
 }
 
-/* 設定ページ: プレイリストをこの端末で再生するリンク。 */
-.zsetup-playlist-play {
+/* 設定ページ: 車で再生する / この端末で開く。 */
+.zsetup-playlist-play-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.zsetup-playlist-play,
+.zsetup-playlist-open {
   display: grid;
   place-items: center;
-  min-height: 42px;
+  min-height: 44px;
+  padding: 0 14px;
   border: 1px solid #2f7f84;
   border-radius: 10px;
-  background: rgba(57, 204, 212, .08);
+  background: rgba(57, 204, 212, .12);
   color: #b9f2f5;
+  font-family: inherit;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: .06em;
   text-decoration: none;
+  cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
+
+.zsetup-playlist-play:disabled {
+  border-color: var(--line);
+  background: transparent;
+  color: #5d6b78;
+  cursor: default;
+}
+
+.zsetup-playlist-open {
+  border-color: var(--line);
+  background: transparent;
+  color: #9fb0bd;
+  font-size: 12px;
+}
+
+.zsetup-play-state {
+  margin: 0 0 12px;
+  min-height: 16px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: #55e0c8;
+}
+
+.zsetup-pairing { margin-bottom: 16px; }
 /* ナビ目的地ボタンに、設定した名前を番号の下に小さく出す。 */
 .map-shortcuts button em {
   max-width: 100%;
@@ -6306,4 +6342,78 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   line-height: 1.7;
   color: var(--muted);
   text-align: center;
+}
+
+/* --- 車側: スマホから指定された音楽のプレイヤー --- */
+.right-panel.has-player { grid-template-rows: 68px minmax(0, 1fr) 176px; }
+
+.car-player {
+  grid-row: 3;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #07090b;
+}
+
+.car-player > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 9px;
+  border-bottom: 1px solid var(--line);
+}
+
+.car-player > header > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.car-player > header i {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: #f05c5c;
+}
+
+.car-player-actions { display: flex; gap: 6px; flex: none; }
+
+.car-player-actions button {
+  min-height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: transparent;
+  color: #cfd8e0;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  cursor: pointer;
+}
+
+.car-player-actions button:first-child { border-color: #2f7f84; color: #9fe4e9; }
+
+.car-player iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+}
+
+@media (orientation: portrait) {
+  .right-panel.has-player { grid-template-rows: auto minmax(0, 1fr) 200px; }
 }
