@@ -5,6 +5,8 @@ import {
   defaults,
   extractPlaylistId,
   fetchSharedSettings,
+  MAX_DESTINATION_LABEL,
+  MAX_DESTINATION_TEXT,
   MAX_PLAYLISTS,
   MAX_PLAYLIST_LABEL,
   METER_THEMES,
@@ -14,6 +16,7 @@ import {
   readSyncKeyFromHash,
   sanitizeSyncedSettings,
   writeSettings,
+  type MapDestination,
   type MeterTheme,
   type Playlist,
   type Settings,
@@ -94,6 +97,17 @@ export default function PhoneSettingsPage() {
     }
   };
 
+  const updateDestination = (index: number, patch: Partial<MapDestination>) => {
+    setDraft((current) => ({
+      ...current,
+      mapDestinations: current.mapDestinations.map((entry, i) =>
+        i === index ? { ...entry, ...patch } : entry,
+      ),
+    }));
+    setSaved(false);
+    setSyncState("idle");
+  };
+
   const updatePlaylist = (index: number, patch: Partial<Playlist>) => {
     setDraft((current) => ({
       ...current,
@@ -127,6 +141,10 @@ export default function PhoneSettingsPage() {
         draft.storeDest.trim() || draft.storeName.trim() || defaults.storeDest,
       start: draft.start || defaults.start,
       carId: draft.carId.trim() || defaults.carId,
+      mapDestinations: draft.mapDestinations.map((entry) => ({
+        label: entry.label.trim().slice(0, MAX_DESTINATION_LABEL),
+        destination: entry.destination.trim().slice(0, MAX_DESTINATION_TEXT),
+      })),
       // URLを貼られてもIDだけ取り出す。IDが無い行は保存しない。
       playlists: draft.playlists
         .map((entry) => ({
@@ -230,6 +248,44 @@ export default function PhoneSettingsPage() {
             onChange={(event) => update("homeDest", event.target.value)}
           />
         </label>
+      </section>
+
+      <section className="zsetup-section">
+        <h2>
+          ナビの目的地<small>車のマップ画面に並ぶ 1〜5 のボタン</small>
+        </h2>
+        <div className="zsetup-playlists">
+          {draft.mapDestinations.map((entry, index) => (
+            <div className="zsetup-playlist" key={index}>
+              <div className="zsetup-playlist-head">
+                <b>{index + 1}</b>
+                <input
+                  className="zsetup-playlist-label"
+                  placeholder="名前（例: ケーズ）"
+                  maxLength={MAX_DESTINATION_LABEL}
+                  value={entry.label}
+                  onChange={(event) =>
+                    updateDestination(index, { label: event.target.value })
+                  }
+                />
+              </div>
+              <input
+                placeholder="住所または検索語（空欄なら未登録）"
+                maxLength={MAX_DESTINATION_TEXT}
+                value={entry.destination}
+                onChange={(event) =>
+                  updateDestination(index, { destination: event.target.value })
+                }
+              />
+            </div>
+          ))}
+        </div>
+        <p className="zsetup-sync-note">
+          住所でも「ケーズデンキ 東住吉中野店」のような店名でも構いません。
+          押すとGoogleマップが開いて案内が始まります。空欄にしたボタンは押せなくなります。
+          なお「出勤」「退勤」のボタンは、上の勤務先で設定した
+          店舗住所・自宅住所へ案内します。
+        </p>
       </section>
 
       <section className="zsetup-section">

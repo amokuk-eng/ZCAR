@@ -6212,3 +6212,18 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
 }
+/* ナビ目的地ボタンに、設定した名前を番号の下に小さく出す。 */
+.map-shortcuts button em {
+  max-width: 100%;
+  overflow: hidden;
+  font-style: normal;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  line-height: 1.1;
+  color: rgba(159, 244, 210, .62);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-shortcuts button:disabled em { color: rgba(159, 244, 210, .28); }

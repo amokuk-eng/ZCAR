@@ -53,6 +53,46 @@ const sanitizePlaylists = (value: unknown): Playlist[] => {
   return cleaned.length > 0 ? cleaned : defaultPlaylists;
 };
 
+/** 車のマップ画面に並ぶ 1〜5 のナビ目的地1件分。 */
+export type MapDestination = {
+  /** ボタンに出す短い名前(例: ケーズ)。空なら未登録。 */
+  label: string;
+  /** Googleマップに渡す住所または検索語。空なら押せない。 */
+  destination: string;
+};
+
+/** ボタンはちょうど5つなので、常に5件そろえる。 */
+export const MAP_DESTINATION_COUNT = 5;
+export const MAX_DESTINATION_LABEL = 8;
+export const MAX_DESTINATION_TEXT = 200;
+
+export const defaultMapDestinations: MapDestination[] = [
+  { label: "ケーズ", destination: "〒546-0012 大阪府大阪市東住吉区中野1丁目15-9 ケーズデンキ東住吉中野店" },
+  { label: "自宅", destination: "〒573-0065 大阪府枚方市出口3丁目1-1" },
+  { label: "荻野くん家", destination: "〒545-0031 大阪府大阪市阿倍野区橋本町" },
+  { label: "", destination: "" },
+  { label: "鳥", destination: "〒534-0024 大阪府大阪市都島区東野田町4丁目6-6" },
+];
+
+const sanitizeMapDestinations = (value: unknown): MapDestination[] => {
+  // 保存されていない(この機能より前の設定)場合は、これまでの目的地を使う。
+  // 配列が入っているときだけ、空欄も「未登録」として尊重する。
+  if (!Array.isArray(value)) return defaultMapDestinations;
+  const source = value;
+  return Array.from({ length: MAP_DESTINATION_COUNT }, (_unused, index) => {
+    const entry = source[index];
+    if (!entry || typeof entry !== "object") return { label: "", destination: "" };
+    const { label, destination } = entry as Partial<MapDestination>;
+    return {
+      label: (typeof label === "string" ? label : "").slice(0, MAX_DESTINATION_LABEL),
+      destination: (typeof destination === "string" ? destination : "").slice(
+        0,
+        MAX_DESTINATION_TEXT,
+      ),
+    };
+  });
+};
+
 export type Settings = {
   storeName: string;
   storeDest: string;
@@ -70,6 +110,8 @@ export type Settings = {
   syncedAt: number;
   /** ミュージック画面に並べる YouTube プレイリスト。 */
   playlists: Playlist[];
+  /** 車のマップ画面の 1〜5 のナビ目的地。 */
+  mapDestinations: MapDestination[];
 };
 
 export const defaults: Settings = {
@@ -86,6 +128,7 @@ export const defaults: Settings = {
   syncKey: "",
   syncedAt: 0,
   playlists: defaultPlaylists,
+  mapDestinations: defaultMapDestinations,
 };
 
 /** サーバーと共有する項目。走行状態やAPIキーは端末ごとなので送らない。 */
@@ -97,6 +140,7 @@ export const SYNCED_FIELDS = [
   "homeDest",
   "carId",
   "playlists",
+  "mapDestinations",
 ] as const;
 
 export type SyncedSettings = Pick<Settings, (typeof SYNCED_FIELDS)[number]>;
@@ -126,6 +170,7 @@ export const pickSyncedFields = (settings: Settings): SyncedSettings => ({
   homeDest: settings.homeDest,
   carId: settings.carId,
   playlists: settings.playlists,
+  mapDestinations: settings.mapDestinations,
 });
 
 const postSync = async (payload: Record<string, unknown>) => {
@@ -153,7 +198,7 @@ export const sanitizeSyncedSettings = (
   if (!value || typeof value !== "object") return {};
   const cleaned: Partial<SyncedSettings> = {};
   for (const field of SYNCED_FIELDS) {
-    if (field === "playlists") continue;
+    if (field === "playlists" || field === "mapDestinations") continue;
     const entry = value[field];
     if (typeof entry === "string") cleaned[field] = entry as never;
   }
@@ -164,6 +209,9 @@ export const sanitizeSyncedSettings = (
   }
   if (Array.isArray(value.playlists)) {
     cleaned.playlists = sanitizePlaylists(value.playlists);
+  }
+  if (Array.isArray(value.mapDestinations)) {
+    cleaned.mapDestinations = sanitizeMapDestinations(value.mapDestinations);
   }
   return cleaned;
 };
@@ -224,6 +272,7 @@ export const readSettings = (): Settings => {
       syncKey: typeof stored.syncKey === "string" ? stored.syncKey : "",
       syncedAt: Number.isFinite(stored.syncedAt) ? Number(stored.syncedAt) : 0,
       playlists: sanitizePlaylists(stored.playlists),
+      mapDestinations: sanitizeMapDestinations(stored.mapDestinations),
     };
   } catch {
     return defaults;
