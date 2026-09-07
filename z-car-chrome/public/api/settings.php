@@ -25,6 +25,9 @@ header('X-Content-Type-Options: nosniff');
 const MAX_BODY_BYTES = 16384;
 const MAX_PLAYLISTS = 8;
 const MAX_PLAYLIST_LABEL = 24;
+const MAP_DESTINATION_COUNT = 5;
+const MAX_DESTINATION_LABEL = 8;
+const MAX_DESTINATION_TEXT = 200;
 const MIN_KEY_LENGTH = 8;
 const MAX_KEY_LENGTH = 128;
 
@@ -139,6 +142,25 @@ if (isset($incoming['playlists']) && is_array($incoming['playlists'])) {
     if ($playlists !== []) {
         $clean['playlists'] = $playlists;
     }
+}
+
+// ナビの目的地はボタンと同じ5件ちょうどに揃える。空欄は未登録として保存する。
+if (isset($incoming['mapDestinations']) && is_array($incoming['mapDestinations'])) {
+    $destinations = [];
+    for ($i = 0; $i < MAP_DESTINATION_COUNT; $i++) {
+        $entry = $incoming['mapDestinations'][$i] ?? null;
+        $label = is_array($entry) && isset($entry['label']) && is_string($entry['label'])
+            ? $entry['label']
+            : '';
+        $target = is_array($entry) && isset($entry['destination']) && is_string($entry['destination'])
+            ? $entry['destination']
+            : '';
+        $destinations[] = [
+            'label' => mb_substr($label, 0, MAX_DESTINATION_LABEL, 'UTF-8'),
+            'destination' => mb_substr($target, 0, MAX_DESTINATION_TEXT, 'UTF-8'),
+        ];
+    }
+    $clean['mapDestinations'] = $destinations;
 }
 
 if ($clean === []) {

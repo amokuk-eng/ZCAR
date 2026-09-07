@@ -67,29 +67,6 @@ type FuelDraft = {
 const SHIFT_URL =
   "https://zest-home.amok-uk.chatgpt.site/api/confirmed-shifts?profileId=nanatsuka";
 
-const MAP_SHORTCUTS = [
-  {
-    number: 1,
-    label: "ケーズ",
-    destination: "〒546-0012 大阪府大阪市東住吉区中野1丁目15-9 ケーズデンキ東住吉中野店",
-  },
-  {
-    number: 2,
-    label: "自宅",
-    destination: "〒573-0065 大阪府枚方市出口3丁目1-1",
-  },
-  {
-    number: 3,
-    label: "荻野くん家",
-    destination: "〒545-0031 大阪府大阪市阿倍野区橋本町",
-  },
-  { number: 4, label: "未登録", destination: null },
-  {
-    number: 5,
-    label: "鳥",
-    destination: "〒534-0024 大阪府大阪市都島区東野田町4丁目6-6",
-  },
-] as const;
 const FUEL_TANK_CAPACITY_L = 36;
 const FUEL_RESERVE_L = 4;
 const GREEN_METER_MAP_ZOOM = 12;
@@ -503,6 +480,16 @@ const BUILD_STAMP = (() => {
 
 export default function Home() {
   const [settings, setSettings] = useState<Settings>(defaults);
+  // マップ画面の 1〜5 のナビ目的地。設定ページから編集できる。
+  const mapDestinations = settings.mapDestinations;
+  // 出勤・退勤は設定した店舗/自宅住所を使い、未入力なら1番・2番で代用する。
+  const workDestination =
+    settings.storeDest.trim() ||
+    settings.storeName.trim() ||
+    mapDestinations[0]?.destination ||
+    "";
+  const homeDestination =
+    settings.homeDest.trim() || mapDestinations[1]?.destination || "";
   const [draft, setDraft] = useState<Settings>(defaults);
   const [clock, setClock] = useState("--:--");
   const [californiaClock, setCaliforniaClock] = useState("--:--");
@@ -2188,21 +2175,26 @@ export default function Home() {
                 </span>
               </div>
               <nav className="map-shortcuts" aria-label="Googleマップ目的地ショートカット">
-                {MAP_SHORTCUTS.map((shortcut) => (
-                  <button
-                    key={shortcut.number}
-                    type="button"
-                    disabled={!shortcut.destination}
-                    onClick={() => shortcut.destination && openMap(shortcut.destination)}
-                    aria-label={
-                      shortcut.destination
-                        ? `${shortcut.number}番 ${shortcut.label}へのナビを開始`
-                        : `${shortcut.number}番 未登録`
-                    }
-                  >
-                    <b>{shortcut.number}</b>
-                  </button>
-                ))}
+                {mapDestinations.map((shortcut, index) => {
+                  const target = shortcut.destination.trim();
+                  const name = shortcut.label.trim();
+                  return (
+                    <button
+                      key={index}
+                      type="button"
+                      disabled={!target}
+                      onClick={() => target && openMap(target)}
+                      aria-label={
+                        target
+                          ? `${index + 1}番 ${name || "目的地"}へのナビを開始`
+                          : `${index + 1}番 未登録`
+                      }
+                    >
+                      <b>{index + 1}</b>
+                      {name ? <em>{name}</em> : null}
+                    </button>
+                  );
+                })}
               </nav>
               <div
                 ref={liveMapElementRef}
@@ -2210,12 +2202,20 @@ export default function Home() {
                 aria-label="現在地を追従するライブマップ"
               />
               <nav className="map-obd-bar map-commute-bar" aria-label="出勤・退勤ナビ">
-                <button type="button" onClick={() => openMap(MAP_SHORTCUTS[0].destination)}>
+                <button
+                  type="button"
+                  disabled={!workDestination}
+                  onClick={() => workDestination && openMap(workDestination)}
+                >
                   <small>WORK ROUTE</small>
                   <strong>出勤</strong>
                   <em>店舗へ</em>
                 </button>
-                <button type="button" onClick={() => openMap(MAP_SHORTCUTS[1].destination)}>
+                <button
+                  type="button"
+                  disabled={!homeDestination}
+                  onClick={() => homeDestination && openMap(homeDestination)}
+                >
                   <small>HOME ROUTE</small>
                   <strong>退勤</strong>
                   <em>自宅へ</em>
