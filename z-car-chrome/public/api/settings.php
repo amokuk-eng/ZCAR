@@ -22,7 +22,9 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
 
-const MAX_BODY_BYTES = 8192;
+const MAX_BODY_BYTES = 16384;
+const MAX_PLAYLISTS = 8;
+const MAX_PLAYLIST_LABEL = 24;
 const MIN_KEY_LENGTH = 8;
 const MAX_KEY_LENGTH = 128;
 
@@ -112,6 +114,33 @@ foreach (ALLOWED_FIELDS as $field => $maxLength) {
     }
     $clean[$field] = $value;
 }
+// プレイリストは配列なので個別に検証する。IDは YouTube が使う文字だけ許可。
+if (isset($incoming['playlists']) && is_array($incoming['playlists'])) {
+    $playlists = [];
+    foreach ($incoming['playlists'] as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        $id = isset($entry['playlistId']) && is_string($entry['playlistId'])
+            ? $entry['playlistId']
+            : '';
+        if ($id === '' || !preg_match('/^[A-Za-z0-9_-]{2,64}$/', $id)) {
+            continue;
+        }
+        $label = isset($entry['label']) && is_string($entry['label']) ? $entry['label'] : '';
+        if (mb_strlen($label, 'UTF-8') > MAX_PLAYLIST_LABEL) {
+            $label = mb_substr($label, 0, MAX_PLAYLIST_LABEL, 'UTF-8');
+        }
+        $playlists[] = ['label' => $label !== '' ? $label : 'PLAYLIST', 'playlistId' => $id];
+        if (count($playlists) >= MAX_PLAYLISTS) {
+            break;
+        }
+    }
+    if ($playlists !== []) {
+        $clean['playlists'] = $playlists;
+    }
+}
+
 if ($clean === []) {
     fail(400, 'nothing to save');
 }

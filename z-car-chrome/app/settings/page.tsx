@@ -1,33 +1,25 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import QRCode from "qrcode";
+import { useEffect, useState } from "react";
 import {
-  buildSyncHandoffUrl,
   defaults,
+  extractPlaylistId,
   fetchSharedSettings,
-  generateSyncKey,
+  MAX_PLAYLISTS,
+  MAX_PLAYLIST_LABEL,
   METER_THEMES,
   MIN_SYNC_KEY_LENGTH,
   pushSharedSettings,
   readSettings,
   readSyncKeyFromHash,
+  sanitizeSyncedSettings,
   writeSettings,
   type MeterTheme,
+  type Playlist,
   type Settings,
 } from "../settings-store";
 
 type SyncState = "idle" | "sending" | "done" | "error";
-
-const formatSyncTime = (value: number) =>
-  value > 0
-    ? new Intl.DateTimeFormat("ja-JP", {
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      }).format(new Date(value))
-    : null;
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
@@ -36,8 +28,6 @@ export default function PhoneSettingsPage() {
   const [ready, setReady] = useState(false);
   const [saved, setSaved] = useState(false);
   const [syncState, setSyncState] = useState<SyncState>("idle");
-  const [qrDataUrl, setQrDataUrl] = useState("");
-  const [showQr, setShowQr] = useState(false);
   const [handoffDone, setHandoffDone] = useState(false);
 
   useEffect(() => {
@@ -65,7 +55,11 @@ export default function PhoneSettingsPage() {
       .then((result) => {
         const updatedAt = result.updatedAt ?? 0;
         if (!result.ok || !result.settings || updatedAt <= base.syncedAt) return;
-        const merged = { ...base, ...result.settings, syncedAt: updatedAt };
+        const merged = {
+          ...base,
+          ...sanitizeSyncedSettings(result.settings),
+          syncedAt: updatedAt,
+        };
         setDraft(merged);
         writeSettings(merged);
       })
@@ -85,9 +79,6 @@ export default function PhoneSettingsPage() {
     setSyncState("idle");
   };
 
-  const syncKey = draft.syncKey.trim();
-  const canSync = syncKey.length >= MIN_SYNC_KEY_LENGTH;
-  const lastSyncLabel = formatSyncTime(draft.syncedAt);
 
   /** 保存した内容を車側にも届ける。 */
   const sendToCar = async (settings: Settings) => {
@@ -105,6 +96,31 @@ export default function PhoneSettingsPage() {
     }
   };
 
+  const updatePlaylist = (index: number, patch: Partial<Playlist>) => {
+    setDraft((current) => ({
+      ...current,
+      playlists: current.playlists.map((entry, i) =>
+        i === index ? { ...entry, ...patch } : entry,
+      ),
+    }));
+    setSaved(false);
+    setSyncState("idle");
+  };
+
+  const addPlaylist = () => {
+    if (draft.playlists.length >= MAX_PLAYLISTS) return;
+    update("playlists", [...draft.playlists, { label: "", playlistId: "" }]);
+  };
+
+  const removePlaylist = (index: number) => {
+    // 全部消えると画面が空になるので、最後の1件は残す。
+    if (draft.playlists.length <= 1) return;
+    update(
+      "playlists",
+      draft.playlists.filter((_, i) => i !== index),
+    );
+  };
+
   const save = () => {
     const next: Settings = {
       ...draft,
@@ -113,41 +129,20 @@ export default function PhoneSettingsPage() {
         draft.storeDest.trim() || draft.storeName.trim() || defaults.storeDest,
       start: draft.start || defaults.start,
       carId: draft.carId.trim() || defaults.carId,
+      // URLを貼られてもIDだけ取り出す。IDが無い行は保存しない。
+      playlists: draft.playlists
+        .map((entry) => ({
+          label: entry.label.trim().slice(0, MAX_PLAYLIST_LABEL),
+          playlistId: extractPlaylistId(entry.playlistId),
+        }))
+        .filter((entry) => entry.playlistId !== "")
+        .map((entry) => ({ ...entry, label: entry.label || "PLAYLIST" })),
     };
+    if (next.playlists.length === 0) next.playlists = defaults.playlists;
     setDraft(next);
     writeSettings(next);
     setSaved(true);
     void sendToCar(next);
-  };
-
-  /** 合言葉を渡すためのQRを作る。中身は合言葉入りのURL(「#」以降なので送信されない)。 */
-  const buildQr = useCallback(async (key: string) => {
-    const url = buildSyncHandoffUrl(key);
-    const image = await QRCode.toDataURL(url, {
-      // 実寸より大きめに作り、CSS側で縮小して表示する(粗さが出ないように)。
-      width: 720,
-      margin: 1,
-      errorCorrectionLevel: "M",
-      color: { dark: "#04110c", light: "#e6fbf7" },
-    });
-    setQrDataUrl(image);
-    setShowQr(true);
-  }, []);
-
-  /** 合言葉が無ければ作ってから、QRを表示する。 */
-  const openQr = async () => {
-    let next = draft;
-    if (!canSync) {
-      next = { ...draft, syncKey: generateSyncKey(), syncedAt: 0 };
-      setDraft(next);
-      writeSettings(next);
-      void sendToCar(next);
-    }
-    try {
-      await buildQr(next.syncKey.trim());
-    } catch {
-      setSyncState("error");
-    }
   };
 
   const resetAll = () => {
@@ -265,85 +260,83 @@ export default function PhoneSettingsPage() {
         </label>
       </section>
 
+      <section className="zsetup-section">
+        <h2>
+          YouTube<small>ミュージック画面に並ぶジャンルとプレイリスト</small>
+        </h2>
+        <div className="zsetup-playlists">
+          {draft.playlists.map((playlist, index) => (
+            <div className="zsetup-playlist" key={index}>
+              <div className="zsetup-playlist-head">
+                <b>{String(index + 1).padStart(2, "0")}</b>
+                <input
+                  className="zsetup-playlist-label"
+                  placeholder="ジャンル名（例: REGGAE）"
+                  maxLength={MAX_PLAYLIST_LABEL}
+                  value={playlist.label}
+                  onChange={(event) =>
+                    updatePlaylist(index, { label: event.target.value })
+                  }
+                />
+                <button
+                  type="button"
+                  className="zsetup-playlist-remove"
+                  aria-label={`${index + 1}番目を削除`}
+                  disabled={draft.playlists.length <= 1}
+                  onClick={() => removePlaylist(index)}
+                >
+                  削除
+                </button>
+              </div>
+              <input
+                className="zsetup-playlist-id"
+                autoComplete="off"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder="YouTubeのプレイリストURL または ID"
+                value={playlist.playlistId}
+                onChange={(event) =>
+                  updatePlaylist(index, { playlistId: event.target.value })
+                }
+              />
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="zsetup-playlist-add"
+          disabled={draft.playlists.length >= MAX_PLAYLISTS}
+          onClick={addPlaylist}
+        >
+          {draft.playlists.length >= MAX_PLAYLISTS
+            ? `追加できるのは${MAX_PLAYLISTS}件までです`
+            : "ジャンルを追加"}
+        </button>
+        <p className="zsetup-sync-note">
+          YouTubeでプレイリストを開いて、アドレスをそのまま貼り付けてください
+          （アドレスの中の list= の部分だけ自動で読み取ります）。上から順に、車のミュージック画面に
+          並びます。ホーム画面の待機プレイヤーは、この中からランダムに再生します。
+        </p>
+      </section>
+
       <div className="zsetup-actions">
         <button type="button" className="zsetup-save" onClick={save}>
           保存する
         </button>
         <p className="zsetup-saved" role="status">
-          {saved ? "保存しました" : ""}
+          {syncState === "sending"
+            ? "保存しました・車に送信中…"
+            : syncState === "done"
+              ? "保存しました・車にも反映しました"
+              : syncState === "error"
+                ? "保存しました（車への送信は失敗）"
+                : saved
+                  ? "保存しました"
+                  : ""}
         </p>
       </div>
 
-      <section className="zsetup-section">
-        <h2>
-          車と同期<small>同じ合言葉を入れた端末どうしで設定を共有</small>
-        </h2>
-        <label className="zsetup-field">
-          <span>合言葉（{MIN_SYNC_KEY_LENGTH}文字以上）</span>
-          <input
-            autoComplete="off"
-            autoCapitalize="off"
-            autoCorrect="off"
-            spellCheck={false}
-            placeholder="未入力なら同期しない"
-            value={draft.syncKey}
-            onChange={(event) => update("syncKey", event.target.value)}
-          />
-          <small>
-            車載機の設定ページでも同じ合言葉を入れてください。
-            合言葉を知っている端末だけが読み書きできます。
-          </small>
-        </label>
-        <div className="zsetup-sync">
-          <button
-            type="button"
-            className="zsetup-send"
-            disabled={!canSync || syncState === "sending"}
-            onClick={() => void sendToCar(draft)}
-          >
-            {syncState === "sending" ? "送信中…" : "いま車に送る"}
-          </button>
-          <p className="zsetup-sync-state" role="status">
-            {syncState === "error"
-              ? "送信できませんでした（通信を確認してください）"
-              : canSync
-                ? lastSyncLabel
-                  ? `最終同期 ${lastSyncLabel}`
-                  : "まだ同期していません"
-                : "合言葉を入れると同期できます"}
-          </p>
-        </div>
-        <div className="zsetup-qr">
-          <button type="button" className="zsetup-qr-toggle" onClick={() => void openQr()}>
-            {canSync ? "QRで他の端末に渡す" : "合言葉を作ってQRを表示"}
-          </button>
-          {showQr && qrDataUrl ? (
-            <div className="zsetup-qr-panel">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrDataUrl} alt="同期用QRコード" width={720} height={720} />
-              <p className="zsetup-qr-help">
-                車の画面でこれを表示し、iPhoneのカメラでかざしてください。
-                設定ページが開いて合言葉が自動で入ります。
-              </p>
-              <p className="zsetup-qr-warn">
-                このQRは合言葉そのものです。他の人に見せたり撮影させたりしないでください。
-              </p>
-              <button
-                type="button"
-                className="zsetup-qr-close"
-                onClick={() => setShowQr(false)}
-              >
-                QRを隠す
-              </button>
-            </div>
-          ) : null}
-        </div>
-        <p className="zsetup-sync-note">
-          同期されるのは メーターテーマ・店舗名・店舗住所・勤務開始・自宅住所・車両ID
-          です。APIキーと走行状態（出勤/退勤）は端末ごとのままです。
-          車側は30秒おきに確認して反映します。
-        </p>
-      </section>
 
       <nav className="zsetup-links">
         <a className="zsetup-open" href={`${BASE_PATH}/?app=1`}>
