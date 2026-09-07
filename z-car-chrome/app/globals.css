@@ -6369,3 +6369,75 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   color: #6fe3ea;
   text-decoration: none;
 }
+
+/* --- 設定ページ: 合言葉を渡すQR --- */
+.zsetup-qr { margin-bottom: 14px; }
+
+.zsetup-qr-toggle {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-soft);
+  color: #cfd8e0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.zsetup-qr-panel {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 16px 14px 14px;
+  border: 1px solid #2f7f84;
+  border-radius: 14px;
+  background: #0a1216;
+}
+
+.zsetup-qr-panel img {
+  width: 250px;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  /* 車の画面から読み取るので、白地をはっきり出す。 */
+  background: #e6fbf7;
+}
+
+/* 車載機など横に広い画面では、スマホから読み取りやすいよう大きく出す。 */
+@media (min-width: 620px) {
+  .zsetup-qr-panel img { width: 320px; }
+}
+
+.zsetup-qr-help {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #b6c3cd;
+  text-align: center;
+}
+
+.zsetup-qr-warn {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.65;
+  color: #e0a3aa;
+  text-align: center;
+}
+
+.zsetup-qr-close {
+  min-height: 38px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
