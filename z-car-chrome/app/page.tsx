@@ -503,10 +503,6 @@ const BUILD_STAMP = (() => {
 
 export default function Home() {
   const [settings, setSettings] = useState<Settings>(defaults);
-  // 設定で編集できる YouTube プレイリスト。空になることは無い(設定側で担保)。
-  const playlists =
-    settings.playlists.length > 0 ? settings.playlists : defaults.playlists;
-  const playlistCount = playlists.length;
   const [draft, setDraft] = useState<Settings>(defaults);
   const [clock, setClock] = useState("--:--");
   const [californiaClock, setCaliforniaClock] = useState("--:--");
@@ -518,9 +514,6 @@ export default function Home() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showMeter, setShowMeter] = useState(false);
   const [showFuel, setShowFuel] = useState(false);
-  const [showMusic, setShowMusic] = useState(false);
-  const [musicPage, setMusicPage] = useState<1 | 2>(1);
-  const [homePlaylistIndex, setHomePlaylistIndex] = useState(0);
   const [fuelEntries, setFuelEntries] = useState<FuelEntry[]>([]);
   const [fuelDraft, setFuelDraft] = useState<FuelDraft>({
     date: japanDateKey(),
@@ -792,17 +785,6 @@ export default function Home() {
   }, [syncEnabled, syncKey, settings]);
 
   useEffect(() => {
-    if (!ready || showMeter || showFuel || showMusic) return;
-    setHomePlaylistIndex((current) => {
-      let next = Math.floor(Math.random() * playlistCount);
-      if (playlistCount > 1 && next === current) {
-        next = (next + 1) % playlistCount;
-      }
-      return next;
-    });
-  }, [ready, showMeter, showFuel, showMusic, playlistCount]);
-
-  useEffect(() => {
     if (ready) {
       localStorage.setItem(FUEL_LOG_STORAGE_KEY, JSON.stringify(fuelEntries));
     }
@@ -918,8 +900,6 @@ export default function Home() {
     const returnToHome = () => {
       setShowMeter(false);
       setShowFuel(false);
-      setShowMusic(false);
-      setMusicPage(1);
     };
     window.addEventListener("popstate", returnToHome);
     return () => window.removeEventListener("popstate", returnToHome);
@@ -965,7 +945,6 @@ export default function Home() {
     }
 
     setShowFuel(false);
-    setShowMusic(false);
     setShowMeter(true);
     window.history.pushState(
       { ...(window.history.state || {}), zcarView: "meter" },
@@ -1010,31 +989,10 @@ export default function Home() {
     }
 
     setShowMeter(false);
-    setShowMusic(false);
     setShowFuel(true);
     setFuelDraft((current) => ({ ...current, date: japanDateKey() }));
     window.history.pushState(
       { ...(window.history.state || {}), zcarView: "fuel" },
-      "",
-    );
-  };
-
-  const toggleMusicView = () => {
-    if (showMusic) {
-      setShowMusic(false);
-      setMusicPage(1);
-      if (window.history.state?.zcarView === "music") {
-        window.history.back();
-      }
-      return;
-    }
-
-    setShowMeter(false);
-    setShowFuel(false);
-    setMusicPage(1);
-    setShowMusic(true);
-    window.history.pushState(
-      { ...(window.history.state || {}), zcarView: "music" },
       "",
     );
   };
@@ -1234,14 +1192,14 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [location, mapsApiKey, showMeter, showFuel, showMusic]);
+  }, [location, mapsApiKey, showMeter, showFuel]);
 
   useEffect(() => {
-    if (!showMeter && !showFuel && !showMusic) return;
+    if (!showMeter && !showFuel) return;
     homeGmapRef.current = null;
     homeGmapMarkerRef.current = null;
     homeGmapCircleRef.current = null;
-  }, [showMeter, showFuel, showMusic]);
+  }, [showMeter, showFuel]);
 
   useEffect(() => {
     if (showMeter && settings.meterTheme === "green") return;
@@ -1670,7 +1628,6 @@ export default function Home() {
       ? 0
       : Math.max(0, Math.min(100, (estimatedRemainingLiters / FUEL_TANK_CAPACITY_L) * 100));
   const estimatedAverageFuelEconomy = recentFuelEconomy;
-  const homePlaylist = playlists[homePlaylistIndex % playlistCount] ?? playlists[0];
 
   const recordFuelEntry = () => {
     if (!fuelDraftIsValid) return;
@@ -1752,8 +1709,6 @@ export default function Home() {
                 ? "OBD2 VEHICLE MONITOR"
                 : showFuel
                   ? "TANTO FUEL ECONOMY"
-                  : showMusic
-                    ? "MUSIC LIBRARY"
                   : "Z PORTAL | CAR"}
             </small>
           </button>
@@ -1778,7 +1733,7 @@ export default function Home() {
                 {showMeter ? "HOME" : "METER"}
               </button>
             )}
-            {!showMeter && !showFuel && !showMusic && (
+            {!showMeter && !showFuel && (
               <button
                 type="button"
                 className="meter-theme-button"
@@ -2212,44 +2167,6 @@ export default function Home() {
               </section>
             </div>
           </main>
-        ) : showMusic ? (
-          <main className="music-page" aria-label="ミュージックライブラリー">
-            <header className="music-page-heading">
-              <span>
-                <small>Z CAR / MUSIC LIBRARY</small>
-                <h1>MUSIC</h1>
-              </span>
-              <nav className="music-page-switcher" aria-label="ミュージックページ切替">
-                <small>PAGE</small>
-                <button
-                  type="button"
-                  className={musicPage === 1 ? "active" : undefined}
-                  onClick={() => setMusicPage(1)}
-                  aria-current={musicPage === 1 ? "page" : undefined}
-                >1</button>
-              </nav>
-            </header>
-            <section className="music-card-grid" aria-label={`ミュージックコンテンツ ${musicPage}ページ目`}>
-              {playlists.map((playlist, index) => (
-                  <article
-                    className="music-content-card music-youtube-card"
-                    key={`${playlist.playlistId}-${index}`}
-                  >
-                    <header>
-                      <span><i aria-hidden="true" />{playlist.label}</span>
-                      <b>{String(index + 1).padStart(2, "0")}</b>
-                    </header>
-                    <iframe
-                      src={`https://www.youtube.com/embed/videoseries?list=${playlist.playlistId}&playsinline=1&rel=0&loop=1`}
-                      title={`${playlist.label} プレイリスト`}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                      referrerPolicy="strict-origin-when-cross-origin"
-                    />
-                  </article>
-              ))}
-            </section>
-          </main>
         ) : (
         <main className="dashboard">
           <section className="left-panel map-only-panel" aria-label="現在地マップ">
@@ -2341,23 +2258,6 @@ export default function Home() {
                 </span>
                 <small>現在地</small>
               </div>
-            </article>
-            <article
-              className="home-random-youtube music-youtube-card"
-              aria-label={`${homePlaylist.label} プレイリスト YouTubeプレイヤー`}
-            >
-              <header>
-                <span><i aria-hidden="true" />{homePlaylist.label}</span>
-                <b>RANDOM {String(homePlaylistIndex + 1).padStart(2, "0")}</b>
-              </header>
-              <iframe
-                key={homePlaylist.playlistId}
-                src={`https://www.youtube.com/embed/videoseries?list=${homePlaylist.playlistId}&playsinline=1&rel=0&loop=1`}
-                title={`${homePlaylist.label} プレイリスト`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                referrerPolicy="strict-origin-when-cross-origin"
-              />
             </article>
             <div className="shift-monitor" aria-live="polite">
               <header>

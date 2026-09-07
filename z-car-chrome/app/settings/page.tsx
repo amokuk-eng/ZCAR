@@ -262,7 +262,7 @@ export default function PhoneSettingsPage() {
 
       <section className="zsetup-section">
         <h2>
-          YouTube<small>ミュージック画面に並ぶジャンルとプレイリスト</small>
+          ミュージック<small>この端末で聴く YouTube プレイリスト</small>
         </h2>
         <div className="zsetup-playlists">
           {draft.playlists.map((playlist, index) => (
@@ -300,6 +300,16 @@ export default function PhoneSettingsPage() {
                   updatePlaylist(index, { playlistId: event.target.value })
                 }
               />
+              {extractPlaylistId(playlist.playlistId) ? (
+                <a
+                  className="zsetup-playlist-play"
+                  href={`https://www.youtube.com/playlist?list=${extractPlaylistId(playlist.playlistId)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  ▶ このジャンルを再生
+                </a>
+              ) : null}
             </div>
           ))}
         </div>
@@ -315,8 +325,9 @@ export default function PhoneSettingsPage() {
         </button>
         <p className="zsetup-sync-note">
           YouTubeでプレイリストを開いて、アドレスをそのまま貼り付けてください
-          （アドレスの中の list= の部分だけ自動で読み取ります）。上から順に、車のミュージック画面に
-          並びます。ホーム画面の待機プレイヤーは、この中からランダムに再生します。
+          （アドレスの中の list= の部分だけ自動で読み取ります）。
+          「再生」を押すとYouTubeアプリで開きます。運転中の操作は危険なので、
+          出発前に選んでおいてください。音楽はこの端末だけで、車の画面には出しません。
         </p>
       </section>
 
