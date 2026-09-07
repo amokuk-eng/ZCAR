@@ -2,8 +2,15 @@
 
 import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useObd2, type ObdConnectionStatus } from "./hooks/use-obd2";
+import {
+  defaults,
+  isPhoneViewport,
+  readSettings,
+  SETTINGS_STORAGE_KEY,
+  writeSettings,
+  type Settings,
+} from "./settings-store";
 
-type CarState = "not_departed" | "departed" | "checked_out";
 type ConfirmedShift = {
   id: string;
   date: string;
@@ -18,18 +25,6 @@ type ShiftFeed = {
   displayName: string;
   updatedAt: string;
   shifts: ConfirmedShift[];
-};
-type Settings = {
-  storeName: string;
-  storeDest: string;
-  start: string;
-  homeDest: string;
-  googleRoutesApiKey: string;
-  carId: string;
-  state: CarState;
-  departedAt: string;
-  checkedOutAt: string;
-  meterTheme: "green" | "eva";
 };
 type RouteEta = {
   arrivalAt: number;
@@ -248,6 +243,8 @@ const loadGoogleMaps = (key: string) => {
   }
   return w.__gmapsPromise;
 };
+// スマホでダッシュボードを選んだことを覚えておくキー(そのタブの間だけ)。
+const PHONE_SETUP_SKIP_KEY = "zcar-skip-setup";
 const FUEL_LOG_STORAGE_KEY = "zcar-fuel-log-v1";
 const DAILY_TRIP_STORAGE_KEY = "zcar-daily-trip-v1";
 const IMPORTED_FUEL_ENTRIES: FuelEntry[] = [
@@ -266,18 +263,6 @@ const IMPORTED_FUEL_ENTRIES: FuelEntry[] = [
   { id: "import-2026-08-27", date: "2026-08-27", liters: 12.55, distanceKm: 180, amountYen: 2008, createdAt: Date.parse("2026-08-27T12:00:00+09:00") },
 ];
 
-const defaults: Settings = {
-  storeName: "ケーズデンキ 東住吉中野店",
-  storeDest: "ケーズデンキ 東住吉中野店",
-  start: "10:00",
-  homeDest: "",
-  googleRoutesApiKey: "",
-  carId: "Tanto",
-  state: "not_departed",
-  departedAt: "",
-  checkedOutAt: "",
-  meterTheme: "green",
-};
 
 const hm = () =>
   new Date().toLocaleTimeString("ja-JP", {
@@ -647,19 +632,29 @@ export default function Home() {
       ? ""
       : `${weatherLatitude},${weatherLongitude}`;
 
+  // スマホ(iPhoneなど)で開いたときは、車載用のダッシュボードではなく
+  // 専用の設定ページへ送る。?app=1 を付ければダッシュボードのまま開ける。
+  useEffect(() => {
+    let skip = false;
+    try {
+      if (new URLSearchParams(window.location.search).has("app")) {
+        sessionStorage.setItem(PHONE_SETUP_SKIP_KEY, "1");
+        skip = true;
+      } else {
+        skip = sessionStorage.getItem(PHONE_SETUP_SKIP_KEY) === "1";
+      }
+    } catch {
+      // sessionStorage が使えない環境では毎回判定するだけ。
+    }
+    if (skip || !isPhoneViewport()) return;
+    window.location.replace(
+      `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/settings/`,
+    );
+  }, []);
+
   useEffect(() => {
     try {
-      const stored = JSON.parse(localStorage.getItem("zcar") || "{}");
-      setSettings({
-        ...defaults,
-        ...stored,
-        carId: !stored.carId || stored.carId === "CAR-01" ? "Tanto" : stored.carId,
-        // 廃止したテーマ(RED / AURORA VIOLET)が保存されていたら初期値に戻す。
-        meterTheme:
-          stored.meterTheme === "green" || stored.meterTheme === "eva"
-            ? stored.meterTheme
-            : defaults.meterTheme,
-      });
+      setSettings(readSettings());
       const savedFuelTrip = Number.parseFloat(
         localStorage.getItem("zcar-fuel-trip-km") || "0",
       );
@@ -765,7 +760,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (ready) localStorage.setItem("zcar", JSON.stringify(settings));
+    if (ready) writeSettings(settings);
   }, [ready, settings]);
 
   useEffect(() => {
