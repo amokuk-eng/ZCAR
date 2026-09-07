@@ -21,8 +21,6 @@ import {
 
 type SyncState = "idle" | "sending" | "done" | "error";
 
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-
 export default function PhoneSettingsPage() {
   const [draft, setDraft] = useState<Settings>(defaults);
   const [ready, setReady] = useState(false);
@@ -350,9 +348,6 @@ export default function PhoneSettingsPage() {
 
 
       <nav className="zsetup-links">
-        <a className="zsetup-open" href={`${BASE_PATH}/?app=1`}>
-          この端末でダッシュボードを開く
-        </a>
         <button type="button" className="zsetup-reset" onClick={resetAll}>
           この端末の設定を初期化
         </button>
