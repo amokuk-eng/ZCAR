@@ -6,6 +6,53 @@ export type CarState = "not_departed" | "departed" | "checked_out";
 
 export type MeterTheme = "green" | "eva";
 
+/** ミュージック画面と待機画面に出す YouTube プレイリスト1件分。 */
+export type Playlist = {
+  /** 画面に出すジャンル名(例: REGGAE)。 */
+  label: string;
+  /** YouTube のプレイリストID(PL... で始まる文字列)。 */
+  playlistId: string;
+};
+
+export const MAX_PLAYLISTS = 8;
+export const MAX_PLAYLIST_LABEL = 24;
+
+export const defaultPlaylists: Playlist[] = [
+  { label: "YOUTUBE", playlistId: "PLMC9KNkIncKtGvr2kFRuXBVmBev6cAJ2u" },
+  { label: "ANIME NOW", playlistId: "PLaodxkj-4NkRFKJZwtT3wvmC3rN8qG2n1" },
+  { label: "REGGAE", playlistId: "PLjF50Dlp9ieks26oOKahUFiRTj18o6YGt" },
+  { label: "EDM", playlistId: "PLPbMT4wSxX89gUYpgYMrmOqsupKMRR5Rj" },
+];
+
+/**
+ * 貼り付けられた文字列からプレイリストIDを取り出す。
+ * YouTube のURL(list=... を含むもの)でも、ID単体でも受け付ける。
+ */
+export const extractPlaylistId = (input: string) => {
+  const value = input.trim();
+  const fromUrl = /[?&]list=([A-Za-z0-9_-]+)/.exec(value);
+  if (fromUrl) return fromUrl[1];
+  return /^[A-Za-z0-9_-]{2,64}$/.test(value) ? value : "";
+};
+
+const sanitizePlaylists = (value: unknown): Playlist[] => {
+  if (!Array.isArray(value)) return defaultPlaylists;
+  const cleaned: Playlist[] = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object") continue;
+    const { label, playlistId } = entry as Partial<Playlist>;
+    const id = typeof playlistId === "string" ? extractPlaylistId(playlistId) : "";
+    if (!id) continue;
+    cleaned.push({
+      label: (typeof label === "string" ? label : "").slice(0, MAX_PLAYLIST_LABEL) || "PLAYLIST",
+      playlistId: id,
+    });
+    if (cleaned.length >= MAX_PLAYLISTS) break;
+  }
+  // 1件も残らないと画面が空になってしまうので、その場合は既定に戻す。
+  return cleaned.length > 0 ? cleaned : defaultPlaylists;
+};
+
 export type Settings = {
   storeName: string;
   storeDest: string;
@@ -21,6 +68,8 @@ export type Settings = {
   syncKey: string;
   /** 最後に同期できた内容の時刻(ミリ秒)。これより新しいものが来たら取り込む。 */
   syncedAt: number;
+  /** ミュージック画面に並べる YouTube プレイリスト。 */
+  playlists: Playlist[];
 };
 
 export const defaults: Settings = {
@@ -36,6 +85,7 @@ export const defaults: Settings = {
   meterTheme: "green",
   syncKey: "",
   syncedAt: 0,
+  playlists: defaultPlaylists,
 };
 
 /** サーバーと共有する項目。走行状態やAPIキーは端末ごとなので送らない。 */
@@ -46,6 +96,7 @@ export const SYNCED_FIELDS = [
   "start",
   "homeDest",
   "carId",
+  "playlists",
 ] as const;
 
 export type SyncedSettings = Pick<Settings, (typeof SYNCED_FIELDS)[number]>;
@@ -54,24 +105,6 @@ export const SYNC_ENDPOINT = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/set
 
 /** 合言葉は短すぎると総当たりされるので下限を設ける(PHP側と同じ値)。 */
 export const MIN_SYNC_KEY_LENGTH = 8;
-
-/**
- * 合言葉を自動生成する。人が読む必要はないので、紛らわしい文字を除いた
- * 32文字のランダム文字列にする(推測されないだけの長さを確保)。
- */
-export const generateSyncKey = () => {
-  const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
-  const bytes = new Uint32Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (value) => alphabet[value % alphabet.length]).join("");
-};
-
-/**
- * 合言葉を他の端末へ渡すためのURL。合言葉は「#」より後ろ(フラグメント)に
- * 置く。フラグメントはサーバーへ送信されないので、アクセスログに残らない。
- */
-export const buildSyncHandoffUrl = (key: string) =>
-  `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/settings/#k=${encodeURIComponent(key)}`;
 
 /** 受け取ったURLのフラグメントから合言葉を取り出す。無ければ null。 */
 export const readSyncKeyFromHash = (hash: string) => {
@@ -92,6 +125,7 @@ export const pickSyncedFields = (settings: Settings): SyncedSettings => ({
   start: settings.start,
   homeDest: settings.homeDest,
   carId: settings.carId,
+  playlists: settings.playlists,
 });
 
 const postSync = async (payload: Record<string, unknown>) => {
@@ -107,6 +141,31 @@ const postSync = async (payload: Record<string, unknown>) => {
     settings?: SyncedSettings | null;
     updatedAt?: number;
   };
+};
+
+/**
+ * サーバーから戻ってきた内容を、そのまま信用せず整えてから取り込む。
+ * (壊れたプレイリストが1件でも入ると画面が崩れるため)
+ */
+export const sanitizeSyncedSettings = (
+  value: Partial<SyncedSettings> | null | undefined,
+): Partial<SyncedSettings> => {
+  if (!value || typeof value !== "object") return {};
+  const cleaned: Partial<SyncedSettings> = {};
+  for (const field of SYNCED_FIELDS) {
+    if (field === "playlists") continue;
+    const entry = value[field];
+    if (typeof entry === "string") cleaned[field] = entry as never;
+  }
+  if (isMeterTheme(cleaned.meterTheme)) {
+    cleaned.meterTheme = cleaned.meterTheme;
+  } else {
+    delete cleaned.meterTheme;
+  }
+  if (Array.isArray(value.playlists)) {
+    cleaned.playlists = sanitizePlaylists(value.playlists);
+  }
+  return cleaned;
 };
 
 /** サーバーに置いてある設定を読む。まだ何も無ければ settings は null。 */
@@ -164,6 +223,7 @@ export const readSettings = (): Settings => {
         : defaults.meterTheme,
       syncKey: typeof stored.syncKey === "string" ? stored.syncKey : "",
       syncedAt: Number.isFinite(stored.syncedAt) ? Number(stored.syncedAt) : 0,
+      playlists: sanitizePlaylists(stored.playlists),
     };
   } catch {
     return defaults;

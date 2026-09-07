@@ -6,6 +6,7 @@ import {
   defaults,
   fetchSharedSettings,
   MIN_SYNC_KEY_LENGTH,
+  sanitizeSyncedSettings,
   pickSyncedFields,
   pushSharedSettings,
   readSettings,
@@ -89,40 +90,6 @@ const MAP_SHORTCUTS = [
     destination: "〒534-0024 大阪府大阪市都島区東野田町4丁目6-6",
   },
 ] as const;
-const HOME_YOUTUBE_PLAYLIST_ID = "PLMC9KNkIncKtGvr2kFRuXBVmBev6cAJ2u";
-const MUSIC_PLAYLISTS = [
-  {
-    number: 2,
-    label: "ANIME NOW",
-    title: "最新アニメ音楽 プレイリスト",
-    playlistId: "PLaodxkj-4NkRFKJZwtT3wvmC3rN8qG2n1",
-    tone: "anime",
-  },
-  {
-    number: 3,
-    label: "REGGAE",
-    title: "レゲエ プレイリスト",
-    playlistId: "PLjF50Dlp9ieks26oOKahUFiRTj18o6YGt",
-    tone: "reggae",
-  },
-  {
-    number: 4,
-    label: "EDM",
-    title: "EDMヒット プレイリスト",
-    playlistId: "PLPbMT4wSxX89gUYpgYMrmOqsupKMRR5Rj",
-    tone: "edm",
-  },
-] as const;
-const HOME_RANDOM_PLAYLISTS = [
-  {
-    number: 1,
-    label: "YOUTUBE",
-    title: "最近の洋楽ポップヒット プレイリスト",
-    playlistId: HOME_YOUTUBE_PLAYLIST_ID,
-    tone: "youtube",
-  },
-  ...MUSIC_PLAYLISTS,
-];
 const FUEL_TANK_CAPACITY_L = 36;
 const FUEL_RESERVE_L = 4;
 const GREEN_METER_MAP_ZOOM = 12;
@@ -536,6 +503,10 @@ const BUILD_STAMP = (() => {
 
 export default function Home() {
   const [settings, setSettings] = useState<Settings>(defaults);
+  // 設定で編集できる YouTube プレイリスト。空になることは無い(設定側で担保)。
+  const playlists =
+    settings.playlists.length > 0 ? settings.playlists : defaults.playlists;
+  const playlistCount = playlists.length;
   const [draft, setDraft] = useState<Settings>(defaults);
   const [clock, setClock] = useState("--:--");
   const [californiaClock, setCaliforniaClock] = useState("--:--");
@@ -778,7 +749,11 @@ export default function Home() {
         }
         const updatedAt = result.updatedAt ?? 0;
         if (updatedAt <= current.syncedAt) return;
-        const merged = { ...current, ...result.settings, syncedAt: updatedAt };
+        const merged = {
+          ...current,
+          ...sanitizeSyncedSettings(result.settings),
+          syncedAt: updatedAt,
+        };
         // 取り込んだ内容をそのまま送り返さないよう、送信済みとして覚えておく。
         lastPushedRef.current = JSON.stringify(pickSyncedFields(merged));
         setSettings(merged);
@@ -802,7 +777,6 @@ export default function Home() {
     }
     const payload = JSON.stringify(pickSyncedFields(settings));
     if (lastPushedRef.current === null) {
-      // 合言葉を入れた直後の1回目は、まず pull 側の判断に任せる。
       lastPushedRef.current = payload;
       return;
     }
@@ -820,13 +794,13 @@ export default function Home() {
   useEffect(() => {
     if (!ready || showMeter || showFuel || showMusic) return;
     setHomePlaylistIndex((current) => {
-      let next = Math.floor(Math.random() * HOME_RANDOM_PLAYLISTS.length);
-      if (HOME_RANDOM_PLAYLISTS.length > 1 && next === current) {
-        next = (next + 1) % HOME_RANDOM_PLAYLISTS.length;
+      let next = Math.floor(Math.random() * playlistCount);
+      if (playlistCount > 1 && next === current) {
+        next = (next + 1) % playlistCount;
       }
       return next;
     });
-  }, [ready, showMeter, showFuel, showMusic]);
+  }, [ready, showMeter, showFuel, showMusic, playlistCount]);
 
   useEffect(() => {
     if (ready) {
@@ -1696,7 +1670,7 @@ export default function Home() {
       ? 0
       : Math.max(0, Math.min(100, (estimatedRemainingLiters / FUEL_TANK_CAPACITY_L) * 100));
   const estimatedAverageFuelEconomy = recentFuelEconomy;
-  const homePlaylist = HOME_RANDOM_PLAYLISTS[homePlaylistIndex];
+  const homePlaylist = playlists[homePlaylistIndex % playlistCount] ?? playlists[0];
 
   const recordFuelEntry = () => {
     if (!fuelDraftIsValid) return;
@@ -2256,28 +2230,18 @@ export default function Home() {
               </nav>
             </header>
             <section className="music-card-grid" aria-label={`ミュージックコンテンツ ${musicPage}ページ目`}>
-              <article className="music-content-card music-youtube-card">
-                <header><span><i aria-hidden="true" />YOUTUBE</span><b>01</b></header>
-                <iframe
-                  src={`https://www.youtube.com/embed/videoseries?list=${HOME_YOUTUBE_PLAYLIST_ID}&playsinline=1&rel=0&loop=1`}
-                  title="最近の洋楽ポップヒット プレイリスト"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                  referrerPolicy="strict-origin-when-cross-origin"
-                />
-              </article>
-              {MUSIC_PLAYLISTS.map((playlist) => (
+              {playlists.map((playlist, index) => (
                   <article
                     className="music-content-card music-youtube-card"
-                    key={playlist.number}
+                    key={`${playlist.playlistId}-${index}`}
                   >
                     <header>
                       <span><i aria-hidden="true" />{playlist.label}</span>
-                      <b>{String(playlist.number).padStart(2, "0")}</b>
+                      <b>{String(index + 1).padStart(2, "0")}</b>
                     </header>
                     <iframe
                       src={`https://www.youtube.com/embed/videoseries?list=${playlist.playlistId}&playsinline=1&rel=0&loop=1`}
-                      title={playlist.title}
+                      title={`${playlist.label} プレイリスト`}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
                       referrerPolicy="strict-origin-when-cross-origin"
@@ -2380,16 +2344,16 @@ export default function Home() {
             </article>
             <article
               className="home-random-youtube music-youtube-card"
-              aria-label={`${homePlaylist.title} YouTubeプレイヤー`}
+              aria-label={`${homePlaylist.label} プレイリスト YouTubeプレイヤー`}
             >
               <header>
                 <span><i aria-hidden="true" />{homePlaylist.label}</span>
-                <b>RANDOM {String(homePlaylist.number).padStart(2, "0")}</b>
+                <b>RANDOM {String(homePlaylistIndex + 1).padStart(2, "0")}</b>
               </header>
               <iframe
                 key={homePlaylist.playlistId}
                 src={`https://www.youtube.com/embed/videoseries?list=${homePlaylist.playlistId}&playsinline=1&rel=0&loop=1`}
-                title={homePlaylist.title}
+                title={`${homePlaylist.label} プレイリスト`}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
                 referrerPolicy="strict-origin-when-cross-origin"

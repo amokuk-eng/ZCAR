@@ -6318,40 +6318,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   .zsetup-links { max-width: 560px; margin-inline: auto; }
 }
 
-/* --- 設定ページ: 車との同期 --- */
-.zsetup-sync { margin-bottom: 14px; }
-
-.zsetup-send {
-  width: 100%;
-  min-height: 48px;
-  border: 1px solid #2f7f84;
-  border-radius: 12px;
-  background: rgba(57, 204, 212, .1);
-  color: #b9f2f5;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: .08em;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.zsetup-send:disabled {
-  border-color: var(--line);
-  background: transparent;
-  color: #5d6b78;
-  cursor: default;
-}
-
-.zsetup-sync-state {
-  margin: 9px 0 0;
-  text-align: center;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .05em;
-  color: var(--muted);
-}
-
+/* --- 設定ページ: 保存後の案内 --- */
 .zsetup-sync-note {
   margin: 0 0 16px;
   font-size: 11px;
@@ -6370,16 +6337,80 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   text-decoration: none;
 }
 
-/* --- 設定ページ: 合言葉を渡すQR --- */
-.zsetup-qr { margin-bottom: 14px; }
+/* --- 設定ページ: YouTubeプレイリストの編集 --- */
+.zsetup-playlists { display: grid; gap: 12px; margin-bottom: 12px; }
 
-.zsetup-qr-toggle {
+.zsetup-playlist {
+  display: grid;
+  gap: 8px;
+  padding: 12px 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--panel-soft);
+}
+
+.zsetup-playlist-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.zsetup-playlist-head > b {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4f8f95;
+}
+
+.zsetup-playlist input {
+  width: 100%;
+  height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #0c1014;
+  color: #f7f9fb;
+  /* iOS で入力時に画面が拡大されないよう 16px 以上にする。 */
+  font-size: 16px;
+  font-family: inherit;
+}
+
+.zsetup-playlist input:focus {
+  outline: none;
+  border-color: #39ccd4;
+  box-shadow: 0 0 0 3px rgba(57, 204, 212, .16);
+}
+
+.zsetup-playlist-id {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 14px !important;
+}
+
+.zsetup-playlist-remove {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #3a2b2e;
+  border-radius: 9px;
+  background: transparent;
+  color: #d78a92;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.zsetup-playlist-remove:disabled { opacity: .35; cursor: default; }
+
+.zsetup-playlist-add {
   width: 100%;
   min-height: 46px;
-  border: 1px solid var(--line);
+  margin-bottom: 14px;
+  border: 1px dashed #2f7f84;
   border-radius: 12px;
-  background: var(--panel-soft);
-  color: #cfd8e0;
+  background: transparent;
+  color: #9fe4e9;
   font-family: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -6388,56 +6419,9 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   -webkit-tap-highlight-color: transparent;
 }
 
-.zsetup-qr-panel {
-  display: grid;
-  justify-items: center;
-  gap: 12px;
-  margin-top: 12px;
-  padding: 16px 14px 14px;
-  border: 1px solid #2f7f84;
-  border-radius: 14px;
-  background: #0a1216;
-}
-
-.zsetup-qr-panel img {
-  width: 250px;
-  height: auto;
-  aspect-ratio: 1;
-  border-radius: 10px;
-  /* 車の画面から読み取るので、白地をはっきり出す。 */
-  background: #e6fbf7;
-}
-
-/* 車載機など横に広い画面では、スマホから読み取りやすいよう大きく出す。 */
-@media (min-width: 620px) {
-  .zsetup-qr-panel img { width: 320px; }
-}
-
-.zsetup-qr-help {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.7;
-  color: #b6c3cd;
-  text-align: center;
-}
-
-.zsetup-qr-warn {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.65;
-  color: #e0a3aa;
-  text-align: center;
-}
-
-.zsetup-qr-close {
-  min-height: 38px;
-  padding: 0 18px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--muted);
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
+.zsetup-playlist-add:disabled {
+  border-style: solid;
+  border-color: var(--line);
+  color: #5d6b78;
+  cursor: default;
 }
