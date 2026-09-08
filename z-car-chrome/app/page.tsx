@@ -9,6 +9,7 @@ import {
   sanitizeSyncedSettings,
   pickSyncedFields,
   PLAY_COMMAND_MAX_AGE_MS,
+  mergeFuelEntries,
   readHandledPlayAt,
   writeHandledPlayAt,
   pushSharedSettings,
@@ -485,6 +486,8 @@ export default function Home() {
   const [settings, setSettings] = useState<Settings>(defaults);
   // スマホから送られてきた再生指示で鳴らしているプレイリスト。
   // reloadKey は「音が出ないときのタップ」で作り直すための目印。
+  // ホーム画面の待機プレイヤー。設定したプレイリストからランダムに選ぶ。
+  const [homePlaylistIndex, setHomePlaylistIndex] = useState(0);
   const [carPlaying, setCarPlaying] = useState<{
     playlistId: string;
     label: string;
@@ -494,6 +497,11 @@ export default function Home() {
   } | null>(null);
   // 一度反応した指示を覚えておき、同じものを繰り返し再生しないようにする。
   const handledPlayRef = useRef(0);
+
+  const playlists =
+    settings.playlists.length > 0 ? settings.playlists : defaults.playlists;
+  const playlistCount = playlists.length;
+  const homePlaylist = playlists[homePlaylistIndex % playlistCount] ?? playlists[0];
 
   // マップ画面の 1〜5 のナビ目的地。設定ページから編集できる。
   const mapDestinations = settings.mapDestinations;
@@ -516,7 +524,8 @@ export default function Home() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showMeter, setShowMeter] = useState(false);
   const [showFuel, setShowFuel] = useState(false);
-  const [fuelEntries, setFuelEntries] = useState<FuelEntry[]>([]);
+  // 給油記録は設定と同じ入れ物に置き、スマホと共有する。
+  const fuelEntries = settings.fuelEntries;
   const [fuelDraft, setFuelDraft] = useState<FuelDraft>({
     date: japanDateKey(),
     liters: "",
@@ -628,9 +637,7 @@ export default function Home() {
             ? Math.max(0, savedDailyTrip.distanceKm)
             : 0,
       });
-      const savedFuelEntries = JSON.parse(
-        localStorage.getItem(FUEL_LOG_STORAGE_KEY) || "[]",
-      ) as FuelEntry[];
+      const savedFuelEntries = readSettings().fuelEntries;
       const validatedFuelEntries = Array.isArray(savedFuelEntries)
         ? savedFuelEntries.filter(
             (entry) =>
@@ -656,7 +663,10 @@ export default function Home() {
         );
         if (!alreadyExists) mergedFuelEntries.push(importedEntry);
       }
-      setFuelEntries(mergedFuelEntries);
+      setSettings((current) => ({
+        ...current,
+        fuelEntries: mergeFuelEntries(current.fuelEntries, mergedFuelEntries),
+      }));
       const savedRouteEta = JSON.parse(
         localStorage.getItem("zcar-route-eta") || "null",
       ) as RouteEta | null;
@@ -763,9 +773,12 @@ export default function Home() {
         }
         const updatedAt = result.updatedAt ?? 0;
         if (updatedAt <= current.syncedAt) return;
+        const shared = sanitizeSyncedSettings(result.settings);
         const merged = {
           ...current,
-          ...sanitizeSyncedSettings(result.settings),
+          ...shared,
+          // 給油記録はどちらの端末の分も残す(消す操作が無いので足し合わせる)。
+          fuelEntries: mergeFuelEntries(current.fuelEntries, shared.fuelEntries ?? []),
           syncedAt: updatedAt,
         };
         // 取り込んだ内容をそのまま送り返さないよう、送信済みとして覚えておく。
@@ -805,6 +818,18 @@ export default function Home() {
       .catch(() => undefined);
   }, [syncEnabled, syncKey, settings]);
 
+  useEffect(() => {
+    if (!ready || showMeter || showFuel) return;
+    setHomePlaylistIndex((current) => {
+      let next = Math.floor(Math.random() * playlistCount);
+      if (playlistCount > 1 && next === current) {
+        next = (next + 1) % playlistCount;
+      }
+      return next;
+    });
+  }, [ready, showMeter, showFuel, playlistCount]);
+
+  // 給油記録は設定と一緒に保存されるが、旧キーにも書いておく(古い版に戻しても読める)。
   useEffect(() => {
     if (ready) {
       localStorage.setItem(FUEL_LOG_STORAGE_KEY, JSON.stringify(fuelEntries));
@@ -1653,17 +1678,19 @@ export default function Home() {
   const recordFuelEntry = () => {
     if (!fuelDraftIsValid) return;
     const now = Date.now();
-    setFuelEntries((current) => [
+    setSettings((current) => ({
       ...current,
-      {
-        id: `${now}`,
-        date: fuelDraft.date,
-        liters: fuelLitersInput,
-        distanceKm: fuelDistanceInput,
-        amountYen: Math.round(fuelAmountInput),
-        createdAt: now,
-      },
-    ]);
+      fuelEntries: mergeFuelEntries(current.fuelEntries, [
+        {
+          id: `${now}`,
+          date: fuelDraft.date,
+          liters: fuelLitersInput,
+          distanceKm: fuelDistanceInput,
+          amountYen: Math.round(fuelAmountInput),
+          createdAt: now,
+        },
+      ]),
+    }));
     setFuelTripKm(0);
     navigator.vibrate?.(60);
     setFuelDraft({
@@ -1752,16 +1779,6 @@ export default function Home() {
                 aria-label={showMeter ? "ホーム画面へ戻る" : "デジタルメーターを表示"}
               >
                 {showMeter ? "HOME" : "METER"}
-              </button>
-            )}
-            {!showMeter && !showFuel && (
-              <button
-                type="button"
-                className="meter-theme-button"
-                onClick={openSettings}
-                aria-label="設定を開く"
-              >
-                SET
               </button>
             )}
             {showMeter && (
@@ -2292,6 +2309,23 @@ export default function Home() {
                 </span>
                 <small>現在地</small>
               </div>
+            </article>
+            <article
+              className="home-random-youtube"
+              aria-label={`${homePlaylist.label} プレイリスト YouTubeプレイヤー`}
+            >
+              <header>
+                <span><i aria-hidden="true" />{homePlaylist.label}</span>
+                <b>RANDOM {String(homePlaylistIndex + 1).padStart(2, "0")}</b>
+              </header>
+              <iframe
+                key={homePlaylist.playlistId}
+                src={`https://www.youtube.com/embed/videoseries?list=${homePlaylist.playlistId}&playsinline=1&rel=0&loop=1`}
+                title={`${homePlaylist.label} プレイリスト`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+              />
             </article>
             <div className="shift-monitor" aria-live="polite">
               <header>

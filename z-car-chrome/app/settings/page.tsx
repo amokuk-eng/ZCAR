@@ -5,6 +5,7 @@ import {
   defaults,
   extractPlaylistId,
   fetchSharedSettings,
+  mergeFuelEntries,
   MAX_DESTINATION_LABEL,
   MAX_DESTINATION_TEXT,
   MAX_PLAYLISTS,
@@ -16,6 +17,7 @@ import {
   readSyncKeyFromHash,
   sanitizeSyncedSettings,
   writeSettings,
+  type FuelEntry,
   type MapDestination,
   type PlayCommand,
   type MeterTheme,
@@ -24,6 +26,17 @@ import {
 } from "../settings-store";
 
 type SyncState = "idle" | "sending" | "done" | "error";
+
+/** 日本時間での今日 (YYYY-MM-DD)。 */
+const todayKey = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo" }).format(new Date());
+
+const emptyFuelDraft = {
+  date: todayKey(),
+  liters: "",
+  distanceKm: "",
+  amountYen: "",
+};
 
 /** Googleマップを案内モードで開くURL。車側の目的地ボタンと同じ形式。 */
 const navigationUrl = (destination: string) =>
@@ -42,6 +55,8 @@ export default function PhoneSettingsPage() {
   const [playState, setPlayState] = useState<
     { kind: "sending" | "sent" | "error"; label: string } | null
   >(null);
+  const [fuelDraft, setFuelDraft] = useState(emptyFuelDraft);
+  const [fuelSaved, setFuelSaved] = useState(false);
 
   useEffect(() => {
     let stored = readSettings();
@@ -68,9 +83,12 @@ export default function PhoneSettingsPage() {
       .then((result) => {
         const updatedAt = result.updatedAt ?? 0;
         if (!result.ok || !result.settings || updatedAt <= base.syncedAt) return;
+        const shared = sanitizeSyncedSettings(result.settings);
         const merged = {
           ...base,
-          ...sanitizeSyncedSettings(result.settings),
+          ...shared,
+          // 給油記録は車の分も残す(消す操作が無いので足し合わせる)。
+          fuelEntries: mergeFuelEntries(base.fuelEntries, shared.fuelEntries ?? []),
           syncedAt: updatedAt,
         };
         setDraft(merged);
@@ -85,6 +103,12 @@ export default function PhoneSettingsPage() {
     const timer = window.setTimeout(() => setSaved(false), 2600);
     return () => window.clearTimeout(timer);
   }, [saved]);
+
+  useEffect(() => {
+    if (!fuelSaved) return;
+    const timer = window.setTimeout(() => setFuelSaved(false), 3000);
+    return () => window.clearTimeout(timer);
+  }, [fuelSaved]);
 
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) => {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -148,6 +172,44 @@ export default function PhoneSettingsPage() {
     } catch {
       setPlayState({ kind: "error", label });
     }
+  };
+
+  const fuelLiters = Number.parseFloat(fuelDraft.liters);
+  const fuelDistance = Number.parseFloat(fuelDraft.distanceKm);
+  const fuelAmount = Number.parseFloat(fuelDraft.amountYen);
+  const fuelDraftIsValid =
+    /^\d{4}-\d{2}-\d{2}$/.test(fuelDraft.date) &&
+    Number.isFinite(fuelLiters) &&
+    fuelLiters > 0 &&
+    Number.isFinite(fuelDistance) &&
+    fuelDistance >= 0 &&
+    Number.isFinite(fuelAmount) &&
+    fuelAmount >= 0;
+  /** この給油分の燃費(満タン法)。 */
+  const fuelDraftEconomy = fuelDraftIsValid ? fuelDistance / fuelLiters : null;
+  const recentFuel = draft.fuelEntries.slice(0, 5);
+
+  /** 給油を記録して、車にも届ける。 */
+  const recordFuel = () => {
+    if (!fuelDraftIsValid) return;
+    const now = Date.now();
+    const entry: FuelEntry = {
+      id: `${now}`,
+      date: fuelDraft.date,
+      liters: fuelLiters,
+      distanceKm: fuelDistance,
+      amountYen: Math.round(fuelAmount),
+      createdAt: now,
+    };
+    const next = {
+      ...draft,
+      fuelEntries: mergeFuelEntries(draft.fuelEntries, [entry]),
+    };
+    setDraft(next);
+    writeSettings(next);
+    setFuelDraft({ ...emptyFuelDraft, date: todayKey() });
+    setFuelSaved(true);
+    void sendToCar(next);
   };
 
   const updatePlaylist = (index: number, patch: Partial<Playlist>) => {
@@ -292,6 +354,103 @@ export default function PhoneSettingsPage() {
             );
           })}
         </div>
+      </section>
+
+      <section className="zsetup-section">
+        <h2>
+          満タン法 燃費記録<small>給油のたびに入力すると実燃費が出ます</small>
+        </h2>
+        <div className="zsetup-fuel-form">
+          <label className="zsetup-field">
+            <span>給油日</span>
+            <input
+              type="date"
+              value={fuelDraft.date}
+              onChange={(event) =>
+                setFuelDraft({ ...fuelDraft, date: event.target.value })
+              }
+            />
+          </label>
+          <label className="zsetup-field">
+            <span>給油量（L）</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              value={fuelDraft.liters}
+              onChange={(event) =>
+                setFuelDraft({ ...fuelDraft, liters: event.target.value })
+              }
+            />
+          </label>
+          <label className="zsetup-field">
+            <span>走行距離（km）</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              step="0.1"
+              min="0"
+              placeholder="前回の給油からの距離"
+              value={fuelDraft.distanceKm}
+              onChange={(event) =>
+                setFuelDraft({ ...fuelDraft, distanceKm: event.target.value })
+              }
+            />
+          </label>
+          <label className="zsetup-field">
+            <span>給油金額（円）</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              step="1"
+              min="0"
+              placeholder="0"
+              value={fuelDraft.amountYen}
+              onChange={(event) =>
+                setFuelDraft({ ...fuelDraft, amountYen: event.target.value })
+              }
+            />
+          </label>
+        </div>
+        <p className="zsetup-fuel-preview">
+          今回の燃費{" "}
+          <b>
+            {fuelDraftEconomy === null ? "—" : fuelDraftEconomy.toFixed(1)}
+          </b>{" "}
+          km/L
+        </p>
+        <button
+          type="button"
+          className="zsetup-fuel-save"
+          disabled={!fuelDraftIsValid}
+          onClick={recordFuel}
+        >
+          記録する
+        </button>
+        <p className="zsetup-play-state" role="status">
+          {fuelSaved ? "記録しました（車にも共有されます）" : ""}
+        </p>
+        {recentFuel.length > 0 ? (
+          <div className="zsetup-fuel-history">
+            <h3>給油履歴</h3>
+            <ul>
+              {recentFuel.map((entry) => (
+                <li key={entry.id}>
+                  <b>{entry.date}</b>
+                  <span>
+                    {(entry.distanceKm / entry.liters).toFixed(1)}
+                    <small> km/L</small>
+                  </span>
+                  <em>
+                    {entry.liters.toFixed(2)} L / {Math.round(entry.amountYen)} 円
+                  </em>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </section>
 
       <section className="zsetup-section">

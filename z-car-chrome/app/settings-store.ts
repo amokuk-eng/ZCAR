@@ -82,6 +82,68 @@ const sanitizePlayCommand = (value: unknown): PlayCommand | null => {
   };
 };
 
+/** 満タン法の給油記録1件分。 */
+export type FuelEntry = {
+  id: string;
+  /** 給油日 (YYYY-MM-DD)。 */
+  date: string;
+  liters: number;
+  distanceKm: number;
+  amountYen: number;
+  createdAt: number;
+};
+
+/** 同期に載せる上限。古いものから落とす(通信量とサーバーの制限のため)。 */
+export const MAX_FUEL_ENTRIES = 120;
+
+/** 給油記録の保存先(この機能より前のバージョンが使っていたキー)。 */
+export const LEGACY_FUEL_LOG_KEY = "zcar-fuel-log-v1";
+
+export const isValidFuelEntry = (entry: unknown): entry is FuelEntry => {
+  if (!entry || typeof entry !== "object") return false;
+  const { id, date, liters, distanceKm, amountYen } = entry as Partial<FuelEntry>;
+  return (
+    typeof id === "string" &&
+    typeof date === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(date) &&
+    Number.isFinite(liters) &&
+    (liters as number) > 0 &&
+    Number.isFinite(distanceKm) &&
+    (distanceKm as number) >= 0 &&
+    Number.isFinite(amountYen) &&
+    (amountYen as number) >= 0
+  );
+};
+
+const sanitizeFuelEntries = (value: unknown): FuelEntry[] => {
+  if (!Array.isArray(value)) return [];
+  return value.filter(isValidFuelEntry).map((entry) => ({
+    id: entry.id,
+    date: entry.date,
+    liters: entry.liters,
+    distanceKm: entry.distanceKm,
+    amountYen: entry.amountYen,
+    createdAt: Number.isFinite(entry.createdAt) ? entry.createdAt : Date.parse(entry.date),
+  }));
+};
+
+/**
+ * 給油記録は消す操作が無いので、両方を足し合わせる(idが同じものは1件)。
+ * こうしておけば、車とスマホのどちらで記録しても失われない。
+ */
+export const mergeFuelEntries = (
+  left: FuelEntry[],
+  right: FuelEntry[],
+): FuelEntry[] => {
+  const byId = new Map<string, FuelEntry>();
+  for (const entry of [...left, ...right]) {
+    if (isValidFuelEntry(entry)) byId.set(entry.id, entry);
+  }
+  return [...byId.values()]
+    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
+    .slice(0, MAX_FUEL_ENTRIES);
+};
+
 /** 車のマップ画面に並ぶ 1〜5 のナビ目的地1件分。 */
 export type MapDestination = {
   /** ボタンに出す短い名前(例: ケーズ)。空なら未登録。 */
@@ -143,6 +205,8 @@ export type Settings = {
   mapDestinations: MapDestination[];
   /** スマホから車へ送る再生指示。指示が無ければ null。 */
   nowPlaying: PlayCommand | null;
+  /** 満タン法の給油記録。車とスマホのどちらで記録しても共有する。 */
+  fuelEntries: FuelEntry[];
 };
 
 export const defaults: Settings = {
@@ -161,6 +225,7 @@ export const defaults: Settings = {
   playlists: defaultPlaylists,
   mapDestinations: defaultMapDestinations,
   nowPlaying: null,
+  fuelEntries: [],
 };
 
 /** サーバーと共有する項目。走行状態やAPIキーは端末ごとなので送らない。 */
@@ -174,6 +239,7 @@ export const SYNCED_FIELDS = [
   "playlists",
   "mapDestinations",
   "nowPlaying",
+  "fuelEntries",
 ] as const;
 
 export type SyncedSettings = Pick<Settings, (typeof SYNCED_FIELDS)[number]>;
@@ -205,6 +271,7 @@ export const pickSyncedFields = (settings: Settings): SyncedSettings => ({
   playlists: settings.playlists,
   mapDestinations: settings.mapDestinations,
   nowPlaying: settings.nowPlaying,
+  fuelEntries: settings.fuelEntries,
 });
 
 const postSync = async (payload: Record<string, unknown>) => {
@@ -235,7 +302,8 @@ export const sanitizeSyncedSettings = (
     if (
       field === "playlists" ||
       field === "mapDestinations" ||
-      field === "nowPlaying"
+      field === "nowPlaying" ||
+      field === "fuelEntries"
     ) {
       continue;
     }
@@ -255,6 +323,9 @@ export const sanitizeSyncedSettings = (
   }
   if (value.nowPlaying !== undefined) {
     cleaned.nowPlaying = sanitizePlayCommand(value.nowPlaying);
+  }
+  if (Array.isArray(value.fuelEntries)) {
+    cleaned.fuelEntries = sanitizeFuelEntries(value.fuelEntries);
   }
   return cleaned;
 };
@@ -342,9 +413,23 @@ export const readSettings = (): Settings => {
       playlists: sanitizePlaylists(stored.playlists),
       mapDestinations: sanitizeMapDestinations(stored.mapDestinations),
       nowPlaying: sanitizePlayCommand(stored.nowPlaying),
+      // 古いバージョンは給油記録を別のキーに置いていたので、そこからも拾う。
+      fuelEntries: mergeFuelEntries(
+        sanitizeFuelEntries(stored.fuelEntries),
+        sanitizeFuelEntries(readLegacyFuelEntries()),
+      ),
     };
   } catch {
     return defaults;
+  }
+};
+
+const readLegacyFuelEntries = (): unknown => {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(window.localStorage.getItem(LEGACY_FUEL_LOG_KEY) || "[]");
+  } catch {
+    return [];
   }
 };
 
