@@ -50,7 +50,10 @@ export default function PhoneSettingsPage() {
   const [saved, setSaved] = useState(false);
   const [syncState, setSyncState] = useState<SyncState>("idle");
   const [handoffDone, setHandoffDone] = useState(false);
-  const [navOpen, setNavOpen] = useState(false);
+  // 最初はどのカードも閉じておき、触りたいものだけ開く(1枚ずつ)。
+  const [openCard, setOpenCard] = useState<string | null>(null);
+  const toggleCard = (id: string) =>
+    setOpenCard((current) => (current === id ? null : id));
   // 車に再生を頼んだ結果の表示("送信中" / プレイリスト名 / エラー)。
   const [playState, setPlayState] = useState<
     { kind: "sending" | "sent" | "error"; label: string } | null
@@ -286,20 +289,22 @@ export default function PhoneSettingsPage() {
         </p>
       </header>
 
-      <section className="zsetup-section zsetup-nav">
-        <h2>
-          ナビ<small>設定した目的地へGoogleマップで案内を開始します</small>
-        </h2>
+      <section className={`zsetup-section zsetup-card zsetup-nav${openCard === "nav" ? " is-open" : ""}`}>
         <button
           type="button"
-          className="zsetup-nav-toggle"
-          aria-expanded={navOpen}
-          onClick={() => setNavOpen((open) => !open)}
+          className="zsetup-card-head"
+          aria-expanded={openCard === "nav"}
+          onClick={() => toggleCard("nav")}
         >
-          {navOpen ? "閉じる" : "ナビ開始"}
+          <span>
+            <b>ナビ</b>
+            <small>設定した目的地へGoogleマップで案内を開始します</small>
+          </span>
+          <i aria-hidden="true" />
         </button>
-        {navOpen ? (
-          <div className="zsetup-nav-list">
+        {openCard === "nav" ? (
+          <div className="zsetup-card-body">
+        <div className="zsetup-nav-list">
             {navigableDestinations.length > 0 ? (
               navigableDestinations.map(({ entry, number }) => (
                 <a
@@ -320,14 +325,26 @@ export default function PhoneSettingsPage() {
                 下の「ナビの目的地」に住所を入れると、ここに並びます。
               </p>
             )}
+        </div>
           </div>
         ) : null}
       </section>
 
-      <section className="zsetup-section">
-        <h2>
-          メーターテーマ<small>フルスクリーン表示の配色</small>
-        </h2>
+      <section className={`zsetup-section zsetup-card${openCard === "theme" ? " is-open" : ""}`}>
+        <button
+          type="button"
+          className="zsetup-card-head"
+          aria-expanded={openCard === "theme"}
+          onClick={() => toggleCard("theme")}
+        >
+          <span>
+            <b>メーターテーマ</b>
+            <small>フルスクリーン表示の配色</small>
+          </span>
+          <i aria-hidden="true" />
+        </button>
+        {openCard === "theme" ? (
+          <div className="zsetup-card-body">
         <div className="zsetup-themes">
           {METER_THEMES.map((theme) => {
             const active = draft.meterTheme === theme.id;
@@ -354,12 +371,25 @@ export default function PhoneSettingsPage() {
             );
           })}
         </div>
+          </div>
+        ) : null}
       </section>
 
-      <section className="zsetup-section">
-        <h2>
-          満タン法 燃費記録<small>給油のたびに入力すると実燃費が出ます</small>
-        </h2>
+      <section className={`zsetup-section zsetup-card${openCard === "fuel" ? " is-open" : ""}`}>
+        <button
+          type="button"
+          className="zsetup-card-head"
+          aria-expanded={openCard === "fuel"}
+          onClick={() => toggleCard("fuel")}
+        >
+          <span>
+            <b>満タン法 燃費記録</b>
+            <small>給油のたびに入力すると実燃費が出ます</small>
+          </span>
+          <i aria-hidden="true" />
+        </button>
+        {openCard === "fuel" ? (
+          <div className="zsetup-card-body">
         <div className="zsetup-fuel-form">
           <label className="zsetup-field">
             <span>給油日</span>
@@ -451,12 +481,25 @@ export default function PhoneSettingsPage() {
             </ul>
           </div>
         ) : null}
+          </div>
+        ) : null}
       </section>
 
-      <section className="zsetup-section">
-        <h2>
-          勤務先<small>ナビの行き先と出勤時刻</small>
-        </h2>
+      <section className={`zsetup-section zsetup-card${openCard === "work" ? " is-open" : ""}`}>
+        <button
+          type="button"
+          className="zsetup-card-head"
+          aria-expanded={openCard === "work"}
+          onClick={() => toggleCard("work")}
+        >
+          <span>
+            <b>勤務先</b>
+            <small>ナビの行き先と出勤時刻</small>
+          </span>
+          <i aria-hidden="true" />
+        </button>
+        {openCard === "work" ? (
+          <div className="zsetup-card-body">
         <label className="zsetup-field">
           <span>店舗名</span>
           <input
@@ -487,12 +530,25 @@ export default function PhoneSettingsPage() {
             onChange={(event) => update("homeDest", event.target.value)}
           />
         </label>
+          </div>
+        ) : null}
       </section>
 
-      <section className="zsetup-section">
-        <h2>
-          ナビの目的地<small>車のマップ画面に並ぶ 1〜5 のボタン</small>
-        </h2>
+      <section className={`zsetup-section zsetup-card${openCard === "dest" ? " is-open" : ""}`}>
+        <button
+          type="button"
+          className="zsetup-card-head"
+          aria-expanded={openCard === "dest"}
+          onClick={() => toggleCard("dest")}
+        >
+          <span>
+            <b>ナビの目的地</b>
+            <small>車のマップ画面に並ぶ 1〜5 のボタン</small>
+          </span>
+          <i aria-hidden="true" />
+        </button>
+        {openCard === "dest" ? (
+          <div className="zsetup-card-body">
         <div className="zsetup-playlists">
           {draft.mapDestinations.map((entry, index) => (
             <div className="zsetup-playlist" key={index}>
@@ -525,12 +581,25 @@ export default function PhoneSettingsPage() {
           なお「出勤」「退勤」のボタンは、上の勤務先で設定した
           店舗住所・自宅住所へ案内します。
         </p>
+          </div>
+        ) : null}
       </section>
 
-      <section className="zsetup-section">
-        <h2>
-          ミュージック<small>この端末で聴く YouTube プレイリスト</small>
-        </h2>
+      <section className={`zsetup-section zsetup-card${openCard === "music" ? " is-open" : ""}`}>
+        <button
+          type="button"
+          className="zsetup-card-head"
+          aria-expanded={openCard === "music"}
+          onClick={() => toggleCard("music")}
+        >
+          <span>
+            <b>ミュージック</b>
+            <small>この端末で聴く YouTube プレイリスト</small>
+          </span>
+          <i aria-hidden="true" />
+        </button>
+        {openCard === "music" ? (
+          <div className="zsetup-card-body">
         <div className="zsetup-playlists">
           {draft.playlists.map((playlist, index) => (
             <div className="zsetup-playlist" key={index}>
@@ -634,8 +703,11 @@ export default function PhoneSettingsPage() {
           「スマホで開く」はこの端末のYouTubeアプリで開きます。
           運転中の操作は危険なので、出発前に選んでおいてください。
         </p>
+          </div>
+        ) : null}
       </section>
 
+      {openCard && openCard !== "nav" && openCard !== "fuel" ? (
       <div className="zsetup-actions">
         <button type="button" className="zsetup-save" onClick={save}>
           保存する
@@ -652,7 +724,7 @@ export default function PhoneSettingsPage() {
                   : ""}
         </p>
       </div>
-
+      ) : null}
 
       <nav className="zsetup-links">
         <button type="button" className="zsetup-reset" onClick={resetAll}>
