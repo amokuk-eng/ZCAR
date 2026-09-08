@@ -54,6 +54,8 @@ export default function PhoneSettingsPage() {
   const [openCard, setOpenCard] = useState<string | null>(null);
   const toggleCard = (id: string) =>
     setOpenCard((current) => (current === id ? null : id));
+  // ナビカードの中の目的地編集。ふだんは畳んでおく。
+  const [destEditOpen, setDestEditOpen] = useState(false);
   // 車に再生を頼んだ結果の表示("送信中" / プレイリスト名 / エラー)。
   const [playState, setPlayState] = useState<
     { kind: "sending" | "sent" | "error"; label: string } | null
@@ -317,6 +319,48 @@ export default function PhoneSettingsPage() {
               </p>
             )}
         </div>
+        <button
+          type="button"
+          className="zsetup-dest-toggle"
+          aria-expanded={destEditOpen}
+          onClick={() => setDestEditOpen((open) => !open)}
+        >
+          {destEditOpen ? "目的地の編集を閉じる" : "目的地を編集する"}
+        </button>
+        {destEditOpen ? (
+          <div className="zsetup-dest-edit">
+        <div className="zsetup-playlists">
+          {draft.mapDestinations.map((entry, index) => (
+            <div className="zsetup-playlist" key={index}>
+              <div className="zsetup-playlist-head">
+                <b>{index + 1}</b>
+                <input
+                  className="zsetup-playlist-label"
+                  placeholder="名前（例: ケーズ）"
+                  maxLength={MAX_DESTINATION_LABEL}
+                  value={entry.label}
+                  onChange={(event) =>
+                    updateDestination(index, { label: event.target.value })
+                  }
+                />
+              </div>
+              <input
+                placeholder="住所または検索語（空欄なら未登録）"
+                maxLength={MAX_DESTINATION_TEXT}
+                value={entry.destination}
+                onChange={(event) =>
+                  updateDestination(index, { destination: event.target.value })
+                }
+              />
+            </div>
+          ))}
+        </div>
+        <p className="zsetup-sync-note">
+          住所でも「ケーズデンキ 東住吉中野店」のような店名でも構いません。
+          空欄にした番号は、この一覧にも車のボタンにも出なくなります。
+        </p>
+          </div>
+        ) : null}
           </div>
         ) : null}
       </section>
@@ -476,105 +520,7 @@ export default function PhoneSettingsPage() {
         ) : null}
       </section>
 
-      <section className={`zsetup-section zsetup-card${openCard === "work" ? " is-open" : ""}`}>
-        <button
-          type="button"
-          className="zsetup-card-head"
-          aria-expanded={openCard === "work"}
-          onClick={() => toggleCard("work")}
-        >
-          <span>
-            <b>勤務先</b>
-            <small>ナビの行き先と出勤時刻</small>
-          </span>
-          <i aria-hidden="true" />
-        </button>
-        {openCard === "work" ? (
-          <div className="zsetup-card-body">
-        <label className="zsetup-field">
-          <span>店舗名</span>
-          <input
-            value={draft.storeName}
-            onChange={(event) => update("storeName", event.target.value)}
-          />
-        </label>
-        <label className="zsetup-field">
-          <span>店舗住所 / 検索語</span>
-          <input
-            value={draft.storeDest}
-            onChange={(event) => update("storeDest", event.target.value)}
-          />
-        </label>
-        <label className="zsetup-field">
-          <span>勤務開始</span>
-          <input
-            type="time"
-            value={draft.start}
-            onChange={(event) => update("start", event.target.value)}
-          />
-        </label>
-        <label className="zsetup-field">
-          <span>自宅住所 / 検索語</span>
-          <input
-            value={draft.homeDest}
-            placeholder="退勤ナビの行き先"
-            onChange={(event) => update("homeDest", event.target.value)}
-          />
-        </label>
-          </div>
-        ) : null}
-      </section>
 
-      <section className={`zsetup-section zsetup-card${openCard === "dest" ? " is-open" : ""}`}>
-        <button
-          type="button"
-          className="zsetup-card-head"
-          aria-expanded={openCard === "dest"}
-          onClick={() => toggleCard("dest")}
-        >
-          <span>
-            <b>ナビの目的地</b>
-            <small>車のマップ画面に並ぶ 1〜5 のボタン</small>
-          </span>
-          <i aria-hidden="true" />
-        </button>
-        {openCard === "dest" ? (
-          <div className="zsetup-card-body">
-        <div className="zsetup-playlists">
-          {draft.mapDestinations.map((entry, index) => (
-            <div className="zsetup-playlist" key={index}>
-              <div className="zsetup-playlist-head">
-                <b>{index + 1}</b>
-                <input
-                  className="zsetup-playlist-label"
-                  placeholder="名前（例: ケーズ）"
-                  maxLength={MAX_DESTINATION_LABEL}
-                  value={entry.label}
-                  onChange={(event) =>
-                    updateDestination(index, { label: event.target.value })
-                  }
-                />
-              </div>
-              <input
-                placeholder="住所または検索語（空欄なら未登録）"
-                maxLength={MAX_DESTINATION_TEXT}
-                value={entry.destination}
-                onChange={(event) =>
-                  updateDestination(index, { destination: event.target.value })
-                }
-              />
-            </div>
-          ))}
-        </div>
-        <p className="zsetup-sync-note">
-          住所でも「ケーズデンキ 東住吉中野店」のような店名でも構いません。
-          押すとGoogleマップが開いて案内が始まります。空欄にしたボタンは押せなくなります。
-          なお「出勤」「退勤」のボタンは、上の勤務先で設定した
-          店舗住所・自宅住所へ案内します。
-        </p>
-          </div>
-        ) : null}
-      </section>
 
       <section className={`zsetup-section zsetup-card${openCard === "music" ? " is-open" : ""}`}>
         <button
@@ -585,7 +531,7 @@ export default function PhoneSettingsPage() {
         >
           <span>
             <b>ミュージック</b>
-            <small>この端末で聴く YouTube プレイリスト</small>
+            <small>車で鳴らす YouTube プレイリスト</small>
           </span>
           <i aria-hidden="true" />
         </button>
@@ -628,24 +574,14 @@ export default function PhoneSettingsPage() {
                 }
               />
               {extractPlaylistId(playlist.playlistId) ? (
-                <div className="zsetup-playlist-play-row">
-                  <button
-                    type="button"
-                    className="zsetup-playlist-play"
-                    disabled={!canReachCar}
-                    onClick={() => void playOnCar(playlist)}
-                  >
-                    ▶ 車で再生
-                  </button>
-                  <a
-                    className="zsetup-playlist-open"
-                    href={`https://www.youtube.com/playlist?list=${extractPlaylistId(playlist.playlistId)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    スマホで開く
-                  </a>
-                </div>
+                <button
+                  type="button"
+                  className="zsetup-playlist-play"
+                  disabled={!canReachCar}
+                  onClick={() => void playOnCar(playlist)}
+                >
+                  ▶ 車で再生
+                </button>
               ) : null}
             </div>
           ))}
@@ -691,14 +627,16 @@ export default function PhoneSettingsPage() {
           YouTubeでプレイリストを開いて、アドレスをそのまま貼り付けてください
           （アドレスの中の list= の部分だけ自動で読み取ります）。
           「車で再生」を押すと、車の画面がそのプレイリストを鳴らします。
-          「スマホで開く」はこの端末のYouTubeアプリで開きます。
+          この端末では再生しません（指示を送るだけです）。
           運転中の操作は危険なので、出発前に選んでおいてください。
         </p>
           </div>
         ) : null}
       </section>
 
-      {openCard && openCard !== "nav" && openCard !== "fuel" ? (
+      {openCard === "theme" ||
+      openCard === "music" ||
+      (openCard === "nav" && destEditOpen) ? (
       <div className="zsetup-actions">
         <button type="button" className="zsetup-save" onClick={save}>
           保存する

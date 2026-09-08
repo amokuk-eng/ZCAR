@@ -6174,14 +6174,8 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 }
 
 /* 設定ページ: 車で再生する / この端末で開く。 */
-.zsetup-playlist-play-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-}
 
-.zsetup-playlist-play,
-.zsetup-playlist-open {
+.zsetup-playlist-play {
   display: grid;
   place-items: center;
   min-height: 44px;
@@ -6204,13 +6198,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   background: transparent;
   color: #5d6b78;
   cursor: default;
-}
-
-.zsetup-playlist-open {
-  border-color: var(--line);
-  background: transparent;
-  color: #9fb0bd;
-  font-size: 12px;
 }
 
 .zsetup-play-state {
@@ -6640,3 +6627,26 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 .zsetup-card-body > .zsetup-playlists,
 .zsetup-card-body > .zsetup-nav-list,
 .zsetup-card-body > .zsetup-fuel-form { margin-top: 14px; }
+
+/* ナビカードの中の「目的地を編集」。ふだんは畳んでおく。 */
+.zsetup-dest-toggle {
+  width: 100%;
+  min-height: 46px;
+  margin: 12px 0 0;
+  border: 1px dashed #2f7f84;
+  border-radius: 12px;
+  background: transparent;
+  color: #9fe4e9;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.zsetup-dest-edit {
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
