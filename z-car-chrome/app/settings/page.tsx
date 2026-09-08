@@ -605,24 +605,6 @@ export default function PhoneSettingsPage() {
                 ? "車に送れませんでした（通信を確認してください）"
                 : ""}
         </p>
-        {canReachCar ? null : (
-          <label className="zsetup-field zsetup-pairing">
-            <span>合言葉（車で再生するのに必要）</span>
-            <input
-              autoComplete="off"
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder={`${MIN_SYNC_KEY_LENGTH}文字以上`}
-              value={draft.syncKey}
-              onChange={(event) => update("syncKey", event.target.value)}
-            />
-            <small>
-              車の画面でも同じ合言葉を入れてください（設定 →「詳細設定ページを開く」）。
-              合言葉を知っている端末どうしだけがつながります。
-            </small>
-          </label>
-        )}
         <p className="zsetup-sync-note">
           YouTubeでプレイリストを開いて、アドレスをそのまま貼り付けてください
           （アドレスの中の list= の部分だけ自動で読み取ります）。
