@@ -249,6 +249,24 @@ export const SYNC_ENDPOINT = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/set
 /** 合言葉は短すぎると総当たりされるので下限を設ける(PHP側と同じ値)。 */
 export const MIN_SYNC_KEY_LENGTH = 8;
 
+/**
+ * 合言葉を自動生成する。人が読む必要はないので、紛らわしい文字を除いた
+ * 32文字のランダム文字列にする(推測されないだけの長さを確保)。
+ */
+export const generateSyncKey = () => {
+  const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
+  const bytes = new Uint32Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (value) => alphabet[value % alphabet.length]).join("");
+};
+
+/**
+ * 合言葉を他の端末へ渡すためのURL。合言葉は「#」より後ろ(フラグメント)に
+ * 置く。フラグメントはサーバーへ送信されないので、アクセスログに残らない。
+ */
+export const buildSyncHandoffUrl = (key: string) =>
+  `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/settings/#k=${encodeURIComponent(key)}`;
+
 /** 受け取ったURLのフラグメントから合言葉を取り出す。無ければ null。 */
 export const readSyncKeyFromHash = (hash: string) => {
   const match = /(?:^#|&)k=([^&]+)/.exec(hash);

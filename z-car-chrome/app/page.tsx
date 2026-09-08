@@ -3,8 +3,10 @@
 import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useObd2, type ObdConnectionStatus } from "./hooks/use-obd2";
 import {
+  buildSyncHandoffUrl,
   defaults,
   fetchSharedSettings,
+  generateSyncKey,
   MIN_SYNC_KEY_LENGTH,
   sanitizeSyncedSettings,
   pickSyncedFields,
@@ -570,6 +572,9 @@ export default function Home() {
   >("idle");
   const homeDialog = useRef<HTMLDialogElement>(null);
   const settingsDialog = useRef<HTMLDialogElement>(null);
+  // スマホと接続するためのQR(設定ダイアログの中で表示する)。
+  const [pairingQr, setPairingQr] = useState<string | null>(null);
+  const [pairingError, setPairingError] = useState(false);
   // 同期用: 最新の設定と、最後にサーバーへ送った内容を覚えておく。
   const settingsRef = useRef<Settings>(defaults);
   const lastPushedRef = useRef<string | null>(null);
@@ -1491,7 +1496,38 @@ export default function Home() {
 
   const openSettings = () => {
     setDraft(settings);
+    setPairingQr(null);
+    setPairingError(false);
     settingsDialog.current?.showModal();
+  };
+
+  /**
+   * スマホと接続する。合言葉がまだ無ければここで作り、それを入れたURLの
+   * QRを出す。合言葉は「#」より後ろに置くのでサーバーには送信されない。
+   * QRの生成は使うときだけ読み込む(車載機の起動を重くしないため)。
+   */
+  const startPairing = async () => {
+    setPairingError(false);
+    let key = settings.syncKey.trim();
+    if (key.length < MIN_SYNC_KEY_LENGTH) {
+      key = generateSyncKey();
+      const next = { ...settings, syncKey: key, syncedAt: 0 };
+      setSettings(next);
+      setDraft((current) => ({ ...current, syncKey: key, syncedAt: 0 }));
+    }
+    try {
+      const QRCode = (await import("qrcode")).default;
+      const image = await QRCode.toDataURL(buildSyncHandoffUrl(key), {
+        // 実寸より大きめに作り、CSS側で縮小して表示する(粗さが出ないように)。
+        width: 720,
+        margin: 1,
+        errorCorrectionLevel: "M",
+        color: { dark: "#04110c", light: "#e6fbf7" },
+      });
+      setPairingQr(image);
+    } catch {
+      setPairingError(true);
+    }
   };
 
   const beginNavigation = async (
@@ -1779,6 +1815,17 @@ export default function Home() {
                 aria-label={showMeter ? "ホーム画面へ戻る" : "デジタルメーターを表示"}
               >
                 {showMeter ? "HOME" : "METER"}
+              </button>
+            )}
+            {!showMeter && (
+              <button
+                type="button"
+                className="settings-gear-button"
+                onClick={openSettings}
+                aria-label="設定を開く"
+                title="設定"
+              >
+                <span aria-hidden="true">⚙</span>
               </button>
             )}
             {showMeter && (
@@ -2484,6 +2531,49 @@ export default function Home() {
       <dialog ref={settingsDialog}>
         <div className="dialog-card settings-card">
           <h2>Z CAR 設定</h2>
+
+          <section className="pairing-block">
+            <h3>スマホと接続</h3>
+            {pairingQr ? (
+              <div className="pairing-qr">
+                <img src={pairingQr} alt="接続用QRコード" width={720} height={720} />
+                <p>
+                  iPhoneのカメラでこのQRを読み取ってください。
+                  設定ページが開いて、この車とつながります。
+                </p>
+                <p className="pairing-warn">
+                  このQRは合言葉そのものです。他の人に見せたり撮影させたり
+                  しないでください。
+                </p>
+                <button type="button" onClick={() => setPairingQr(null)}>
+                  QRを隠す
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="pairing-start"
+                  onClick={() => void startPairing()}
+                >
+                  {syncKey.length >= MIN_SYNC_KEY_LENGTH
+                    ? "接続用のQRを表示"
+                    : "スマホと接続する"}
+                </button>
+                <p className="settings-hint">
+                  {syncKey.length >= MIN_SYNC_KEY_LENGTH
+                    ? "接続済みです。別のスマホをつなぐときも、このQRを読み取ってください。"
+                    : "QRを出して、iPhoneのカメラで読み取ります。つながると、スマホからメーターの色や音楽を変えられます。"}
+                </p>
+              </>
+            )}
+            {pairingError ? (
+              <p className="pairing-warn">
+                QRを作れませんでした。もう一度押してください。
+              </p>
+            ) : null}
+          </section>
+
           <label>
             店舗名
             <input
