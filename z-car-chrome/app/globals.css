@@ -6649,3 +6649,100 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   padding-top: 14px;
   border-top: 1px solid var(--line);
 }
+
+/* --- 車載機: ⚙の設定ボタンと、スマホと接続するQR --- */
+.settings-gear-button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #2d3b33;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #111814, #070a08);
+  color: #82ae89;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pairing-block {
+  margin: 0 0 18px;
+  padding: 14px;
+  border: 1px solid #2c3540;
+  border-radius: 14px;
+  background: #0d1318;
+}
+
+.pairing-block h3 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  letter-spacing: .06em;
+  color: #cfd8e0;
+}
+
+.pairing-start {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #2f7f84;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #12262a, #0a1518);
+  color: #6fe3ea;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  cursor: pointer;
+}
+
+.pairing-block .settings-hint {
+  display: block;
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.7;
+  color: #7d8894;
+}
+
+.pairing-qr {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.pairing-qr img {
+  /* スマホから読み取るので、白地をはっきり出して大きめに表示する。 */
+  width: 260px;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  background: #e6fbf7;
+}
+
+.pairing-qr p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #b6c3cd;
+  text-align: center;
+}
+
+.pairing-qr button {
+  min-height: 38px;
+  padding: 0 18px;
+  border: 1px solid #2c3540;
+  border-radius: 10px;
+  background: transparent;
+  color: #9ba6b1;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pairing-warn {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.65;
+  color: #e0a3aa;
+  text-align: center;
+}
