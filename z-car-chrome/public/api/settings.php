@@ -22,7 +22,8 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
 
-const MAX_BODY_BYTES = 16384;
+const MAX_BODY_BYTES = 65536;
+const MAX_FUEL_ENTRIES = 120;
 const MAX_PLAYLISTS = 8;
 const MAX_PLAYLIST_LABEL = 24;
 const MAP_DESTINATION_COUNT = 5;
@@ -182,6 +183,42 @@ if (array_key_exists('nowPlaying', $incoming)) {
                 'requestedAt' => $requestedAt,
             ];
         }
+    }
+}
+
+// 給油記録。消す操作が無いので、送られてきた分をそのまま保存する
+// (取り込む側で id を突き合わせて足し合わせる)。
+if (isset($incoming['fuelEntries']) && is_array($incoming['fuelEntries'])) {
+    $entries = [];
+    foreach ($incoming['fuelEntries'] as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        $id = isset($entry['id']) && is_string($entry['id']) ? $entry['id'] : '';
+        $date = isset($entry['date']) && is_string($entry['date']) ? $entry['date'] : '';
+        if ($id === '' || strlen($id) > 64 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            continue;
+        }
+        $liters = isset($entry['liters']) ? (float) $entry['liters'] : 0.0;
+        $distance = isset($entry['distanceKm']) ? (float) $entry['distanceKm'] : -1.0;
+        $amount = isset($entry['amountYen']) ? (float) $entry['amountYen'] : -1.0;
+        if ($liters <= 0 || $distance < 0 || $amount < 0) {
+            continue;
+        }
+        $entries[] = [
+            'id' => $id,
+            'date' => $date,
+            'liters' => $liters,
+            'distanceKm' => $distance,
+            'amountYen' => $amount,
+            'createdAt' => isset($entry['createdAt']) ? (int) $entry['createdAt'] : 0,
+        ];
+        if (count($entries) >= MAX_FUEL_ENTRIES) {
+            break;
+        }
+    }
+    if ($entries !== []) {
+        $clean['fuelEntries'] = $entries;
     }
 }
 
