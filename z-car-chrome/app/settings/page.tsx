@@ -268,15 +268,6 @@ export default function PhoneSettingsPage() {
     void sendToCar(next);
   };
 
-  const resetAll = () => {
-    if (!window.confirm("この端末の設定を初期状態に戻します。よろしいですか？")) {
-      return;
-    }
-    setDraft(defaults);
-    writeSettings(defaults);
-    setSaved(true);
-  };
-
   return (
     <main className="zsetup" aria-busy={!ready}>
       <header className="zsetup-head">
@@ -726,11 +717,6 @@ export default function PhoneSettingsPage() {
       </div>
       ) : null}
 
-      <nav className="zsetup-links">
-        <button type="button" className="zsetup-reset" onClick={resetAll}>
-          この端末の設定を初期化
-        </button>
-      </nav>
     </main>
   );
 }

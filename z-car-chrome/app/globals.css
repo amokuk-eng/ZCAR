@@ -6057,36 +6057,12 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   color: var(--muted);
 }
 
-/* --- 下部のリンク --- */
-.zsetup-links { display: grid; gap: 10px; }
-
-.zsetup-reset {
-  display: grid;
-  place-items: center;
-  min-height: 50px;
-  padding: 0 14px;
-  border: 1px solid var(--line);
-  border-radius: 13px;
-  background: var(--panel);
-  color: #cfd8e0;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: .06em;
-  text-decoration: none;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.zsetup-reset { color: #d78a92; border-color: #3a2b2e; }
-
 /* 大きな画面(車載機やPC)で開いた場合は中央に寄せて読みやすくする。 */
 @media (min-width: 620px) {
   .zsetup { padding-inline: max(env(safe-area-inset-left, 0px), 24px); }
   .zsetup-head,
   .zsetup-section,
-  .zsetup-actions,
-  .zsetup-links { max-width: 560px; margin-inline: auto; }
+  .zsetup-actions { max-width: 560px; margin-inline: auto; }
 }
 
 /* --- 設定ページ: 保存後の案内 --- */
@@ -6271,7 +6247,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
     linear-gradient(180deg, rgba(57, 204, 212, .1), transparent 46%),
     var(--panel);
 }
-
 
 .zsetup-nav-list { display: grid; gap: 10px; padding-bottom: 14px; }
 
