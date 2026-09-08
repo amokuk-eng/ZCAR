@@ -6210,7 +6210,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   color: #55e0c8;
 }
 
-.zsetup-pairing { margin-bottom: 16px; }
 /* ナビ目的地ボタンに、設定した名前を番号の下に小さく出す。 */
 .map-shortcuts button em {
   max-width: 100%;
