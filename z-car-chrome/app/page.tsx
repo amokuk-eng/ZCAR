@@ -4,10 +4,12 @@ import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react
 import { useObd2, type ObdConnectionStatus } from "./hooks/use-obd2";
 import {
   buildSyncHandoffUrl,
+  CAR_DEVICE_KEY,
   defaults,
   fetchSharedSettings,
   generateSyncKey,
   MIN_SYNC_KEY_LENGTH,
+  PHONE_LONG_EDGE_MAX,
   sanitizeSyncedSettings,
   pickSyncedFields,
   PLAY_COMMAND_MAX_AGE_MS,
@@ -695,6 +697,17 @@ export default function Home() {
     updateClocks();
     setIsOnline(navigator.onLine);
     setReady(true);
+    // 大きい画面でダッシュボードが開けた端末は、車載機として覚えておく。
+    // ブラウザの表示領域が変わっても、次からは設定ページへ送られない。
+    if (
+      Math.max(window.innerWidth, window.innerHeight) >= PHONE_LONG_EDGE_MAX
+    ) {
+      try {
+        localStorage.setItem(CAR_DEVICE_KEY, "car");
+      } catch {
+        // 保存できない設定でも動作に支障はない。
+      }
+    }
     const timer = window.setInterval(updateClocks, 1000);
     const updateOnlineStatus = () => setIsOnline(navigator.onLine);
     window.addEventListener("online", updateOnlineStatus);

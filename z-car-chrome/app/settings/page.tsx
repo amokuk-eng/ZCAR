@@ -12,6 +12,7 @@ import {
   MAX_PLAYLIST_LABEL,
   METER_THEMES,
   MIN_SYNC_KEY_LENGTH,
+  PHONE_LONG_EDGE_MAX,
   pushSharedSettings,
   readSettings,
   readSyncKeyFromHash,
@@ -26,6 +27,8 @@ import {
 } from "../settings-store";
 
 type SyncState = "idle" | "sending" | "done" | "error";
+
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 /** 日本時間での今日 (YYYY-MM-DD)。 */
 const todayKey = () =>
@@ -62,6 +65,14 @@ export default function PhoneSettingsPage() {
   >(null);
   const [fuelDraft, setFuelDraft] = useState(emptyFuelDraft);
   const [fuelSaved, setFuelSaved] = useState(false);
+  // 車載機のような大きい画面から来たかどうか(描画後に測る)。
+  const [wideScreen, setWideScreen] = useState(false);
+
+  useEffect(() => {
+    setWideScreen(
+      Math.max(window.innerWidth, window.innerHeight) >= PHONE_LONG_EDGE_MAX,
+    );
+  }, []);
 
   useEffect(() => {
     let stored = readSettings();
@@ -635,6 +646,13 @@ export default function PhoneSettingsPage() {
                   : ""}
         </p>
       </div>
+      ) : null}
+
+      {/* 車載機がまちがってこの画面に来たときの戻り道。スマホには出さない。 */}
+      {wideScreen ? (
+        <a className="zsetup-car-link" href={`${basePath}/?app=1`}>
+          この端末を車として使う（車の画面を開く）
+        </a>
       ) : null}
 
     </main>
