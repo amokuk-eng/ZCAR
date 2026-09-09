@@ -6464,12 +6464,10 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   font-size: 7px;
   letter-spacing: .11em;
 }
-.home-random-youtube iframe {
-  display: block;
-  width: 100%;
-  height: 100%;
+.home-random-youtube .home-media-slot {
+  /* 実際の映像はこの枠に重ねて出す(実体は #app 直下の .media-player)。 */
   min-height: 0;
-  border: 0;
+  background: #05070a;
 }
 
 /* --- 設定ページ: 満タン法の燃費記録 --- */
@@ -6760,4 +6758,159 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   letter-spacing: .04em;
   text-align: center;
   text-decoration: none;
+}
+
+/* --- TURQUOISE BLUE: 右のレールを上に詰めて、空いた右下に YouTube を置く --- */
+
+/* 右のカードは上から順に詰め、いちばん下だけをメディアに使う。 */
+#app.meter-theme-green.is-fullscreen .green-nav-cluster
+  .green-drive-panel.green-instrument-rail {
+  justify-content: flex-start;
+  padding-top: 16px;
+  padding-bottom: 14px;
+}
+
+/* 縦が足りないときは計器側を縮め、いちばん下のメディアは潰さない。 */
+#app.meter-theme-green.is-fullscreen .green-drive-panel > article { flex-shrink: 1; }
+#app.meter-theme-green.is-fullscreen .green-media-card { flex-shrink: 0; }
+
+/* 余白を詰めて、計器の見た目はそのままに高さだけを取り戻す。 */
+#app.meter-theme-green.is-fullscreen .green-drive-panel .green-range-card {
+  flex-basis: 80px;
+  padding: 6px 12px 6px;
+}
+#app.meter-theme-green.is-fullscreen .green-drive-panel .green-range-card > span strong {
+  font-size: 24px;
+}
+#app.meter-theme-green.is-fullscreen .green-drive-panel .green-average-fuel-card {
+  flex-basis: 62px;
+  padding: 5px 10px 5px;
+}
+#app.meter-theme-green.is-fullscreen .green-drive-panel .green-average-fuel { min-height: 0; }
+#app.meter-theme-green.is-fullscreen .green-drive-panel .green-average-fuel b { font-size: 21px; }
+#app.meter-theme-green.is-fullscreen .green-drive-panel .green-speed-card {
+  flex-basis: 50px;
+  padding: 7px 14px 6px;
+}
+#app.meter-theme-green.is-fullscreen .green-drive-panel .green-obd-card {
+  flex-basis: 70px;
+  padding: 6px 12px 6px;
+}
+#app.meter-theme-green.is-fullscreen .green-drive-panel .green-obd-card strong { font-size: 25px; }
+#app.meter-theme-green.is-fullscreen .green-drive-panel .green-obd-card p { margin-top: 1px; }
+#app.meter-theme-green.is-fullscreen .green-drive-panel .green-obd-card > span { margin-top: 2px; }
+
+/* メディアカード本体。いちばん下に貼り付ける。 */
+#app.meter-theme-green.is-fullscreen .green-media-card {
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding: 5px 6px 6px;
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-card header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 4px;
+  padding: 0 2px;
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-card header small {
+  color: #6f9475;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 6px;
+  font-weight: 900;
+  letter-spacing: .22em;
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-card header b {
+  overflow: hidden;
+  max-width: 118px;
+  color: #cdffd4;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-screen {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid rgba(106, 204, 118, .22);
+  border-radius: 8px;
+  background: #000;
+}
+
+
+
+/* 縦が狭い画面(ブラウザのアドレスバーで削られたときなど)では、
+   補足の一行を省いて計器を薄くし、映像も小さめにして全部を収める。 */
+@media (max-height: 520px) {
+  #app.meter-theme-green.is-fullscreen .green-nav-cluster
+    .green-drive-panel.green-instrument-rail {
+    padding-top: 10px;
+    padding-bottom: 8px;
+  }
+  /* 行の高さを詰める(文字の上下に入る余白が、この高さでは無駄になるため)。 */
+  #app.meter-theme-green.is-fullscreen .green-drive-panel > article { line-height: 1.15; }
+  #app.meter-theme-green.is-fullscreen .green-drive-panel .green-range-card {
+    flex-basis: 48px;
+    padding: 3px 10px;
+  }
+  #app.meter-theme-green.is-fullscreen .green-drive-panel .green-range-card > span strong { font-size: 20px; }
+  #app.meter-theme-green.is-fullscreen .green-drive-panel .green-range-card > small:last-of-type { display: none; }
+  #app.meter-theme-green.is-fullscreen .green-drive-panel .green-average-fuel-card {
+    flex-basis: 30px;
+    padding: 3px 9px;
+  }
+  #app.meter-theme-green.is-fullscreen .green-drive-panel .green-average-fuel b { font-size: 18px; }
+  #app.meter-theme-green.is-fullscreen .green-drive-panel .green-average-fuel i { display: none; }
+  #app.meter-theme-green.is-fullscreen .green-drive-panel .green-speed-card {
+    flex-basis: 36px;
+    padding: 4px 12px;
+  }
+  #app.meter-theme-green.is-fullscreen .green-drive-panel .green-obd-card {
+    flex-basis: 44px;
+    padding: 3px 10px;
+  }
+  #app.meter-theme-green.is-fullscreen .green-drive-panel .green-obd-card strong { font-size: 20px; }
+  #app.meter-theme-green.is-fullscreen .green-drive-panel .green-obd-card > span { display: none; }
+  #app.meter-theme-green.is-fullscreen .green-media-card { padding: 3px 5px 4px; }
+  #app.meter-theme-green.is-fullscreen .green-media-card header { margin-bottom: 3px; }
+  #app.meter-theme-green.is-fullscreen .green-media-screen { max-height: 66px; }
+}
+
+/* ホームとメーターで共通のYouTubeプレイヤー。枠の位置に合わせて置く。
+   ターコイズのメーターはクラスター全体に色味の変換がかかっているので、
+   その外側に出して映像の色をそのまま見せる。 */
+.media-player {
+  position: fixed;
+  z-index: 40;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #000;
+  pointer-events: auto;
+}
+
+.media-player iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* 置き場所が無い画面(オレンジのメーターなど)でも、消さずに隠すだけにする。
+   取り外すと再生まで止まってしまうため。 */
+.media-player.is-hidden {
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }

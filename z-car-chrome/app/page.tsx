@@ -574,6 +574,17 @@ export default function Home() {
   >("idle");
   const homeDialog = useRef<HTMLDialogElement>(null);
   const settingsDialog = useRef<HTMLDialogElement>(null);
+  // YouTubeプレイヤーの置き場所(ホーム / メーターの右下)。実体は画面の外側に
+  // 1つだけ置き、この枠に重ねる。画面を切り替えても作り直されないので音が続く。
+  const homeMediaSlotRef = useRef<HTMLDivElement>(null);
+  const meterMediaSlotRef = useRef<HTMLDivElement>(null);
+  const [mediaSlot, setMediaSlot] = useState<HTMLDivElement | null>(null);
+  const [mediaRect, setMediaRect] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
   // スマホと接続するためのQR(設定ダイアログの中で表示する)。
   const [pairingQr, setPairingQr] = useState<string | null>(null);
   const [pairingError, setPairingError] = useState(false);
@@ -836,16 +847,12 @@ export default function Home() {
       .catch(() => undefined);
   }, [syncEnabled, syncKey, settings]);
 
+  // ジャンルは起動時に一度だけ選ぶ。画面を行き来するたびに選び直すと、
+  // 同じプレイヤーを使い回せず、鳴っている音楽が止まってしまうため。
   useEffect(() => {
-    if (!ready || showMeter || showFuel) return;
-    setHomePlaylistIndex((current) => {
-      let next = Math.floor(Math.random() * playlistCount);
-      if (playlistCount > 1 && next === current) {
-        next = (next + 1) % playlistCount;
-      }
-      return next;
-    });
-  }, [ready, showMeter, showFuel, playlistCount]);
+    if (!ready) return;
+    setHomePlaylistIndex(Math.floor(Math.random() * playlistCount));
+  }, [ready, playlistCount]);
 
   // 給油記録は設定と一緒に保存されるが、旧キーにも書いておく(古い版に戻しても読める)。
   useEffect(() => {
@@ -1507,6 +1514,47 @@ export default function Home() {
     };
   });
 
+  // ホームの枠はメーター表示中もDOMに残る(CSSで隠しているだけ)ので、
+  // いま見えている画面に合わせて、どちらの枠に重ねるかを選ぶ。
+  useEffect(() => {
+    setMediaSlot(
+      showMeter ? meterMediaSlotRef.current : homeMediaSlotRef.current,
+    );
+  }, [hasStarted, showMeter, showFuel, ready, settings.meterTheme, carPlaying]);
+
+  useEffect(() => {
+    if (!mediaSlot) {
+      setMediaRect(null);
+      return;
+    }
+    const update = () => {
+      const box = mediaSlot.getBoundingClientRect();
+      setMediaRect((current) =>
+        current &&
+        current.left === box.left &&
+        current.top === box.top &&
+        current.width === box.width &&
+        current.height === box.height
+          ? current
+          : {
+              left: box.left,
+              top: box.top,
+              width: box.width,
+              height: box.height,
+            },
+      );
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(mediaSlot);
+    observer.observe(document.documentElement);
+    window.addEventListener("resize", update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [mediaSlot]);
+
   const openSettings = () => {
     setDraft(settings);
     setPairingQr(null);
@@ -2132,6 +2180,20 @@ export default function Home() {
                   <p><strong>{obdData.voltage?.toFixed(1) ?? "—"}</strong><em>V</em></p>
                   <span>BATTERY SYSTEM</span>
                 </article>
+                {/* 右下のYouTube。スマホから指定された曲を鳴らしている間は、
+                    右下に出るプレイヤーと重なるので出さない(音も二重になる)。 */}
+                {carPlaying ? null : (
+                  <article
+                    className="green-media-card"
+                    aria-label={`${homePlaylist.label} プレイリスト YouTubeプレイヤー`}
+                  >
+                    <header>
+                      <small>MEDIA</small>
+                      <b>{homePlaylist.label}</b>
+                    </header>
+                    <div className="green-media-screen" ref={meterMediaSlotRef} />
+                  </article>
+                )}
               </aside>
               </section>
             )}
@@ -2378,14 +2440,7 @@ export default function Home() {
                 <span><i aria-hidden="true" />{homePlaylist.label}</span>
                 <b>RANDOM {String(homePlaylistIndex + 1).padStart(2, "0")}</b>
               </header>
-              <iframe
-                key={homePlaylist.playlistId}
-                src={`https://www.youtube.com/embed/videoseries?list=${homePlaylist.playlistId}&playsinline=1&rel=0&loop=1`}
-                title={`${homePlaylist.label} プレイリスト`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                referrerPolicy="strict-origin-when-cross-origin"
-              />
+              <div className="home-media-slot" ref={homeMediaSlotRef} />
             </article>
             <div className="shift-monitor" aria-live="polite">
               <header>
@@ -2422,6 +2477,36 @@ export default function Home() {
         <footer>
           安全運転を最優先してください
         </footer>
+
+        {/* ホームとメーターで共通のプレイヤー。枠(スロット)に重ねて出す。
+            画面を切り替えても作り直されないので、音が途切れない。
+            ターコイズのメーターはクラスター全体に色味の変換がかかっているため、
+            その外側に置いて映像を本来の色のまま見せる。 */}
+        {homePlaylist && !carPlaying ? (
+          <aside
+            className={`media-player${mediaRect ? "" : " is-hidden"}`}
+            aria-label={`${homePlaylist.label} プレイリスト YouTubeプレイヤー`}
+            style={
+              mediaRect
+                ? {
+                    left: mediaRect.left,
+                    top: mediaRect.top,
+                    width: mediaRect.width,
+                    height: mediaRect.height,
+                  }
+                : undefined
+            }
+          >
+            <iframe
+              key={homePlaylist.playlistId}
+              src={`https://www.youtube.com/embed/videoseries?list=${homePlaylist.playlistId}&playsinline=1&rel=0&loop=1`}
+              title={`${homePlaylist.label} プレイリスト`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              referrerPolicy="strict-origin-when-cross-origin"
+            />
+          </aside>
+        ) : null}
 
         {/* メーター表示中でも消えないよう、画面の切り替えとは別のところに置く。
             ここで消すと iframe が作り直されて音が止まってしまう。 */}
