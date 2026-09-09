@@ -6879,8 +6879,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   }
   #app.meter-theme-green.is-fullscreen .green-drive-panel .green-obd-card strong { font-size: 20px; }
   #app.meter-theme-green.is-fullscreen .green-drive-panel .green-obd-card > span { display: none; }
-  #app.meter-theme-green.is-fullscreen .green-media-card { padding: 3px 5px 4px; }
-  #app.meter-theme-green.is-fullscreen .green-media-card header { margin-bottom: 3px; }
+  #app.meter-theme-green.is-fullscreen .green-drive-panel .green-obd-card { flex-basis: 46px; }
 }
 
 /* ホームとメーターで共通のYouTubeプレイヤー。枠の位置に合わせて置く。
@@ -6916,16 +6915,114 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 /* --- ターコイズメーター右下: シンプルな音楽プレイヤー --- */
 #app.meter-theme-green.is-fullscreen .green-media-title {
   overflow: hidden;
-  margin: 0 0 6px;
+  margin: 0 0 5px;
   padding: 0 2px;
   color: #dbffe0;
   font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: .04em;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 再生の状態と、いまの位置 / 曲の長さ。 */
+#app.meter-theme-green.is-fullscreen .green-media-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .16em;
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-status span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #6f9475;
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-status span i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #2c5c33;
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-status span.is-playing {
+  color: #9cffa9;
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-status span.is-playing i {
+  background: #6cff80;
+  box-shadow: 0 0 8px rgba(108, 255, 128, .75);
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-status em {
+  color: #b6ffc1;
+  font-size: 8px;
+  font-style: normal;
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-progress {
+  overflow: hidden;
+  height: 3px;
+  margin: 4px 2px 7px;
+  border-radius: 999px;
+  background: rgba(106, 204, 118, .18);
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2c8f3c, #7dff92);
+  transition: width .3s linear;
+}
+
+/* プレイリストの切り替え。横に並べて、多いときは横スクロールする。 */
+#app.meter-theme-green.is-fullscreen .green-media-lists {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  margin-top: 7px;
+  padding: 0 2px 2px;
+  scrollbar-width: none;
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-lists::-webkit-scrollbar {
+  display: none;
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-lists button {
+  flex: 0 0 auto;
+  max-width: 96px;
+  overflow: hidden;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid rgba(106, 204, 118, .3);
+  border-radius: 999px;
+  background: rgba(9, 22, 12, .8);
+  color: #8fc79a;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-lists button.is-active {
+  border-color: rgba(122, 255, 138, .7);
+  background: linear-gradient(180deg, rgba(38, 116, 50, .8), rgba(8, 26, 12, .9));
+  color: #eaffee;
 }
 
 #app.meter-theme-green.is-fullscreen .green-media-controls {
@@ -7140,4 +7237,30 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 .zsetup-track.is-in-list .zsetup-track-toggle {
   border-color: #2f7f84;
   background: rgba(47, 127, 132, .22);
+}
+
+/* 縦が狭い画面では、進み具合のバーを省いてボタンを少し小さくする。
+   (基本のスタイルより後ろに置く必要があるので、ここにまとめている) */
+@media (max-height: 520px) {
+  #app.meter-theme-green.is-fullscreen .green-media-card { padding: 3px 5px 4px; }
+  #app.meter-theme-green.is-fullscreen .green-media-card header { margin-bottom: 2px; }
+  #app.meter-theme-green.is-fullscreen .green-media-title {
+    margin-bottom: 3px;
+    font-size: 11px;
+  }
+  #app.meter-theme-green.is-fullscreen .green-media-progress { display: none; }
+  #app.meter-theme-green.is-fullscreen .green-media-controls { gap: 5px; }
+  #app.meter-theme-green.is-fullscreen .green-media-controls button { min-height: 32px; }
+  #app.meter-theme-green.is-fullscreen .green-media-controls button.is-primary { min-height: 36px; }
+  #app.meter-theme-green.is-fullscreen .green-media-controls svg { width: 15px; height: 15px; }
+  #app.meter-theme-green.is-fullscreen .green-media-controls button.is-primary svg {
+    width: 17px;
+    height: 17px;
+  }
+  #app.meter-theme-green.is-fullscreen .green-media-lists { margin-top: 5px; }
+  #app.meter-theme-green.is-fullscreen .green-media-lists button {
+    min-height: 22px;
+    padding: 0 8px;
+    font-size: 8px;
+  }
 }

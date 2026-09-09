@@ -8,6 +8,7 @@ import {
   defaults,
   fetchMusicTracks,
   fetchSharedSettings,
+  saveMusicPlaylists,
   generateSyncKey,
   MIN_SYNC_KEY_LENGTH,
   musicTrackUrl,
@@ -202,6 +203,13 @@ const loadGoogleMaps = (key: string) => {
   }
   return w.__gmapsPromise;
 };
+/** 再生位置の表示(秒 -> 0:00)。 */
+const formatMusicTime = (seconds: number) => {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const total = Math.floor(seconds);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+};
+
 /** 音源置き場の一覧を見に行く間隔(設定より頻度は低くてよい)。 */
 const MUSIC_POLL_MS = 120000;
 
@@ -587,6 +595,8 @@ export default function Home() {
   const [activePlaylistId, setActivePlaylistId] = useState("");
   const [trackIndex, setTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [audioTime, setAudioTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
   // 音楽を鳴らし始めたら、ホームのYouTubeは作り直して止める(音の二重を防ぐ)。
   const [youtubeReloadKey, setYoutubeReloadKey] = useState(0);
@@ -1613,6 +1623,15 @@ export default function Home() {
     }, 0);
   };
 
+  /** 車の画面からプレイリストを切り替える(スマホにも反映される)。 */
+  const selectPlaylist = (id: string) => {
+    if (id === activePlaylistId) return;
+    setActivePlaylistId(id);
+    setTrackIndex(0);
+    if (!syncEnabled) return;
+    void saveMusicPlaylists(syncKey, musicPlaylists, id).catch(() => undefined);
+  };
+
   const toggleMusic = () => {
     const audio = audioRef.current;
     if (!audio || !currentTrack) return;
@@ -2305,6 +2324,32 @@ export default function Home() {
                         ? currentTrack.title
                         : "スマホの設定「音源フォルダ」に曲を入れてください"}
                     </p>
+                    <div className="green-media-status">
+                      <span className={isPlaying ? "is-playing" : undefined}>
+                        <i aria-hidden="true" />
+                        {currentTrack
+                          ? isPlaying
+                            ? "PLAYING"
+                            : "PAUSED"
+                          : "STOPPED"}
+                      </span>
+                      <em>
+                        {formatMusicTime(audioTime)} / {formatMusicTime(audioDuration)}
+                      </em>
+                    </div>
+                    <div
+                      className="green-media-progress"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={Math.round(audioDuration)}
+                      aria-valuenow={Math.round(audioTime)}
+                    >
+                      <i
+                        style={{
+                          width: `${audioDuration > 0 ? Math.min(100, (audioTime / audioDuration) * 100) : 0}%`,
+                        }}
+                      />
+                    </div>
                     <div className="green-media-controls">
                       <button
                         type="button"
@@ -2344,6 +2389,27 @@ export default function Home() {
                         </svg>
                       </button>
                     </div>
+                    {musicPlaylists.length ? (
+                      <div className="green-media-lists" aria-label="プレイリスト">
+                        <button
+                          type="button"
+                          className={activePlaylistId === "" ? "is-active" : undefined}
+                          onClick={() => selectPlaylist("")}
+                        >
+                          すべて
+                        </button>
+                        {musicPlaylists.map((list) => (
+                          <button
+                            key={list.id}
+                            type="button"
+                            className={activePlaylistId === list.id ? "is-active" : undefined}
+                            onClick={() => selectPlaylist(list.id)}
+                          >
+                            {list.name}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                   </article>
                 )}
               </aside>
@@ -2638,6 +2704,12 @@ export default function Home() {
           onPause={() => setIsPlaying(false)}
           onEnded={() => playTrack(trackIndex + 1)}
           onError={() => setIsPlaying(false)}
+          onTimeUpdate={(event) => setAudioTime(event.currentTarget.currentTime)}
+          onLoadedMetadata={(event) => {
+            const length = event.currentTarget.duration;
+            setAudioDuration(Number.isFinite(length) ? length : 0);
+            setAudioTime(0);
+          }}
         />
 
         {/* ホームとメーターで共通のプレイヤー。枠(スロット)に重ねて出す。
