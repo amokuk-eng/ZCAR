@@ -6846,16 +6846,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   white-space: nowrap;
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-screen {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  border: 1px solid rgba(106, 204, 118, .22);
-  border-radius: 8px;
-  background: #000;
-}
-
 
 
 /* 縦が狭い画面(ブラウザのアドレスバーで削られたときなど)では、
@@ -6891,7 +6881,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   #app.meter-theme-green.is-fullscreen .green-drive-panel .green-obd-card > span { display: none; }
   #app.meter-theme-green.is-fullscreen .green-media-card { padding: 3px 5px 4px; }
   #app.meter-theme-green.is-fullscreen .green-media-card header { margin-bottom: 3px; }
-  #app.meter-theme-green.is-fullscreen .green-media-screen { max-height: 78px; }
 }
 
 /* ホームとメーターで共通のYouTubeプレイヤー。枠の位置に合わせて置く。
@@ -6922,4 +6911,171 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   height: 1px;
   opacity: 0;
   pointer-events: none;
+}
+
+/* --- ターコイズメーター右下: シンプルな音楽プレイヤー --- */
+#app.meter-theme-green.is-fullscreen .green-media-title {
+  overflow: hidden;
+  margin: 0 0 6px;
+  padding: 0 2px;
+  color: #dbffe0;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-controls {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr 1fr;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px 2px;
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-controls button {
+  display: grid;
+  place-items: center;
+  min-height: 40px;
+  padding: 0;
+  border: 1px solid rgba(106, 204, 118, .34);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(23, 56, 28, .7), rgba(4, 10, 5, .9));
+  color: #b6ffc1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-controls button.is-primary {
+  min-height: 46px;
+  border-color: rgba(122, 255, 138, .6);
+  background: linear-gradient(180deg, rgba(38, 116, 50, .78), rgba(8, 26, 12, .92));
+  color: #eaffee;
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-controls button:disabled {
+  opacity: .35;
+  cursor: default;
+}
+
+#app.meter-theme-green.is-fullscreen .green-media-controls svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ▶ と ⏸ は塗りのほうが見やすい。 */
+#app.meter-theme-green.is-fullscreen .green-media-controls button.is-primary svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 2.4;
+}
+
+/* 車の設定ダイアログ: 端末の曲を選ぶボタン。 */
+.car-music-pick {
+  display: block;
+  margin: 10px 0 0;
+}
+
+.car-music-pick input { display: none; }
+
+.car-music-pick span {
+  display: block;
+  min-height: 44px;
+  padding: 13px 12px;
+  border: 1px solid #2f7f84;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #12262a, #0a1518);
+  color: #6fe3ea;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-align: center;
+  cursor: pointer;
+}
+
+/* --- スマホ設定: 音源フォルダ --- */
+.zsetup-upload { display: block; margin-bottom: 10px; }
+.zsetup-upload input { display: none; }
+
+.zsetup-upload span {
+  display: block;
+  min-height: 46px;
+  padding: 14px 12px;
+  border: 1px solid #2f7f84;
+  border-radius: 12px;
+  background: rgba(18, 38, 42, .7);
+  color: #6fe3ea;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-align: center;
+  cursor: pointer;
+}
+
+.zsetup-music-state {
+  margin: 0 0 10px;
+  min-height: 16px;
+  color: #8fb4bb;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.zsetup-tracks { display: grid; gap: 8px; margin-bottom: 12px; }
+
+.zsetup-tracks-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.zsetup-track {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-soft);
+}
+
+.zsetup-track > b {
+  color: #55e0c8;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+}
+
+.zsetup-track > span { min-width: 0; display: grid; gap: 2px; }
+
+.zsetup-track strong {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zsetup-track small { color: var(--muted); font-size: 11px; }
+
+.zsetup-track button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: transparent;
+  color: #e0a3aa;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
 }

@@ -6,9 +6,11 @@ import {
   buildSyncHandoffUrl,
   CAR_DEVICE_KEY,
   defaults,
+  fetchMusicTracks,
   fetchSharedSettings,
   generateSyncKey,
   MIN_SYNC_KEY_LENGTH,
+  musicTrackUrl,
   PHONE_LONG_EDGE_MAX,
   sanitizeSyncedSettings,
   pickSyncedFields,
@@ -20,6 +22,7 @@ import {
   readSettings,
   SETTINGS_STORAGE_KEY,
   writeSettings,
+  type MusicTrack,
   type Settings,
 } from "./settings-store";
 
@@ -198,6 +201,9 @@ const loadGoogleMaps = (key: string) => {
   }
   return w.__gmapsPromise;
 };
+/** 音源置き場の一覧を見に行く間隔(設定より頻度は低くてよい)。 */
+const MUSIC_POLL_MS = 120000;
+
 // 他の端末での設定変更を取りに行く間隔。
 const SYNC_POLL_MS = 30000;
 const FUEL_LOG_STORAGE_KEY = "zcar-fuel-log-v1";
@@ -574,10 +580,19 @@ export default function Home() {
   >("idle");
   const homeDialog = useRef<HTMLDialogElement>(null);
   const settingsDialog = useRef<HTMLDialogElement>(null);
+  // 音源置き場の曲(スマホから預けたもの)と、車で直接選んだ曲(USBなど)。
+  const [serverTracks, setServerTracks] = useState<MusicTrack[]>([]);
+  const [localTracks, setLocalTracks] = useState<
+    Array<{ id: string; title: string; url: string }>
+  >([]);
+  const [trackIndex, setTrackIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  // 音楽を鳴らし始めたら、ホームのYouTubeは作り直して止める(音の二重を防ぐ)。
+  const [youtubeReloadKey, setYoutubeReloadKey] = useState(0);
   // YouTubeプレイヤーの置き場所(ホーム / メーターの右下)。実体は画面の外側に
   // 1つだけ置き、この枠に重ねる。画面を切り替えても作り直されないので音が続く。
   const homeMediaSlotRef = useRef<HTMLDivElement>(null);
-  const meterMediaSlotRef = useRef<HTMLDivElement>(null);
   const [mediaSlot, setMediaSlot] = useState<HTMLDivElement | null>(null);
   const [mediaRect, setMediaRect] = useState<{
     left: number;
@@ -1514,13 +1529,104 @@ export default function Home() {
     };
   });
 
-  // ホームの枠はメーター表示中もDOMに残る(CSSで隠しているだけ)ので、
-  // いま見えている画面に合わせて、どちらの枠に重ねるかを選ぶ。
+  // --- 音楽プレイヤー ---
+  // 鳴らす曲: 車で直接選んだ曲があればそれを使い、無ければ置き場の曲を使う。
+  const playlistTracks = localTracks.length
+    ? localTracks
+    : serverTracks.map((track) => ({
+        id: track.id,
+        title: track.title,
+        url: musicTrackUrl(track),
+      }));
+  const currentTrack = playlistTracks[trackIndex] ?? null;
+
+  // 置き場の曲を読みに行く(合言葉があるときだけ)。
   useEffect(() => {
-    setMediaSlot(
-      showMeter ? meterMediaSlotRef.current : homeMediaSlotRef.current,
+    if (!syncEnabled) return;
+    let active = true;
+    const load = () => {
+      fetchMusicTracks(syncKey)
+        .then((result) => {
+          if (!active || !result.ok) return;
+          setServerTracks((current) => {
+            const same =
+              current.length === result.tracks.length &&
+              current.every((track, index) => track.id === result.tracks[index]?.id);
+            return same ? current : result.tracks;
+          });
+        })
+        .catch(() => {
+          // 圏外などは次の周期に任せる。
+        });
+    };
+    load();
+    const timer = window.setInterval(load, MUSIC_POLL_MS);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [syncEnabled, syncKey]);
+
+  // スマホから再生を頼まれたら、こちらの音楽は止める(音が二重にならないように)。
+  useEffect(() => {
+    if (carPlaying) audioRef.current?.pause();
+  }, [carPlaying]);
+
+  // 曲が減ったときに、選択位置が範囲の外へ出ないようにする。
+  useEffect(() => {
+    setTrackIndex((current) =>
+      playlistTracks.length === 0
+        ? 0
+        : Math.min(current, playlistTracks.length - 1),
     );
-  }, [hasStarted, showMeter, showFuel, ready, settings.meterTheme, carPlaying]);
+  }, [playlistTracks.length]);
+
+  const playTrack = (index: number, autoPlay = true) => {
+    if (!playlistTracks.length) return;
+    const next = (index + playlistTracks.length) % playlistTracks.length;
+    setTrackIndex(next);
+    if (!autoPlay) return;
+    setYoutubeReloadKey((key) => key + 1);
+    // 曲を差し替えた直後は src がまだ古いので、描画を待ってから鳴らす。
+    window.setTimeout(() => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      void audio.play().catch(() => setIsPlaying(false));
+    }, 0);
+  };
+
+  const toggleMusic = () => {
+    const audio = audioRef.current;
+    if (!audio || !currentTrack) return;
+    if (audio.paused) {
+      setYoutubeReloadKey((key) => key + 1);
+      void audio.play().catch(() => setIsPlaying(false));
+    } else {
+      audio.pause();
+    }
+  };
+
+  /** USBなど、この端末の中から音楽ファイルを直接選ぶ。 */
+  const pickLocalTracks = (fileList: FileList | null) => {
+    const files = fileList ? Array.from(fileList) : [];
+    if (!files.length) return;
+    localTracks.forEach((track) => URL.revokeObjectURL(track.url));
+    setLocalTracks(
+      files.map((file, index) => ({
+        id: `local-${index}-${file.name}`,
+        title: file.name.replace(/\.[^.]+$/, ""),
+        url: URL.createObjectURL(file),
+      })),
+    );
+    setTrackIndex(0);
+    setIsPlaying(false);
+  };
+
+  // ホームの枠はメーター表示中もDOMに残る(CSSで隠しているだけ)なので、
+  // ホーム以外を見ているときは重ねない(消さずに隠すだけにする)。
+  useEffect(() => {
+    setMediaSlot(showMeter ? null : homeMediaSlotRef.current);
+  }, [hasStarted, showMeter, showFuel, ready, carPlaying]);
 
   useEffect(() => {
     if (!mediaSlot) {
@@ -2183,15 +2289,59 @@ export default function Home() {
                 {/* 右下のYouTube。スマホから指定された曲を鳴らしている間は、
                     右下に出るプレイヤーと重なるので出さない(音も二重になる)。 */}
                 {carPlaying ? null : (
-                  <article
-                    className="green-media-card"
-                    aria-label={`${homePlaylist.label} プレイリスト YouTubeプレイヤー`}
-                  >
+                  <article className="green-media-card" aria-label="音楽プレイヤー">
                     <header>
-                      <small>MEDIA</small>
-                      <b>{homePlaylist.label}</b>
+                      <small>MUSIC</small>
+                      <b>
+                        {playlistTracks.length
+                          ? `${trackIndex + 1} / ${playlistTracks.length}`
+                          : "NO TRACK"}
+                      </b>
                     </header>
-                    <div className="green-media-screen" ref={meterMediaSlotRef} />
+                    <p className="green-media-title">
+                      {currentTrack
+                        ? currentTrack.title
+                        : "スマホの設定「音源フォルダ」に曲を入れてください"}
+                    </p>
+                    <div className="green-media-controls">
+                      <button
+                        type="button"
+                        onClick={() => playTrack(trackIndex - 1)}
+                        disabled={!currentTrack}
+                        aria-label="前の曲"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M7 5v14M20 5 9 12l11 7z" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        className="is-primary"
+                        onClick={toggleMusic}
+                        disabled={!currentTrack}
+                        aria-label={isPlaying ? "一時停止" : "再生"}
+                      >
+                        {isPlaying ? (
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M8 5v14M16 5v14" />
+                          </svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M7 4.5 20 12 7 19.5z" />
+                          </svg>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => playTrack(trackIndex + 1)}
+                        disabled={!currentTrack}
+                        aria-label="次の曲"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M17 5v14M4 5l11 7-11 7z" />
+                        </svg>
+                      </button>
+                    </div>
                   </article>
                 )}
               </aside>
@@ -2478,6 +2628,16 @@ export default function Home() {
           安全運転を最優先してください
         </footer>
 
+        {/* 音の実体。画面を切り替えても止まらないよう、ここに1つだけ置く。 */}
+        <audio
+          ref={audioRef}
+          src={currentTrack?.url}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onEnded={() => playTrack(trackIndex + 1)}
+          onError={() => setIsPlaying(false)}
+        />
+
         {/* ホームとメーターで共通のプレイヤー。枠(スロット)に重ねて出す。
             画面を切り替えても作り直されないので、音が途切れない。
             ターコイズのメーターはクラスター全体に色味の変換がかかっているため、
@@ -2498,7 +2658,7 @@ export default function Home() {
             }
           >
             <iframe
-              key={homePlaylist.playlistId}
+              key={`${homePlaylist.playlistId}-${youtubeReloadKey}`}
               src={`https://www.youtube.com/embed/videoseries?list=${homePlaylist.playlistId}&playsinline=1&rel=0&loop=1&controls=0&iv_load_policy=3&modestbranding=1&fs=0&disablekb=1`}
               title={`${homePlaylist.label} プレイリスト`}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -2670,6 +2830,32 @@ export default function Home() {
                 QRを作れませんでした。もう一度押してください。
               </p>
             ) : null}
+          </section>
+
+          <section className="pairing-block">
+            <h3>音楽</h3>
+            <p className="settings-hint">
+              スマホの設定「音源フォルダ」に入れた曲が、メーター右下の
+              プレイヤーに並びます（いま {serverTracks.length} 曲）。
+            </p>
+            <label className="car-music-pick">
+              <input
+                type="file"
+                multiple
+                accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac"
+                onChange={(event) => {
+                  pickLocalTracks(event.target.files);
+                  event.target.value = "";
+                  settingsDialog.current?.close();
+                }}
+              />
+              <span>この端末（USBなど）の曲を選ぶ</span>
+            </label>
+            <p className="settings-hint">
+              {localTracks.length
+                ? `USBなどから ${localTracks.length} 曲を選んでいます（電源を切ると選び直しです）。`
+                : "USBメモリの中の曲をそのまま鳴らせます。アップロードは不要ですが、選び直しは電源を入れるたびに必要です。"}
+            </p>
           </section>
 
           <label>

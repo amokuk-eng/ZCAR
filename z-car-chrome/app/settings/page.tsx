@@ -11,9 +11,13 @@ import {
   MAX_PLAYLISTS,
   MAX_PLAYLIST_LABEL,
   METER_THEMES,
+  deleteMusicTrack,
+  fetchMusicTracks,
   MIN_SYNC_KEY_LENGTH,
   PHONE_LONG_EDGE_MAX,
   pushSharedSettings,
+  uploadMusicFiles,
+  type MusicTrack,
   readSettings,
   readSyncKeyFromHash,
   sanitizeSyncedSettings,
@@ -67,6 +71,12 @@ export default function PhoneSettingsPage() {
   const [fuelSaved, setFuelSaved] = useState(false);
   // 車載機のような大きい画面から来たかどうか(描画後に測る)。
   const [wideScreen, setWideScreen] = useState(false);
+  // 音源置き場(サーバー)の中身。
+  const [tracks, setTracks] = useState<MusicTrack[]>([]);
+  const [tracksBytes, setTracksBytes] = useState(0);
+  const [musicState, setMusicState] = useState<
+    { kind: "idle" | "loading" | "uploading" | "error"; note?: string }
+  >({ kind: "idle" });
 
   useEffect(() => {
     setWideScreen(
@@ -167,6 +177,73 @@ export default function PhoneSettingsPage() {
 
   const syncKey = draft.syncKey.trim();
   const canReachCar = syncKey.length >= MIN_SYNC_KEY_LENGTH;
+
+  // 音源置き場の中身は、カードを開いたときに読みに行く。
+  useEffect(() => {
+    if (openCard !== "files" || !canReachCar) return;
+    let active = true;
+    setMusicState({ kind: "loading" });
+    fetchMusicTracks(syncKey)
+      .then((result) => {
+        if (!active) return;
+        if (!result.ok) {
+          setMusicState({ kind: "error", note: "一覧を取得できませんでした" });
+          return;
+        }
+        setTracks(result.tracks);
+        setTracksBytes(result.totalBytes);
+        setMusicState({ kind: "idle" });
+      })
+      .catch(() => {
+        if (active) setMusicState({ kind: "error", note: "通信できませんでした" });
+      });
+    return () => {
+      active = false;
+    };
+  }, [openCard, canReachCar, syncKey]);
+
+  /** 選んだ音楽ファイルを預ける。 */
+  const uploadFiles = async (fileList: FileList | null) => {
+    const files = fileList ? Array.from(fileList) : [];
+    if (!files.length || !canReachCar) return;
+    setMusicState({ kind: "uploading", note: `${files.length}曲を送っています…` });
+    try {
+      const result = await uploadMusicFiles(syncKey, files);
+      if (!result.ok) {
+        setMusicState({ kind: "error", note: "アップロードできませんでした" });
+        return;
+      }
+      setTracks(result.tracks);
+      setTracksBytes(result.totalBytes);
+      const skipped = result.skipped ?? [];
+      setMusicState({
+        kind: "idle",
+        note: skipped.length
+          ? `${result.saved ?? 0}曲を追加。${skipped.length}曲は追加できませんでした（${skipped[0].reason}）`
+          : `${result.saved ?? 0}曲を追加しました`,
+      });
+    } catch {
+      setMusicState({ kind: "error", note: "通信できませんでした" });
+    }
+  };
+
+  /** 置いてある曲を消す。 */
+  const removeTrack = async (track: MusicTrack) => {
+    if (!canReachCar) return;
+    if (!window.confirm(`「${track.title}」を消します。よろしいですか？`)) return;
+    try {
+      const result = await deleteMusicTrack(syncKey, track.id);
+      if (!result.ok) {
+        setMusicState({ kind: "error", note: "消せませんでした" });
+        return;
+      }
+      setTracks(result.tracks);
+      setTracksBytes(result.totalBytes);
+      setMusicState({ kind: "idle", note: "1曲消しました" });
+    } catch {
+      setMusicState({ kind: "error", note: "通信できませんでした" });
+    }
+  };
 
   /** 車に「これを再生して」と伝える。設定と同じ経路で送る。 */
   const playOnCar = async (entry: Playlist) => {
@@ -623,6 +700,85 @@ export default function PhoneSettingsPage() {
           この端末では再生しません（指示を送るだけです）。
           運転中の操作は危険なので、出発前に選んでおいてください。
         </p>
+          </div>
+        ) : null}
+      </section>
+
+      <section className={`zsetup-section zsetup-card${openCard === "files" ? " is-open" : ""}`}>
+        <button
+          type="button"
+          className="zsetup-card-head"
+          aria-expanded={openCard === "files"}
+          onClick={() => toggleCard("files")}
+        >
+          <span>
+            <b>音源フォルダ</b>
+            <small>車のプレイヤーで鳴らす音楽ファイル</small>
+          </span>
+          <i aria-hidden="true" />
+        </button>
+        {openCard === "files" ? (
+          <div className="zsetup-card-body">
+            {canReachCar ? (
+              <>
+                <label className="zsetup-upload">
+                  <input
+                    type="file"
+                    multiple
+                    accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac"
+                    onChange={(event) => {
+                      void uploadFiles(event.target.files);
+                      event.target.value = "";
+                    }}
+                  />
+                  <span>音楽ファイルを追加</span>
+                </label>
+                <p className="zsetup-music-state" role="status">
+                  {musicState.kind === "loading"
+                    ? "読み込み中…"
+                    : musicState.kind === "uploading"
+                      ? musicState.note
+                      : musicState.kind === "error"
+                        ? musicState.note
+                        : musicState.note ?? ""}
+                </p>
+                <div className="zsetup-tracks">
+                  {tracks.length === 0 ? (
+                    <p className="zsetup-tracks-empty">
+                      まだ1曲も入っていません。
+                    </p>
+                  ) : (
+                    tracks.map((track, index) => (
+                      <div className="zsetup-track" key={track.id}>
+                        <b>{String(index + 1).padStart(2, "0")}</b>
+                        <span>
+                          <strong>{track.title}</strong>
+                          <small>{(track.size / 1048576).toFixed(1)} MB</small>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => void removeTrack(track)}
+                          aria-label={`${track.title} を消す`}
+                        >
+                          消す
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <p className="zsetup-sync-note">
+                  合計 {(tracksBytes / 1048576).toFixed(1)} MB / 曲数 {tracks.length}。
+                  ここに入れた曲が、車のメーター右下のプレイヤーに並びます
+                  （1曲25MBまで・全体で600MBまで）。
+                  車の画面で ▶ を押すと鳴ります。
+                </p>
+              </>
+            ) : (
+              <p className="zsetup-sync-note">
+                先に車と接続してください（車の画面の ⚙ →「スマホと接続」の
+                QRを、iPhoneのカメラで読み取ります）。
+              </p>
+            )}
           </div>
         ) : null}
       </section>
