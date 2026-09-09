@@ -2499,7 +2499,7 @@ export default function Home() {
           >
             <iframe
               key={homePlaylist.playlistId}
-              src={`https://www.youtube.com/embed/videoseries?list=${homePlaylist.playlistId}&playsinline=1&rel=0&loop=1`}
+              src={`https://www.youtube.com/embed/videoseries?list=${homePlaylist.playlistId}&playsinline=1&rel=0&loop=1&controls=0&iv_load_policy=3&modestbranding=1&fs=0&disablekb=1`}
               title={`${homePlaylist.label} プレイリスト`}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
@@ -2518,7 +2518,7 @@ export default function Home() {
             {/* 畳んでいる間も iframe は残す。消すと音まで止まってしまう。 */}
             <iframe
               key={carPlaying.reloadKey}
-              src={`https://www.youtube.com/embed/videoseries?list=${carPlaying.playlistId}&autoplay=1&playsinline=1&rel=0&loop=1`}
+              src={`https://www.youtube.com/embed/videoseries?list=${carPlaying.playlistId}&autoplay=1&playsinline=1&rel=0&loop=1&controls=0&iv_load_policy=3&modestbranding=1&fs=0&disablekb=1`}
               title={`${carPlaying.label || "MUSIC"} プレイリスト`}
               allow="autoplay; encrypted-media; picture-in-picture"
               referrerPolicy="strict-origin-when-cross-origin"

@@ -6770,30 +6770,40 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   padding-bottom: 14px;
 }
 
+/* 右のレールだけ 1.2 倍に広げる(左と中央のゲージはそのまま)。 */
+#app.meter-theme-green.is-fullscreen .green-nav-cluster {
+  --green-rail-left: 196px;
+  grid-template-columns:
+    var(--green-rail-left) minmax(0, 1fr) calc(var(--green-rail-left) * 1.2);
+}
+
+/* 文字の上下に入る余白を詰めて、広くした分の高さを確保する。 */
+#app.meter-theme-green.is-fullscreen .green-drive-panel > article { line-height: 1.15; }
+
 /* 縦が足りないときは計器側を縮め、いちばん下のメディアは潰さない。 */
 #app.meter-theme-green.is-fullscreen .green-drive-panel > article { flex-shrink: 1; }
 #app.meter-theme-green.is-fullscreen .green-media-card { flex-shrink: 0; }
 
 /* 余白を詰めて、計器の見た目はそのままに高さだけを取り戻す。 */
 #app.meter-theme-green.is-fullscreen .green-drive-panel .green-range-card {
-  flex-basis: 80px;
+  flex-basis: 70px;
   padding: 6px 12px 6px;
 }
 #app.meter-theme-green.is-fullscreen .green-drive-panel .green-range-card > span strong {
   font-size: 24px;
 }
 #app.meter-theme-green.is-fullscreen .green-drive-panel .green-average-fuel-card {
-  flex-basis: 62px;
+  flex-basis: 52px;
   padding: 5px 10px 5px;
 }
 #app.meter-theme-green.is-fullscreen .green-drive-panel .green-average-fuel { min-height: 0; }
 #app.meter-theme-green.is-fullscreen .green-drive-panel .green-average-fuel b { font-size: 21px; }
 #app.meter-theme-green.is-fullscreen .green-drive-panel .green-speed-card {
-  flex-basis: 50px;
-  padding: 7px 14px 6px;
+  flex-basis: 42px;
+  padding: 6px 14px 6px;
 }
 #app.meter-theme-green.is-fullscreen .green-drive-panel .green-obd-card {
-  flex-basis: 70px;
+  flex-basis: 62px;
   padding: 6px 12px 6px;
 }
 #app.meter-theme-green.is-fullscreen .green-drive-panel .green-obd-card strong { font-size: 25px; }
@@ -6851,13 +6861,12 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 /* 縦が狭い画面(ブラウザのアドレスバーで削られたときなど)では、
    補足の一行を省いて計器を薄くし、映像も小さめにして全部を収める。 */
 @media (max-height: 520px) {
+  #app.meter-theme-green.is-fullscreen .green-nav-cluster { --green-rail-left: 174px; }
   #app.meter-theme-green.is-fullscreen .green-nav-cluster
     .green-drive-panel.green-instrument-rail {
     padding-top: 10px;
     padding-bottom: 8px;
   }
-  /* 行の高さを詰める(文字の上下に入る余白が、この高さでは無駄になるため)。 */
-  #app.meter-theme-green.is-fullscreen .green-drive-panel > article { line-height: 1.15; }
   #app.meter-theme-green.is-fullscreen .green-drive-panel .green-range-card {
     flex-basis: 48px;
     padding: 3px 10px;
@@ -6882,7 +6891,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   #app.meter-theme-green.is-fullscreen .green-drive-panel .green-obd-card > span { display: none; }
   #app.meter-theme-green.is-fullscreen .green-media-card { padding: 3px 5px 4px; }
   #app.meter-theme-green.is-fullscreen .green-media-card header { margin-bottom: 3px; }
-  #app.meter-theme-green.is-fullscreen .green-media-screen { max-height: 66px; }
+  #app.meter-theme-green.is-fullscreen .green-media-screen { max-height: 78px; }
 }
 
 /* ホームとメーターで共通のYouTubeプレイヤー。枠の位置に合わせて置く。
