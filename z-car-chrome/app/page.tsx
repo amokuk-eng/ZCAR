@@ -206,12 +206,6 @@ const loadGoogleMaps = (key: string) => {
   }
   return w.__gmapsPromise;
 };
-/**
- * ホームのYouTubeを始める位置の幅。プレイリストの先頭から数えて
- * この範囲でランダムに選ぶ(範囲を超えていた場合は先頭から流れる)。
- */
-const HOME_SHUFFLE_RANGE = 25;
-
 /** 再生位置の表示(秒 -> 0:00)。 */
 const formatMusicTime = (seconds: number) => {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -515,9 +509,6 @@ export default function Home() {
   // スマホから送られてきた再生指示で鳴らしているプレイリスト。
   // reloadKey は「音が出ないときのタップ」で作り直すための目印。
   // ホーム画面の待機プレイヤー。設定したプレイリストからランダムに選ぶ。
-  const [homePlaylistIndex, setHomePlaylistIndex] = useState(0);
-  // プレイリストの何曲目から始めるか(毎回ちがう曲になるように)。
-  const [homeStartIndex, setHomeStartIndex] = useState(1);
   const [carPlaying, setCarPlaying] = useState<{
     playlistId: string;
     label: string;
@@ -527,11 +518,6 @@ export default function Home() {
   } | null>(null);
   // 一度反応した指示を覚えておき、同じものを繰り返し再生しないようにする。
   const handledPlayRef = useRef(0);
-
-  const playlists =
-    settings.playlists.length > 0 ? settings.playlists : defaults.playlists;
-  const playlistCount = playlists.length;
-  const homePlaylist = playlists[homePlaylistIndex % playlistCount] ?? playlists[0];
 
   // マップ画面の 1〜5 のナビ目的地。設定ページから編集できる。
   const mapDestinations = settings.mapDestinations;
@@ -616,18 +602,6 @@ export default function Home() {
   // 曲を変えたあと、読み込みが終わってから鳴らすための印。
   const wantPlayRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement>(null);
-  // 音楽を鳴らし始めたら、ホームのYouTubeは作り直して止める(音の二重を防ぐ)。
-  const [youtubeReloadKey, setYoutubeReloadKey] = useState(0);
-  // YouTubeプレイヤーの置き場所(ホーム / メーターの右下)。実体は画面の外側に
-  // 1つだけ置き、この枠に重ねる。画面を切り替えても作り直されないので音が続く。
-  const homeMediaSlotRef = useRef<HTMLDivElement>(null);
-  const [mediaSlot, setMediaSlot] = useState<HTMLDivElement | null>(null);
-  const [mediaRect, setMediaRect] = useState<{
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  } | null>(null);
   // スマホと接続するためのQR(設定ダイアログの中で表示する)。
   const [pairingQr, setPairingQr] = useState<string | null>(null);
   const [pairingError, setPairingError] = useState(false);
@@ -889,15 +863,6 @@ export default function Home() {
       })
       .catch(() => undefined);
   }, [syncEnabled, syncKey, settings]);
-
-  // ホームのYouTubeは、起動のたびに「どのプレイリストか」と「何曲目から
-  // 始めるか」をランダムに選ぶ。毎回ちがう曲から流れるようにするため。
-  // 選び直すのは起動時だけ(画面を行き来するたびに変えると音が止まる)。
-  useEffect(() => {
-    if (!ready) return;
-    setHomePlaylistIndex(Math.floor(Math.random() * playlistCount));
-    setHomeStartIndex(1 + Math.floor(Math.random() * HOME_SHUFFLE_RANGE));
-  }, [ready, playlistCount]);
 
   // 給油記録は設定と一緒に保存されるが、旧キーにも書いておく(古い版に戻しても読める)。
   useEffect(() => {
@@ -1748,7 +1713,6 @@ export default function Home() {
     const next = (index + playlistTracks.length) % playlistTracks.length;
     setTrackIndex(next);
     if (!autoPlay) return;
-    setYoutubeReloadKey((key) => key + 1);
     // 曲の読み込み先が決まってから鳴らす(貯めた曲は端末の中から読む)。
     wantPlayRef.current = true;
   };
@@ -1766,53 +1730,12 @@ export default function Home() {
     const audio = audioRef.current;
     if (!audio || !currentTrack) return;
     if (audio.paused) {
-      setYoutubeReloadKey((key) => key + 1);
-      void audio.play().catch(() => setIsPlaying(false));
+        void audio.play().catch(() => setIsPlaying(false));
     } else {
       audio.pause();
     }
   };
 
-  // ホームの枠はメーター表示中もDOMに残る(CSSで隠しているだけ)なので、
-  // ホーム以外を見ているときは重ねない(消さずに隠すだけにする)。
-  useEffect(() => {
-    setMediaSlot(showMeter ? null : homeMediaSlotRef.current);
-  }, [hasStarted, showMeter, showFuel, ready, carPlaying]);
-
-  useEffect(() => {
-    if (!mediaSlot) {
-      setMediaRect(null);
-      return;
-    }
-    const update = () => {
-      const box = mediaSlot.getBoundingClientRect();
-      setMediaRect((current) =>
-        current &&
-        current.left === box.left &&
-        current.top === box.top &&
-        current.width === box.width &&
-        current.height === box.height
-          ? current
-          : {
-              left: box.left,
-              top: box.top,
-              width: box.width,
-              height: box.height,
-            },
-      );
-    };
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(mediaSlot);
-    observer.observe(document.documentElement);
-    window.addEventListener("resize", update);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", update);
-    };
-  }, [mediaSlot]);
-
-  /** スマホと接続するためのQRを出す(押したらすぐ見えるようにする)。 */
   const openPairing = () => {
     setPairingQr(null);
     setPairingError(false);
@@ -2046,6 +1969,117 @@ export default function Home() {
       amountYen: "",
     });
   };
+
+  // 音楽プレイヤーの中身。ホームとメーターの両方で同じものを出す。
+  const musicPanel = (
+    <>
+                <header>
+                  <small>
+                    {activePlaylist ? activePlaylist.name : "MUSIC"}
+                    {savingCount > 0 ? ` · 保存中 ${savingCount}` : ""}
+                  </small>
+                  <b>
+                    {playlistTracks.length
+                      ? `${trackIndex + 1} / ${playlistTracks.length}`
+                      : "NO TRACK"}
+                  </b>
+                </header>
+                <p className="media-title">
+                  {currentTrack
+                    ? currentTrack.title
+                    : "スマホの設定「音源フォルダ」に曲を入れてください"}
+                </p>
+                <div className="media-status">
+                  <span className={isPlaying ? "is-playing" : undefined}>
+                    <i aria-hidden="true" />
+                    {currentTrack
+                      ? isPlaying
+                        ? "PLAYING"
+                        : "PAUSED"
+                      : "STOPPED"}
+                    {currentTrack && savedTracks.has(currentTrack.url) ? (
+                      <b title="この端末に保存済み(通信なしで鳴ります)">⬇</b>
+                    ) : null}
+                  </span>
+                  <em>
+                    {formatMusicTime(audioTime)} / {formatMusicTime(audioDuration)}
+                  </em>
+                </div>
+                <div
+                  className="media-progress"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={Math.round(audioDuration)}
+                  aria-valuenow={Math.round(audioTime)}
+                >
+                  <i
+                    style={{
+                      width: `${audioDuration > 0 ? Math.min(100, (audioTime / audioDuration) * 100) : 0}%`,
+                    }}
+                  />
+                </div>
+                <div className="media-controls">
+                  <button
+                    type="button"
+                    onClick={() => playTrack(trackIndex - 1)}
+                    disabled={!currentTrack}
+                    aria-label="前の曲"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M7 5v14M20 5 9 12l11 7z" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className="is-primary"
+                    onClick={toggleMusic}
+                    disabled={!currentTrack}
+                    aria-label={isPlaying ? "一時停止" : "再生"}
+                  >
+                    {isPlaying ? (
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M8 5v14M16 5v14" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M7 4.5 20 12 7 19.5z" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => playTrack(trackIndex + 1)}
+                    disabled={!currentTrack}
+                    aria-label="次の曲"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M17 5v14M4 5l11 7-11 7z" />
+                    </svg>
+                  </button>
+                </div>
+                {musicPlaylists.length ? (
+                  <div className="media-lists" aria-label="プレイリスト">
+                    <button
+                      type="button"
+                      className={activePlaylistId === "" ? "is-active" : undefined}
+                      onClick={() => selectPlaylist("")}
+                    >
+                      すべて
+                    </button>
+                    {musicPlaylists.map((list) => (
+                      <button
+                        key={list.id}
+                        type="button"
+                        className={activePlaylistId === list.id ? "is-active" : undefined}
+                        onClick={() => selectPlaylist(list.id)}
+                      >
+                        {list.name}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+    </>
+  );
 
   return (
     <div className="screen-shell">
@@ -2438,112 +2472,8 @@ export default function Home() {
                 {/* 右下のYouTube。スマホから指定された曲を鳴らしている間は、
                     右下に出るプレイヤーと重なるので出さない(音も二重になる)。 */}
                 {carPlaying ? null : (
-                  <article className="green-media-card" aria-label="音楽プレイヤー">
-                    <header>
-                      <small>
-                        {activePlaylist ? activePlaylist.name : "MUSIC"}
-                        {savingCount > 0 ? ` · 保存中 ${savingCount}` : ""}
-                      </small>
-                      <b>
-                        {playlistTracks.length
-                          ? `${trackIndex + 1} / ${playlistTracks.length}`
-                          : "NO TRACK"}
-                      </b>
-                    </header>
-                    <p className="green-media-title">
-                      {currentTrack
-                        ? currentTrack.title
-                        : "スマホの設定「音源フォルダ」に曲を入れてください"}
-                    </p>
-                    <div className="green-media-status">
-                      <span className={isPlaying ? "is-playing" : undefined}>
-                        <i aria-hidden="true" />
-                        {currentTrack
-                          ? isPlaying
-                            ? "PLAYING"
-                            : "PAUSED"
-                          : "STOPPED"}
-                        {currentTrack && savedTracks.has(currentTrack.url) ? (
-                          <b title="この端末に保存済み(通信なしで鳴ります)">⬇</b>
-                        ) : null}
-                      </span>
-                      <em>
-                        {formatMusicTime(audioTime)} / {formatMusicTime(audioDuration)}
-                      </em>
-                    </div>
-                    <div
-                      className="green-media-progress"
-                      role="progressbar"
-                      aria-valuemin={0}
-                      aria-valuemax={Math.round(audioDuration)}
-                      aria-valuenow={Math.round(audioTime)}
-                    >
-                      <i
-                        style={{
-                          width: `${audioDuration > 0 ? Math.min(100, (audioTime / audioDuration) * 100) : 0}%`,
-                        }}
-                      />
-                    </div>
-                    <div className="green-media-controls">
-                      <button
-                        type="button"
-                        onClick={() => playTrack(trackIndex - 1)}
-                        disabled={!currentTrack}
-                        aria-label="前の曲"
-                      >
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M7 5v14M20 5 9 12l11 7z" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        className="is-primary"
-                        onClick={toggleMusic}
-                        disabled={!currentTrack}
-                        aria-label={isPlaying ? "一時停止" : "再生"}
-                      >
-                        {isPlaying ? (
-                          <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M8 5v14M16 5v14" />
-                          </svg>
-                        ) : (
-                          <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M7 4.5 20 12 7 19.5z" />
-                          </svg>
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => playTrack(trackIndex + 1)}
-                        disabled={!currentTrack}
-                        aria-label="次の曲"
-                      >
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M17 5v14M4 5l11 7-11 7z" />
-                        </svg>
-                      </button>
-                    </div>
-                    {musicPlaylists.length ? (
-                      <div className="green-media-lists" aria-label="プレイリスト">
-                        <button
-                          type="button"
-                          className={activePlaylistId === "" ? "is-active" : undefined}
-                          onClick={() => selectPlaylist("")}
-                        >
-                          すべて
-                        </button>
-                        {musicPlaylists.map((list) => (
-                          <button
-                            key={list.id}
-                            type="button"
-                            className={activePlaylistId === list.id ? "is-active" : undefined}
-                            onClick={() => selectPlaylist(list.id)}
-                          >
-                            {list.name}
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
+                  <article className="media-card" aria-label="音楽プレイヤー">
+                    {musicPanel}
                   </article>
                 )}
               </aside>
@@ -2785,14 +2715,10 @@ export default function Home() {
               </div>
             </article>
             <article
-              className="home-random-youtube"
-              aria-label={`${homePlaylist.label} プレイリスト YouTubeプレイヤー`}
+              className="home-music-card media-card"
+              aria-label="音楽プレイヤー"
             >
-              <header>
-                <span><i aria-hidden="true" />{homePlaylist.label}</span>
-                <b>RANDOM {String(homePlaylistIndex + 1).padStart(2, "0")}</b>
-              </header>
-              <div className="home-media-slot" ref={homeMediaSlotRef} />
+              {musicPanel}
             </article>
             <div className="shift-monitor" aria-live="polite">
               <header>
@@ -2845,36 +2771,6 @@ export default function Home() {
             setAudioTime(0);
           }}
         />
-
-        {/* ホームとメーターで共通のプレイヤー。枠(スロット)に重ねて出す。
-            画面を切り替えても作り直されないので、音が途切れない。
-            ターコイズのメーターはクラスター全体に色味の変換がかかっているため、
-            その外側に置いて映像を本来の色のまま見せる。 */}
-        {homePlaylist && !carPlaying ? (
-          <aside
-            className={`media-player${mediaRect ? "" : " is-hidden"}`}
-            aria-label={`${homePlaylist.label} プレイリスト YouTubeプレイヤー`}
-            style={
-              mediaRect
-                ? {
-                    left: mediaRect.left,
-                    top: mediaRect.top,
-                    width: mediaRect.width,
-                    height: mediaRect.height,
-                  }
-                : undefined
-            }
-          >
-            <iframe
-              key={`${homePlaylist.playlistId}-${homeStartIndex}-${youtubeReloadKey}`}
-              src={`https://www.youtube.com/embed/videoseries?list=${homePlaylist.playlistId}&index=${homeStartIndex}&shuffle=1&autoplay=1&playsinline=1&rel=0&loop=1&controls=0&iv_load_policy=3&modestbranding=1&fs=0&disablekb=1`}
-              title={`${homePlaylist.label} プレイリスト`}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              referrerPolicy="strict-origin-when-cross-origin"
-            />
-          </aside>
-        ) : null}
 
         {/* メーター表示中でも消えないよう、画面の切り替えとは別のところに置く。
             ここで消すと iframe が作り直されて音が止まってしまう。 */}

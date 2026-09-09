@@ -6415,61 +6415,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 #app .car-player.is-collapsed iframe { width: 1px; height: 1px; }
 
 /* --- ホーム画面の待機YouTubeプレイヤー --- */
-.home-random-youtube {
-  grid-row: 3;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  display: grid;
-  grid-template-rows: 28px minmax(0, 1fr);
-  border: 1px solid #74313a;
-  border-radius: 13px;
-  background: #07090b;
-  box-shadow: inset 0 0 24px rgba(0, 0, 0, .5), 0 0 18px rgba(241, 70, 90, .045);
-}
-.home-random-youtube > header {
-  min-width: 0;
-  padding: 0 9px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  border-bottom: 1px solid #4e252c;
-  color: #f08391;
-  font-size: 7px;
-  font-weight: 900;
-  letter-spacing: .13em;
-}
-.home-random-youtube > header span {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.home-random-youtube > header i {
-  flex: 0 0 auto;
-  width: 7px;
-  height: 7px;
-  border-radius: 2px;
-  background: #f1465a;
-  box-shadow: 0 0 8px rgba(241, 70, 90, .55);
-}
-.home-random-youtube > header b {
-  flex: 0 0 auto;
-  color: #8e6269;
-  font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 7px;
-  letter-spacing: .11em;
-}
-.home-random-youtube .home-media-slot {
-  /* 実際の映像はこの枠に重ねて出す(実体は #app 直下の .media-player)。 */
-  min-height: 0;
-  background: #05070a;
-}
-
 /* --- 設定ページ: 満タン法の燃費記録 --- */
 .zsetup-fuel-form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
 .zsetup-fuel-form .zsetup-field:first-child { grid-column: 1 / -1; }
@@ -6791,7 +6736,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 
 /* 縦が足りないときは計器側を縮め、いちばん下のメディアは潰さない。 */
 #app.meter-theme-green.is-fullscreen .green-drive-panel > article { flex-shrink: 1; }
-#app.meter-theme-green.is-fullscreen .green-media-card { flex-shrink: 0; }
+#app.meter-theme-green.is-fullscreen .media-card { flex-shrink: 0; }
 
 /* 余白を詰めて、計器の見た目はそのままに高さだけを取り戻す。 */
 #app.meter-theme-green.is-fullscreen .green-drive-panel .green-range-card {
@@ -6820,13 +6765,13 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 #app.meter-theme-green.is-fullscreen .green-drive-panel .green-obd-card > span { margin-top: 2px; }
 
 /* メディアカード本体。いちばん下に貼り付ける。 */
-#app.meter-theme-green.is-fullscreen .green-media-card {
+#app.meter-theme-green.is-fullscreen .media-card {
   flex: 0 0 auto;
   margin-top: auto;
   padding: 5px 6px 6px;
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-card header {
+#app.meter-theme-green.is-fullscreen .media-card header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -6835,7 +6780,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   padding: 0 2px;
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-card header small {
+#app.meter-theme-green.is-fullscreen .media-card header small {
   color: #6f9475;
   font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 6px;
@@ -6843,7 +6788,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   letter-spacing: .22em;
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-card header b {
+#app.meter-theme-green.is-fullscreen .media-card header b {
   overflow: hidden;
   max-width: 118px;
   color: #cdffd4;
@@ -6891,38 +6836,9 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   #app.meter-theme-green.is-fullscreen .green-drive-panel .green-obd-card { flex-basis: 46px; }
 }
 
-/* ホームとメーターで共通のYouTubeプレイヤー。枠の位置に合わせて置く。
-   ターコイズのメーターはクラスター全体に色味の変換がかかっているので、
-   その外側に出して映像の色をそのまま見せる。 */
-.media-player {
-  position: fixed;
-  z-index: 40;
-  overflow: hidden;
-  border-radius: 8px;
-  background: #000;
-  pointer-events: auto;
-}
-
-.media-player iframe {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border: 0;
-}
-
-/* 置き場所が無い画面(オレンジのメーターなど)でも、消さずに隠すだけにする。
-   取り外すと再生まで止まってしまうため。 */
-.media-player.is-hidden {
-  left: 0;
-  top: 0;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
 
 /* --- ターコイズメーター右下: シンプルな音楽プレイヤー --- */
-#app.meter-theme-green.is-fullscreen .green-media-title {
+#app.meter-theme-green.is-fullscreen .media-title {
   overflow: hidden;
   margin: 0 0 5px;
   padding: 0 2px;
@@ -6937,7 +6853,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 }
 
 /* 再生の状態と、いまの位置 / 曲の長さ。 */
-#app.meter-theme-green.is-fullscreen .green-media-status {
+#app.meter-theme-green.is-fullscreen .media-status {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -6949,36 +6865,36 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   letter-spacing: .16em;
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-status span {
+#app.meter-theme-green.is-fullscreen .media-status span {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   color: #6f9475;
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-status span i {
+#app.meter-theme-green.is-fullscreen .media-status span i {
   width: 5px;
   height: 5px;
   border-radius: 50%;
   background: #2c5c33;
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-status span.is-playing {
+#app.meter-theme-green.is-fullscreen .media-status span.is-playing {
   color: #9cffa9;
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-status span.is-playing i {
+#app.meter-theme-green.is-fullscreen .media-status span.is-playing i {
   background: #6cff80;
   box-shadow: 0 0 8px rgba(108, 255, 128, .75);
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-status em {
+#app.meter-theme-green.is-fullscreen .media-status em {
   color: #b6ffc1;
   font-size: 8px;
   font-style: normal;
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-progress {
+#app.meter-theme-green.is-fullscreen .media-progress {
   overflow: hidden;
   height: 3px;
   margin: 4px 2px 7px;
@@ -6986,7 +6902,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   background: rgba(106, 204, 118, .18);
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-progress i {
+#app.meter-theme-green.is-fullscreen .media-progress i {
   display: block;
   height: 100%;
   border-radius: inherit;
@@ -6995,7 +6911,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 }
 
 /* プレイリストの切り替え。横に並べて、多いときは横スクロールする。 */
-#app.meter-theme-green.is-fullscreen .green-media-lists {
+#app.meter-theme-green.is-fullscreen .media-lists {
   display: flex;
   gap: 5px;
   overflow-x: auto;
@@ -7004,11 +6920,11 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   scrollbar-width: none;
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-lists::-webkit-scrollbar {
+#app.meter-theme-green.is-fullscreen .media-lists::-webkit-scrollbar {
   display: none;
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-lists button {
+#app.meter-theme-green.is-fullscreen .media-lists button {
   flex: 0 0 auto;
   max-width: 96px;
   overflow: hidden;
@@ -7028,13 +6944,13 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   -webkit-tap-highlight-color: transparent;
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-lists button.is-active {
+#app.meter-theme-green.is-fullscreen .media-lists button.is-active {
   border-color: rgba(122, 255, 138, .7);
   background: linear-gradient(180deg, rgba(38, 116, 50, .8), rgba(8, 26, 12, .9));
   color: #eaffee;
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-controls {
+#app.meter-theme-green.is-fullscreen .media-controls {
   display: grid;
   grid-template-columns: 1fr 1.25fr 1fr;
   align-items: center;
@@ -7042,7 +6958,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   padding: 0 2px 2px;
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-controls button {
+#app.meter-theme-green.is-fullscreen .media-controls button {
   display: grid;
   place-items: center;
   min-height: 40px;
@@ -7055,19 +6971,19 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   -webkit-tap-highlight-color: transparent;
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-controls button.is-primary {
+#app.meter-theme-green.is-fullscreen .media-controls button.is-primary {
   min-height: 46px;
   border-color: rgba(122, 255, 138, .6);
   background: linear-gradient(180deg, rgba(38, 116, 50, .78), rgba(8, 26, 12, .92));
   color: #eaffee;
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-controls button:disabled {
+#app.meter-theme-green.is-fullscreen .media-controls button:disabled {
   opacity: .35;
   cursor: default;
 }
 
-#app.meter-theme-green.is-fullscreen .green-media-controls svg {
+#app.meter-theme-green.is-fullscreen .media-controls svg {
   width: 18px;
   height: 18px;
   fill: none;
@@ -7078,7 +6994,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 }
 
 /* ▶ と ⏸ は塗りのほうが見やすい。 */
-#app.meter-theme-green.is-fullscreen .green-media-controls button.is-primary svg {
+#app.meter-theme-green.is-fullscreen .media-controls button.is-primary svg {
   width: 20px;
   height: 20px;
   fill: currentColor;
@@ -7251,23 +7167,23 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 /* 縦が狭い画面では、進み具合のバーを省いてボタンを少し小さくする。
    (基本のスタイルより後ろに置く必要があるので、ここにまとめている) */
 @media (max-height: 520px) {
-  #app.meter-theme-green.is-fullscreen .green-media-card { padding: 3px 5px 4px; }
-  #app.meter-theme-green.is-fullscreen .green-media-card header { margin-bottom: 2px; }
-  #app.meter-theme-green.is-fullscreen .green-media-title {
+  #app.meter-theme-green.is-fullscreen .media-card { padding: 3px 5px 4px; }
+  #app.meter-theme-green.is-fullscreen .media-card header { margin-bottom: 2px; }
+  #app.meter-theme-green.is-fullscreen .media-title {
     margin-bottom: 3px;
     font-size: 11px;
   }
-  #app.meter-theme-green.is-fullscreen .green-media-progress { display: none; }
-  #app.meter-theme-green.is-fullscreen .green-media-controls { gap: 5px; }
-  #app.meter-theme-green.is-fullscreen .green-media-controls button { min-height: 32px; }
-  #app.meter-theme-green.is-fullscreen .green-media-controls button.is-primary { min-height: 36px; }
-  #app.meter-theme-green.is-fullscreen .green-media-controls svg { width: 15px; height: 15px; }
-  #app.meter-theme-green.is-fullscreen .green-media-controls button.is-primary svg {
+  #app.meter-theme-green.is-fullscreen .media-progress { display: none; }
+  #app.meter-theme-green.is-fullscreen .media-controls { gap: 5px; }
+  #app.meter-theme-green.is-fullscreen .media-controls button { min-height: 32px; }
+  #app.meter-theme-green.is-fullscreen .media-controls button.is-primary { min-height: 36px; }
+  #app.meter-theme-green.is-fullscreen .media-controls svg { width: 15px; height: 15px; }
+  #app.meter-theme-green.is-fullscreen .media-controls button.is-primary svg {
     width: 17px;
     height: 17px;
   }
-  #app.meter-theme-green.is-fullscreen .green-media-lists { margin-top: 5px; }
-  #app.meter-theme-green.is-fullscreen .green-media-lists button {
+  #app.meter-theme-green.is-fullscreen .media-lists { margin-top: 5px; }
+  #app.meter-theme-green.is-fullscreen .media-lists button {
     min-height: 22px;
     padding: 0 8px;
     font-size: 8px;
@@ -7275,7 +7191,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 }
 
 /* 端末に保存済みの曲に付ける印(通信なしで鳴らせる)。 */
-#app.meter-theme-green.is-fullscreen .green-media-status span b {
+#app.meter-theme-green.is-fullscreen .media-status span b {
   margin-left: 2px;
   color: #7dff92;
   font-size: 9px;
@@ -7294,4 +7210,201 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   line-height: 1.7;
   color: #7d8894;
   text-align: center;
+}
+
+/* --- ホーム画面の音楽プレイヤー(右パネルの一番下) --- */
+.home-music-card {
+  grid-row: 3;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px 12px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: linear-gradient(160deg, rgba(18, 38, 42, .55), rgba(7, 9, 11, .9));
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, .45);
+}
+
+.home-music-card header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.home-music-card header small {
+  overflow: hidden;
+  max-width: 60%;
+  color: #55e0c8;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .2em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-music-card header b {
+  color: #8fb4bb;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.home-music-card .media-title {
+  overflow: hidden;
+  margin: 0 0 8px;
+  color: #eaf6f8;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-music-card .media-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .16em;
+}
+
+.home-music-card .media-status span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #6f8c93;
+}
+
+.home-music-card .media-status span i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2b4a4e;
+}
+
+.home-music-card .media-status span.is-playing { color: #6fe3ea; }
+
+.home-music-card .media-status span.is-playing i {
+  background: #55e0c8;
+  box-shadow: 0 0 9px rgba(85, 224, 200, .75);
+}
+
+.home-music-card .media-status span b {
+  margin-left: 2px;
+  color: #55e0c8;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.home-music-card .media-status em {
+  color: #cfe9ec;
+  font-size: 10px;
+  font-style: normal;
+}
+
+.home-music-card .media-progress {
+  overflow: hidden;
+  height: 4px;
+  margin: 6px 0 10px;
+  border-radius: 999px;
+  background: rgba(85, 224, 200, .16);
+}
+
+.home-music-card .media-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2f7f84, #6fe3ea);
+  transition: width .3s linear;
+}
+
+.home-music-card .media-controls {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.home-music-card .media-controls button {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid rgba(85, 224, 200, .28);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(20, 46, 50, .8), rgba(6, 12, 14, .9));
+  color: #9fe7ec;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-music-card .media-controls button.is-primary {
+  min-height: 50px;
+  border-color: rgba(111, 227, 234, .6);
+  background: linear-gradient(180deg, rgba(35, 106, 112, .85), rgba(8, 24, 26, .92));
+  color: #eafcff;
+}
+
+.home-music-card .media-controls button:disabled { opacity: .35; cursor: default; }
+
+.home-music-card .media-controls svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.home-music-card .media-controls button.is-primary svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  stroke-width: 2.4;
+}
+
+.home-music-card .media-lists {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin-top: 10px;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.home-music-card .media-lists::-webkit-scrollbar { display: none; }
+
+.home-music-card .media-lists button {
+  flex: 0 0 auto;
+  overflow: hidden;
+  max-width: 120px;
+  min-height: 28px;
+  padding: 0 12px;
+  border: 1px solid rgba(85, 224, 200, .26);
+  border-radius: 999px;
+  background: rgba(9, 20, 22, .8);
+  color: #8fb4bb;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.home-music-card .media-lists button.is-active {
+  border-color: rgba(111, 227, 234, .7);
+  background: linear-gradient(180deg, rgba(35, 106, 112, .85), rgba(8, 24, 26, .9));
+  color: #eafcff;
 }
