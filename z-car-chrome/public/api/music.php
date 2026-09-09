@@ -33,6 +33,9 @@ const MAX_TOTAL_BYTES = 629145600;
 /** 曲数の上限。 */
 const MAX_TRACKS = 200;
 const MAX_TITLE_LENGTH = 80;
+/** プレイリストの上限。 */
+const MAX_PLAYLISTS = 12;
+const MAX_PLAYLIST_NAME = 24;
 
 /** 受け付ける拡張子と、返すときの Content-Type。 */
 const ALLOWED_TYPES = [
@@ -127,11 +130,89 @@ function totalBytes(array $tracks): int
     return array_sum(array_map(static fn(array $t) => (int) $t['size'], $tracks));
 }
 
+/** プレイリストを読む。壊れていれば空として扱う。 */
+function readPlaylists(string $dir): array
+{
+    $file = $dir . '/playlists.json';
+    if (!is_file($file)) {
+        return ['playlists' => [], 'activePlaylistId' => ''];
+    }
+    $stored = json_decode((string) file_get_contents($file), true);
+    if (!is_array($stored)) {
+        return ['playlists' => [], 'activePlaylistId' => ''];
+    }
+    return [
+        'playlists' => is_array($stored['playlists'] ?? null) ? $stored['playlists'] : [],
+        'activePlaylistId' => is_string($stored['activePlaylistId'] ?? null)
+            ? $stored['activePlaylistId']
+            : '',
+    ];
+}
+
+/** 一覧の返し方はどの操作でも同じ形にそろえる。 */
+function respondWithLibrary(string $dir, string $folder): void
+{
+    $tracks = readTracks($dir, $folder);
+    $lists = readPlaylists($dir);
+    respond([
+        'ok' => true,
+        'tracks' => $tracks,
+        'totalBytes' => totalBytes($tracks),
+        'playlists' => $lists['playlists'],
+        'activePlaylistId' => $lists['activePlaylistId'],
+    ]);
+}
+
 $tracks = readTracks($dir, $folder);
 
 // --- 一覧 ---
 if ($action === 'list') {
-    respond(['ok' => true, 'tracks' => $tracks, 'totalBytes' => totalBytes($tracks)]);
+    respondWithLibrary($dir, $folder);
+}
+
+// --- プレイリストの保存(まるごと置き換え) ---
+if ($action === 'playlists') {
+    $incomingLists = is_array($body['playlists'] ?? null) ? $body['playlists'] : [];
+    $known = array_column($tracks, 'id');
+    $clean = [];
+    foreach ($incomingLists as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        $id = isset($entry['id']) && is_string($entry['id']) ? $entry['id'] : '';
+        if (!preg_match('/^[a-f0-9]{8,64}$/', $id)) {
+            continue;
+        }
+        $name = isset($entry['name']) && is_string($entry['name']) ? trim($entry['name']) : '';
+        $name = mb_substr($name !== '' ? $name : 'PLAYLIST', 0, MAX_PLAYLIST_NAME, 'UTF-8');
+        $trackIds = [];
+        foreach (is_array($entry['trackIds'] ?? null) ? $entry['trackIds'] : [] as $tid) {
+            // 置き場に無いIDは捨てる(消した曲が残り続けないように)。
+            if (is_string($tid) && in_array($tid, $known, true) && !in_array($tid, $trackIds, true)) {
+                $trackIds[] = $tid;
+            }
+            if (count($trackIds) >= MAX_TRACKS) {
+                break;
+            }
+        }
+        $clean[] = ['id' => $id, 'name' => $name, 'trackIds' => $trackIds];
+        if (count($clean) >= MAX_PLAYLISTS) {
+            break;
+        }
+    }
+    $active = is_string($body['activePlaylistId'] ?? null) ? $body['activePlaylistId'] : '';
+    if ($active !== '' && !in_array($active, array_column($clean, 'id'), true)) {
+        $active = '';
+    }
+    @file_put_contents(
+        $dir . '/playlists.json',
+        json_encode(
+            ['playlists' => $clean, 'activePlaylistId' => $active],
+            JSON_UNESCAPED_UNICODE,
+        ),
+        LOCK_EX,
+    );
+    respondWithLibrary($dir, $folder);
 }
 
 // --- 削除 ---
@@ -146,8 +227,7 @@ if ($action === 'delete') {
         @unlink($dir . '/' . basename($track['url']));
         @unlink($dir . '/' . $trackId . '.json');
     }
-    $tracks = readTracks($dir, $folder);
-    respond(['ok' => true, 'tracks' => $tracks, 'totalBytes' => totalBytes($tracks)]);
+    respondWithLibrary($dir, $folder);
 }
 
 // --- 追加 ---
@@ -217,10 +297,13 @@ foreach ($names as $i => $name) {
 }
 
 $tracks = readTracks($dir, $folder);
+$lists = readPlaylists($dir);
 respond([
     'ok' => true,
     'saved' => $saved,
     'skipped' => $skipped,
     'tracks' => $tracks,
     'totalBytes' => totalBytes($tracks),
+    'playlists' => $lists['playlists'],
+    'activePlaylistId' => $lists['activePlaylistId'],
 ]);

@@ -13,10 +13,14 @@ import {
   METER_THEMES,
   deleteMusicTrack,
   fetchMusicTracks,
+  MAX_MUSIC_PLAYLISTS,
+  MAX_MUSIC_PLAYLIST_NAME,
+  saveMusicPlaylists,
   MIN_SYNC_KEY_LENGTH,
   PHONE_LONG_EDGE_MAX,
   pushSharedSettings,
   uploadMusicFiles,
+  type MusicPlaylist,
   type MusicTrack,
   readSettings,
   readSyncKeyFromHash,
@@ -74,6 +78,11 @@ export default function PhoneSettingsPage() {
   // 音源置き場(サーバー)の中身。
   const [tracks, setTracks] = useState<MusicTrack[]>([]);
   const [tracksBytes, setTracksBytes] = useState(0);
+  const [musicPlaylists, setMusicPlaylists] = useState<MusicPlaylist[]>([]);
+  // 車で流すプレイリスト("" は「すべての曲」)。
+  const [activePlaylistId, setActivePlaylistId] = useState("");
+  // いま編集しているプレイリスト("" のときは曲の追加・削除だけ)。
+  const [editingPlaylistId, setEditingPlaylistId] = useState("");
   const [musicState, setMusicState] = useState<
     { kind: "idle" | "loading" | "uploading" | "error"; note?: string }
   >({ kind: "idle" });
@@ -178,6 +187,19 @@ export default function PhoneSettingsPage() {
   const syncKey = draft.syncKey.trim();
   const canReachCar = syncKey.length >= MIN_SYNC_KEY_LENGTH;
 
+  /** サーバーから返ってきた中身を画面に反映する。 */
+  const applyLibrary = (result: {
+    tracks: MusicTrack[];
+    totalBytes: number;
+    playlists: MusicPlaylist[];
+    activePlaylistId: string;
+  }) => {
+    setTracks(result.tracks);
+    setTracksBytes(result.totalBytes);
+    setMusicPlaylists(result.playlists);
+    setActivePlaylistId(result.activePlaylistId);
+  };
+
   // 音源置き場の中身は、カードを開いたときに読みに行く。
   useEffect(() => {
     if (openCard !== "files" || !canReachCar) return;
@@ -190,8 +212,7 @@ export default function PhoneSettingsPage() {
           setMusicState({ kind: "error", note: "一覧を取得できませんでした" });
           return;
         }
-        setTracks(result.tracks);
-        setTracksBytes(result.totalBytes);
+        applyLibrary(result);
         setMusicState({ kind: "idle" });
       })
       .catch(() => {
@@ -213,8 +234,7 @@ export default function PhoneSettingsPage() {
         setMusicState({ kind: "error", note: "アップロードできませんでした" });
         return;
       }
-      setTracks(result.tracks);
-      setTracksBytes(result.totalBytes);
+      applyLibrary(result);
       const skipped = result.skipped ?? [];
       setMusicState({
         kind: "idle",
@@ -237,13 +257,105 @@ export default function PhoneSettingsPage() {
         setMusicState({ kind: "error", note: "消せませんでした" });
         return;
       }
-      setTracks(result.tracks);
-      setTracksBytes(result.totalBytes);
+      applyLibrary(result);
       setMusicState({ kind: "idle", note: "1曲消しました" });
     } catch {
       setMusicState({ kind: "error", note: "通信できませんでした" });
     }
   };
+
+  /** プレイリストの変更をサーバーに保存する。 */
+  const storePlaylists = async (
+    nextPlaylists: MusicPlaylist[],
+    nextActiveId: string,
+  ) => {
+    setMusicPlaylists(nextPlaylists);
+    setActivePlaylistId(nextActiveId);
+    try {
+      const result = await saveMusicPlaylists(syncKey, nextPlaylists, nextActiveId);
+      if (!result.ok) {
+        setMusicState({ kind: "error", note: "保存できませんでした" });
+        return;
+      }
+      applyLibrary(result);
+      setMusicState({ kind: "idle", note: "プレイリストを保存しました" });
+    } catch {
+      setMusicState({ kind: "error", note: "通信できませんでした" });
+    }
+  };
+
+  /** 新しいプレイリストを作る。 */
+  const createMusicPlaylist = () => {
+    if (musicPlaylists.length >= MAX_MUSIC_PLAYLISTS) {
+      setMusicState({ kind: "error", note: "プレイリストが多すぎます" });
+      return;
+    }
+    const name = window.prompt("プレイリストの名前", "ドライブ");
+    if (name === null) return;
+    const id = Array.from(crypto.getRandomValues(new Uint8Array(8)))
+      .map((value) => value.toString(16).padStart(2, "0"))
+      .join("");
+    const next = [
+      ...musicPlaylists,
+      {
+        id,
+        name: name.trim().slice(0, MAX_MUSIC_PLAYLIST_NAME) || "PLAYLIST",
+        trackIds: [],
+      },
+    ];
+    setEditingPlaylistId(id);
+    void storePlaylists(next, id);
+  };
+
+  /** 名前を変える。 */
+  const renameMusicPlaylist = (playlist: MusicPlaylist) => {
+    const name = window.prompt("プレイリストの名前", playlist.name);
+    if (name === null) return;
+    void storePlaylists(
+      musicPlaylists.map((entry) =>
+        entry.id === playlist.id
+          ? {
+              ...entry,
+              name: name.trim().slice(0, MAX_MUSIC_PLAYLIST_NAME) || "PLAYLIST",
+            }
+          : entry,
+      ),
+      activePlaylistId,
+    );
+  };
+
+  /** プレイリストを消す(曲そのものは残る)。 */
+  const removeMusicPlaylist = (playlist: MusicPlaylist) => {
+    if (!window.confirm(`「${playlist.name}」を消します。曲は残ります。`)) return;
+    const next = musicPlaylists.filter((entry) => entry.id !== playlist.id);
+    if (editingPlaylistId === playlist.id) setEditingPlaylistId("");
+    void storePlaylists(next, activePlaylistId === playlist.id ? "" : activePlaylistId);
+  };
+
+  /** 曲をプレイリストに入れる / 外す。 */
+  const toggleTrackInPlaylist = (playlistId: string, trackId: string) => {
+    void storePlaylists(
+      musicPlaylists.map((entry) => {
+        if (entry.id !== playlistId) return entry;
+        const has = entry.trackIds.includes(trackId);
+        return {
+          ...entry,
+          trackIds: has
+            ? entry.trackIds.filter((id) => id !== trackId)
+            : [...entry.trackIds, trackId],
+        };
+      }),
+      activePlaylistId,
+    );
+  };
+
+  /** 車で流す一覧を切り替える。 */
+  const selectActivePlaylist = (id: string) => {
+    void storePlaylists(musicPlaylists, id);
+  };
+
+  const editingPlaylist =
+    musicPlaylists.find((entry) => entry.id === editingPlaylistId) ?? null;
 
   /** 車に「これを再生して」と伝える。設定と同じ経路で送る。 */
   const playOnCar = async (entry: Playlist) => {
@@ -742,35 +854,111 @@ export default function PhoneSettingsPage() {
                         ? musicState.note
                         : musicState.note ?? ""}
                 </p>
+                {/* 車で流す一覧を選ぶ。左端は「すべての曲」。 */}
+                <div className="zsetup-lists">
+                  <button
+                    type="button"
+                    className={`zsetup-list${activePlaylistId === "" ? " is-active" : ""}`}
+                    onClick={() => {
+                      setEditingPlaylistId("");
+                      selectActivePlaylist("");
+                    }}
+                  >
+                    <b>すべての曲</b>
+                    <small>{tracks.length}曲</small>
+                  </button>
+                  {musicPlaylists.map((playlist) => (
+                    <button
+                      key={playlist.id}
+                      type="button"
+                      className={`zsetup-list${activePlaylistId === playlist.id ? " is-active" : ""}`}
+                      onClick={() => {
+                        setEditingPlaylistId(playlist.id);
+                        selectActivePlaylist(playlist.id);
+                      }}
+                    >
+                      <b>{playlist.name}</b>
+                      <small>{playlist.trackIds.length}曲</small>
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="zsetup-list zsetup-list-add"
+                    onClick={createMusicPlaylist}
+                  >
+                    <b>＋ 作る</b>
+                    <small>プレイリスト</small>
+                  </button>
+                </div>
+
+                {editingPlaylist ? (
+                  <div className="zsetup-list-tools">
+                    <span>
+                      「{editingPlaylist.name}」に入れる曲を選んでください
+                    </span>
+                    <div>
+                      <button type="button" onClick={() => renameMusicPlaylist(editingPlaylist)}>
+                        名前を変える
+                      </button>
+                      <button type="button" onClick={() => removeMusicPlaylist(editingPlaylist)}>
+                        消す
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="zsetup-tracks">
                   {tracks.length === 0 ? (
                     <p className="zsetup-tracks-empty">
                       まだ1曲も入っていません。
                     </p>
                   ) : (
-                    tracks.map((track, index) => (
-                      <div className="zsetup-track" key={track.id}>
-                        <b>{String(index + 1).padStart(2, "0")}</b>
-                        <span>
-                          <strong>{track.title}</strong>
-                          <small>{(track.size / 1048576).toFixed(1)} MB</small>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => void removeTrack(track)}
-                          aria-label={`${track.title} を消す`}
+                    tracks.map((track, index) => {
+                      const inList =
+                        !!editingPlaylist && editingPlaylist.trackIds.includes(track.id);
+                      return (
+                        <div
+                          className={`zsetup-track${inList ? " is-in-list" : ""}`}
+                          key={track.id}
                         >
-                          消す
-                        </button>
-                      </div>
-                    ))
+                          <b>{String(index + 1).padStart(2, "0")}</b>
+                          <span>
+                            <strong>{track.title}</strong>
+                            <small>{(track.size / 1048576).toFixed(1)} MB</small>
+                          </span>
+                          {editingPlaylist ? (
+                            <button
+                              type="button"
+                              className="zsetup-track-toggle"
+                              onClick={() =>
+                                toggleTrackInPlaylist(editingPlaylist.id, track.id)
+                              }
+                              aria-pressed={inList}
+                            >
+                              {inList ? "入れた" : "入れる"}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => void removeTrack(track)}
+                              aria-label={`${track.title} を消す`}
+                            >
+                              消す
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })
                   )}
                 </div>
                 <p className="zsetup-sync-note">
-                  合計 {(tracksBytes / 1048576).toFixed(1)} MB / 曲数 {tracks.length}。
-                  ここに入れた曲が、車のメーター右下のプレイヤーに並びます
+                  合計 {(tracksBytes / 1048576).toFixed(1)} MB / 曲数 {tracks.length}
                   （1曲25MBまで・全体で600MBまで）。
+                  選んだ一覧が、車のメーター右下のプレイヤーに並びます。
                   車の画面で ▶ を押すと鳴ります。
+                  {editingPlaylist
+                    ? "　曲を消したいときは「すべての曲」に戻してください。"
+                    : ""}
                 </p>
               </>
             ) : (
