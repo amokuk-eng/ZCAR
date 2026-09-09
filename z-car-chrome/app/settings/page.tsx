@@ -3,13 +3,10 @@
 import { useEffect, useState } from "react";
 import {
   defaults,
-  extractPlaylistId,
   fetchSharedSettings,
   mergeFuelEntries,
   MAX_DESTINATION_LABEL,
   MAX_DESTINATION_TEXT,
-  MAX_PLAYLISTS,
-  MAX_PLAYLIST_LABEL,
   METER_THEMES,
   deleteMusicTrack,
   fetchMusicTracks,
@@ -28,9 +25,7 @@ import {
   writeSettings,
   type FuelEntry,
   type MapDestination,
-  type PlayCommand,
   type MeterTheme,
-  type Playlist,
   type Settings,
 } from "../settings-store";
 
@@ -67,10 +62,6 @@ export default function PhoneSettingsPage() {
     setOpenCard((current) => (current === id ? null : id));
   // ナビカードの中の目的地編集。ふだんは畳んでおく。
   const [destEditOpen, setDestEditOpen] = useState(false);
-  // 車に再生を頼んだ結果の表示("送信中" / プレイリスト名 / エラー)。
-  const [playState, setPlayState] = useState<
-    { kind: "sending" | "sent" | "error"; label: string } | null
-  >(null);
   const [fuelDraft, setFuelDraft] = useState(emptyFuelDraft);
   const [fuelSaved, setFuelSaved] = useState(false);
   // 車載機のような大きい画面から来たかどうか(描画後に測る)。
@@ -357,28 +348,6 @@ export default function PhoneSettingsPage() {
   const editingPlaylist =
     musicPlaylists.find((entry) => entry.id === editingPlaylistId) ?? null;
 
-  /** 車に「これを再生して」と伝える。設定と同じ経路で送る。 */
-  const playOnCar = async (entry: Playlist) => {
-    const playlistId = extractPlaylistId(entry.playlistId);
-    if (!playlistId || !canReachCar) return;
-    const label = entry.label.trim() || "MUSIC";
-    const command: PlayCommand = {
-      playlistId,
-      label,
-      requestedAt: Date.now(),
-    };
-    const next = { ...draft, nowPlaying: command };
-    setDraft(next);
-    writeSettings(next);
-    setPlayState({ kind: "sending", label });
-    try {
-      await pushSharedSettings(syncKey, next);
-      setPlayState({ kind: "sent", label });
-    } catch {
-      setPlayState({ kind: "error", label });
-    }
-  };
-
   const fuelLiters = Number.parseFloat(fuelDraft.liters);
   const fuelDistance = Number.parseFloat(fuelDraft.distanceKm);
   const fuelAmount = Number.parseFloat(fuelDraft.amountYen);
@@ -417,31 +386,6 @@ export default function PhoneSettingsPage() {
     void sendToCar(next);
   };
 
-  const updatePlaylist = (index: number, patch: Partial<Playlist>) => {
-    setDraft((current) => ({
-      ...current,
-      playlists: current.playlists.map((entry, i) =>
-        i === index ? { ...entry, ...patch } : entry,
-      ),
-    }));
-    setSaved(false);
-    setSyncState("idle");
-  };
-
-  const addPlaylist = () => {
-    if (draft.playlists.length >= MAX_PLAYLISTS) return;
-    update("playlists", [...draft.playlists, { label: "", playlistId: "" }]);
-  };
-
-  const removePlaylist = (index: number) => {
-    // 全部消えると画面が空になるので、最後の1件は残す。
-    if (draft.playlists.length <= 1) return;
-    update(
-      "playlists",
-      draft.playlists.filter((_, i) => i !== index),
-    );
-  };
-
   const save = () => {
     const next: Settings = {
       ...draft,
@@ -454,16 +398,8 @@ export default function PhoneSettingsPage() {
         label: entry.label.trim().slice(0, MAX_DESTINATION_LABEL),
         destination: entry.destination.trim().slice(0, MAX_DESTINATION_TEXT),
       })),
-      // URLを貼られてもIDだけ取り出す。IDが無い行は保存しない。
-      playlists: draft.playlists
-        .map((entry) => ({
-          label: entry.label.trim().slice(0, MAX_PLAYLIST_LABEL),
-          playlistId: extractPlaylistId(entry.playlistId),
-        }))
-        .filter((entry) => entry.playlistId !== "")
-        .map((entry) => ({ ...entry, label: entry.label || "PLAYLIST" })),
+      // YouTubeのプレイリストはこの画面から編集しないので、そのまま保つ。
     };
-    if (next.playlists.length === 0) next.playlists = defaults.playlists;
     setDraft(next);
     writeSettings(next);
     setSaved(true);
@@ -722,99 +658,8 @@ export default function PhoneSettingsPage() {
 
 
 
-      <section className={`zsetup-section zsetup-card${openCard === "music" ? " is-open" : ""}`}>
-        <button
-          type="button"
-          className="zsetup-card-head"
-          aria-expanded={openCard === "music"}
-          onClick={() => toggleCard("music")}
-        >
-          <span>
-            <b>ミュージック</b>
-            <small>車で鳴らす YouTube プレイリスト</small>
-          </span>
-          <i aria-hidden="true" />
-        </button>
-        {openCard === "music" ? (
-          <div className="zsetup-card-body">
-        <div className="zsetup-playlists">
-          {draft.playlists.map((playlist, index) => (
-            <div className="zsetup-playlist" key={index}>
-              <div className="zsetup-playlist-head">
-                <b>{String(index + 1).padStart(2, "0")}</b>
-                <input
-                  className="zsetup-playlist-label"
-                  placeholder="ジャンル名（例: REGGAE）"
-                  maxLength={MAX_PLAYLIST_LABEL}
-                  value={playlist.label}
-                  onChange={(event) =>
-                    updatePlaylist(index, { label: event.target.value })
-                  }
-                />
-                <button
-                  type="button"
-                  className="zsetup-playlist-remove"
-                  aria-label={`${index + 1}番目を削除`}
-                  disabled={draft.playlists.length <= 1}
-                  onClick={() => removePlaylist(index)}
-                >
-                  削除
-                </button>
-              </div>
-              <input
-                className="zsetup-playlist-id"
-                autoComplete="off"
-                autoCapitalize="off"
-                autoCorrect="off"
-                spellCheck={false}
-                placeholder="YouTubeのプレイリストURL または ID"
-                value={playlist.playlistId}
-                onChange={(event) =>
-                  updatePlaylist(index, { playlistId: event.target.value })
-                }
-              />
-              {extractPlaylistId(playlist.playlistId) ? (
-                <button
-                  type="button"
-                  className="zsetup-playlist-play"
-                  disabled={!canReachCar}
-                  onClick={() => void playOnCar(playlist)}
-                >
-                  ▶ 車で再生
-                </button>
-              ) : null}
-            </div>
-          ))}
-        </div>
-        <button
-          type="button"
-          className="zsetup-playlist-add"
-          disabled={draft.playlists.length >= MAX_PLAYLISTS}
-          onClick={addPlaylist}
-        >
-          {draft.playlists.length >= MAX_PLAYLISTS
-            ? `追加できるのは${MAX_PLAYLISTS}件までです`
-            : "ジャンルを追加"}
-        </button>
-        <p className="zsetup-play-state" role="status">
-          {playState?.kind === "sending"
-            ? `${playState.label} を車に送信中…`
-            : playState?.kind === "sent"
-              ? `${playState.label} を車に送りました（30秒以内に鳴ります）`
-              : playState?.kind === "error"
-                ? "車に送れませんでした（通信を確認してください）"
-                : ""}
-        </p>
-        <p className="zsetup-sync-note">
-          YouTubeでプレイリストを開いて、アドレスをそのまま貼り付けてください
-          （アドレスの中の list= の部分だけ自動で読み取ります）。
-          「車で再生」を押すと、車の画面がそのプレイリストを鳴らします。
-          この端末では再生しません（指示を送るだけです）。
-          運転中の操作は危険なので、出発前に選んでおいてください。
-        </p>
-          </div>
-        ) : null}
-      </section>
+      {/* YouTube(ミュージック)の設定は非表示。車のホーム画面が、
+          登録済みのプレイリストからランダムに流します。 */}
 
       <section className={`zsetup-section zsetup-card${openCard === "files" ? " is-open" : ""}`}>
         <button
@@ -971,9 +816,7 @@ export default function PhoneSettingsPage() {
         ) : null}
       </section>
 
-      {openCard === "theme" ||
-      openCard === "music" ||
-      (openCard === "nav" && destEditOpen) ? (
+      {openCard === "theme" || (openCard === "nav" && destEditOpen) ? (
       <div className="zsetup-actions">
         <button type="button" className="zsetup-save" onClick={save}>
           保存する

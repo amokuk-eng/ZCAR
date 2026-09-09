@@ -206,6 +206,12 @@ const loadGoogleMaps = (key: string) => {
   }
   return w.__gmapsPromise;
 };
+/**
+ * ホームのYouTubeを始める位置の幅。プレイリストの先頭から数えて
+ * この範囲でランダムに選ぶ(範囲を超えていた場合は先頭から流れる)。
+ */
+const HOME_SHUFFLE_RANGE = 25;
+
 /** 再生位置の表示(秒 -> 0:00)。 */
 const formatMusicTime = (seconds: number) => {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -510,6 +516,8 @@ export default function Home() {
   // reloadKey は「音が出ないときのタップ」で作り直すための目印。
   // ホーム画面の待機プレイヤー。設定したプレイリストからランダムに選ぶ。
   const [homePlaylistIndex, setHomePlaylistIndex] = useState(0);
+  // プレイリストの何曲目から始めるか(毎回ちがう曲になるように)。
+  const [homeStartIndex, setHomeStartIndex] = useState(1);
   const [carPlaying, setCarPlaying] = useState<{
     playlistId: string;
     label: string;
@@ -883,11 +891,13 @@ export default function Home() {
       .catch(() => undefined);
   }, [syncEnabled, syncKey, settings]);
 
-  // ジャンルは起動時に一度だけ選ぶ。画面を行き来するたびに選び直すと、
-  // 同じプレイヤーを使い回せず、鳴っている音楽が止まってしまうため。
+  // ホームのYouTubeは、起動のたびに「どのプレイリストか」と「何曲目から
+  // 始めるか」をランダムに選ぶ。毎回ちがう曲から流れるようにするため。
+  // 選び直すのは起動時だけ(画面を行き来するたびに変えると音が止まる)。
   useEffect(() => {
     if (!ready) return;
     setHomePlaylistIndex(Math.floor(Math.random() * playlistCount));
+    setHomeStartIndex(1 + Math.floor(Math.random() * HOME_SHUFFLE_RANGE));
   }, [ready, playlistCount]);
 
   // 給油記録は設定と一緒に保存されるが、旧キーにも書いておく(古い版に戻しても読める)。
@@ -2859,8 +2869,8 @@ export default function Home() {
             }
           >
             <iframe
-              key={`${homePlaylist.playlistId}-${youtubeReloadKey}`}
-              src={`https://www.youtube.com/embed/videoseries?list=${homePlaylist.playlistId}&playsinline=1&rel=0&loop=1&controls=0&iv_load_policy=3&modestbranding=1&fs=0&disablekb=1`}
+              key={`${homePlaylist.playlistId}-${homeStartIndex}-${youtubeReloadKey}`}
+              src={`https://www.youtube.com/embed/videoseries?list=${homePlaylist.playlistId}&index=${homeStartIndex}&shuffle=1&autoplay=1&playsinline=1&rel=0&loop=1&controls=0&iv_load_policy=3&modestbranding=1&fs=0&disablekb=1`}
               title={`${homePlaylist.label} プレイリスト`}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
