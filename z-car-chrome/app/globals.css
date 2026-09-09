@@ -6980,40 +6980,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   stroke-width: 2.4;
 }
 
-/* 車の設定ダイアログ: 端末の曲を選ぶボタン。 */
-.car-music-pick {
-  position: relative;
-  display: block;
-  margin: 10px 0 0;
-}
-
-/* 入力欄は消さずに重ねて透明にする。display:none にすると、車載機の
-   ブラウザによってはファイル選択の画面自体が開かないことがある。 */
-.car-music-pick input {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.car-music-pick span {
-  display: block;
-  min-height: 44px;
-  padding: 13px 12px;
-  border: 1px solid #2f7f84;
-  border-radius: 12px;
-  background: linear-gradient(180deg, #12262a, #0a1518);
-  color: #6fe3ea;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: .05em;
-  text-align: center;
-  cursor: pointer;
-}
-
 /* --- スマホ設定: 音源フォルダ --- */
 .zsetup-upload { position: relative; display: block; margin-bottom: 10px; }
 
@@ -7099,4 +7065,79 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+}
+
+/* --- スマホ設定: 音源のプレイリスト --- */
+.zsetup-lists {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-bottom: 10px;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.zsetup-list {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 2px;
+  min-width: 96px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-soft);
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.zsetup-list b { font-size: 13px; font-weight: 800; }
+.zsetup-list small { color: var(--muted); font-size: 11px; }
+
+.zsetup-list.is-active {
+  border-color: #2f7f84;
+  background: rgba(18, 38, 42, .8);
+}
+
+.zsetup-list.is-active b { color: #6fe3ea; }
+
+.zsetup-list-add b { color: #55e0c8; }
+
+.zsetup-list-tools {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(18, 38, 42, .45);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.zsetup-list-tools > div { display: flex; gap: 8px; }
+
+.zsetup-list-tools button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: transparent;
+  color: #9ba6b1;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.zsetup-track.is-in-list {
+  border-color: #2f7f84;
+  background: rgba(18, 38, 42, .7);
+}
+
+.zsetup-track-toggle { color: #6fe3ea !important; }
+.zsetup-track.is-in-list .zsetup-track-toggle {
+  border-color: #2f7f84;
+  background: rgba(47, 127, 132, .22);
 }

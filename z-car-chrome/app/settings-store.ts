@@ -372,24 +372,46 @@ export type MusicTrack = {
   size: number;
 };
 
+/** 音源のプレイリスト(曲そのものではなく、並び順の名簿)。 */
+export type MusicPlaylist = {
+  id: string;
+  name: string;
+  trackIds: string[];
+};
+
 export type MusicListResult = {
   ok: boolean;
   tracks: MusicTrack[];
   totalBytes: number;
+  playlists: MusicPlaylist[];
+  activePlaylistId: string;
   skipped?: Array<{ name: string; reason: string }>;
   saved?: number;
 };
+
+export const MAX_MUSIC_PLAYLISTS = 12;
+export const MAX_MUSIC_PLAYLIST_NAME = 24;
 
 /** 曲の URL を、そのまま再生できる絶対パスにする。 */
 export const musicTrackUrl = (track: MusicTrack) =>
   `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/${track.url}`;
 
+const emptyLibrary: MusicListResult = {
+  ok: false,
+  tracks: [],
+  totalBytes: 0,
+  playlists: [],
+  activePlaylistId: "",
+};
+
 const readMusicResponse = async (response: Response): Promise<MusicListResult> => {
-  if (!response.ok) return { ok: false, tracks: [], totalBytes: 0 };
+  if (!response.ok) return emptyLibrary;
   const data = (await response.json()) as {
     ok?: boolean;
     tracks?: unknown;
     totalBytes?: unknown;
+    playlists?: unknown;
+    activePlaylistId?: unknown;
     skipped?: unknown;
     saved?: unknown;
   };
@@ -408,9 +430,28 @@ const readMusicResponse = async (response: Response): Promise<MusicListResult> =
         ];
       })
     : [];
+  const playlists = Array.isArray(data.playlists)
+    ? data.playlists.flatMap((entry) => {
+        if (!entry || typeof entry !== "object") return [];
+        const item = entry as Record<string, unknown>;
+        if (typeof item.id !== "string") return [];
+        return [
+          {
+            id: item.id,
+            name: typeof item.name === "string" ? item.name : "PLAYLIST",
+            trackIds: Array.isArray(item.trackIds)
+              ? item.trackIds.filter((id): id is string => typeof id === "string")
+              : [],
+          },
+        ];
+      })
+    : [];
   return {
     ok: data.ok === true,
     tracks,
+    playlists,
+    activePlaylistId:
+      typeof data.activePlaylistId === "string" ? data.activePlaylistId : "",
     totalBytes: typeof data.totalBytes === "number" ? data.totalBytes : 0,
     skipped: Array.isArray(data.skipped)
       ? (data.skipped as Array<{ name: string; reason: string }>)
@@ -439,6 +480,21 @@ export const uploadMusicFiles = async (key: string, files: File[]) => {
     await fetch(MUSIC_ENDPOINT, { method: "POST", body: form }),
   );
 };
+
+/** プレイリストと「車で流す一覧」をまとめて保存する。 */
+export const saveMusicPlaylists = async (
+  key: string,
+  playlists: MusicPlaylist[],
+  activePlaylistId: string,
+) =>
+  readMusicResponse(
+    await fetch(MUSIC_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, action: "playlists", playlists, activePlaylistId }),
+      cache: "no-store",
+    }),
+  );
 
 /** 曲を消す。 */
 export const deleteMusicTrack = async (key: string, id: string) =>

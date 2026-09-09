@@ -22,6 +22,7 @@ import {
   readSettings,
   SETTINGS_STORAGE_KEY,
   writeSettings,
+  type MusicPlaylist,
   type MusicTrack,
   type Settings,
 } from "./settings-store";
@@ -582,12 +583,9 @@ export default function Home() {
   const settingsDialog = useRef<HTMLDialogElement>(null);
   // 音源置き場の曲(スマホから預けたもの)と、車で直接選んだ曲(USBなど)。
   const [serverTracks, setServerTracks] = useState<MusicTrack[]>([]);
-  const [localTracks, setLocalTracks] = useState<
-    Array<{ id: string; title: string; url: string }>
-  >([]);
+  const [musicPlaylists, setMusicPlaylists] = useState<MusicPlaylist[]>([]);
+  const [activePlaylistId, setActivePlaylistId] = useState("");
   const [trackIndex, setTrackIndex] = useState(0);
-  // 端末から曲を選んだときの結果表示(見つからなかった場合の案内にも使う)。
-  const [localPickNote, setLocalPickNote] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   // 音楽を鳴らし始めたら、ホームのYouTubeは作り直して止める(音の二重を防ぐ)。
@@ -1532,14 +1530,22 @@ export default function Home() {
   });
 
   // --- 音楽プレイヤー ---
-  // 鳴らす曲: 車で直接選んだ曲があればそれを使い、無ければ置き場の曲を使う。
-  const playlistTracks = localTracks.length
-    ? localTracks
-    : serverTracks.map((track) => ({
-        id: track.id,
-        title: track.title,
-        url: musicTrackUrl(track),
-      }));
+  // 鳴らす曲: スマホで選んだプレイリストがあればその順番で、
+  // 無ければ置いてある曲を全部その並びのまま鳴らす。
+  const activePlaylist =
+    musicPlaylists.find((list) => list.id === activePlaylistId) ?? null;
+  const playlistTracks = (
+    activePlaylist
+      ? activePlaylist.trackIds.flatMap((id) => {
+          const track = serverTracks.find((entry) => entry.id === id);
+          return track ? [track] : [];
+        })
+      : serverTracks
+  ).map((track) => ({
+    id: track.id,
+    title: track.title,
+    url: musicTrackUrl(track),
+  }));
   const currentTrack = playlistTracks[trackIndex] ?? null;
 
   // 置き場の曲を読みに行く(合言葉があるときだけ)。
@@ -1556,6 +1562,11 @@ export default function Home() {
               current.every((track, index) => track.id === result.tracks[index]?.id);
             return same ? current : result.tracks;
           });
+          setMusicPlaylists((current) => {
+            const same = JSON.stringify(current) === JSON.stringify(result.playlists);
+            return same ? current : result.playlists;
+          });
+          setActivePlaylistId(result.activePlaylistId);
         })
         .catch(() => {
           // 圏外などは次の周期に任せる。
@@ -1573,6 +1584,11 @@ export default function Home() {
   useEffect(() => {
     if (carPlaying) audioRef.current?.pause();
   }, [carPlaying]);
+
+  // プレイリストを切り替えられたら、その1曲目から始める。
+  useEffect(() => {
+    setTrackIndex(0);
+  }, [activePlaylistId]);
 
   // 曲が減ったときに、選択位置が範囲の外へ出ないようにする。
   useEffect(() => {
@@ -1606,41 +1622,6 @@ export default function Home() {
     } else {
       audio.pause();
     }
-  };
-
-  /**
-   * USBなど、この端末の中から音楽ファイルを直接選ぶ。
-   * 車載機のファイル選択は種類で絞ると USB が出てこないことがあるので、
-   * 選ぶときは全部見せて、受け取ってからこちらで音楽だけを拾う。
-   */
-  const pickLocalTracks = (fileList: FileList | null) => {
-    const files = fileList ? Array.from(fileList) : [];
-    if (!files.length) {
-      setLocalPickNote("ファイルが選ばれませんでした。");
-      return;
-    }
-    const audioFiles = files.filter(
-      (file) =>
-        file.type.startsWith("audio/") ||
-        /\.(mp3|m4a|aac|wav|ogg|oga|opus|flac|mp4)$/i.test(file.name),
-    );
-    if (!audioFiles.length) {
-      setLocalPickNote(
-        `${files.length}件のうち、音楽ファイルはありませんでした。`,
-      );
-      return;
-    }
-    localTracks.forEach((track) => URL.revokeObjectURL(track.url));
-    setLocalTracks(
-      audioFiles.map((file, index) => ({
-        id: `local-${index}-${file.name}`,
-        title: file.name.replace(/\.[^.]+$/, ""),
-        url: URL.createObjectURL(file),
-      })),
-    );
-    setTrackIndex(0);
-    setIsPlaying(false);
-    setLocalPickNote(`${audioFiles.length}曲を選びました。`);
   };
 
   // ホームの枠はメーター表示中もDOMに残る(CSSで隠しているだけ)なので、
@@ -2312,7 +2293,7 @@ export default function Home() {
                 {carPlaying ? null : (
                   <article className="green-media-card" aria-label="音楽プレイヤー">
                     <header>
-                      <small>MUSIC</small>
+                      <small>{activePlaylist ? activePlaylist.name : "MUSIC"}</small>
                       <b>
                         {playlistTracks.length
                           ? `${trackIndex + 1} / ${playlistTracks.length}`
@@ -2858,30 +2839,7 @@ export default function Home() {
             <p className="settings-hint">
               スマホの設定「音源フォルダ」に入れた曲が、メーター右下の
               プレイヤーに並びます（いま {serverTracks.length} 曲）。
-            </p>
-            <label className="car-music-pick">
-              <input
-                type="file"
-                multiple
-                onChange={(event) => {
-                  pickLocalTracks(event.target.files);
-                  event.target.value = "";
-                }}
-              />
-              <span>この端末・USBの曲を選ぶ</span>
-            </label>
-            <p className="settings-hint" role="status">
-              {localPickNote ||
-                (localTracks.length
-                  ? `USBなどから ${localTracks.length} 曲を選んでいます（電源を切ると選び直しです）。`
-                  : "USBメモリの曲をそのまま鳴らせます（アップロード不要）。電源を入れ直すたびに選び直しが必要です。")}
-            </p>
-            <p className="settings-hint">
-              ファイルを選ぶ画面でUSBが出てこないときは、左上のメニューから
-              USB(「USB」「udisk」などの名前)を選んでください。それでも出ない
-              場合は、車載機のファイル管理アプリでUSBの曲を本体の「Download」
-              などにコピーしてから選ぶか、iPhoneの「音源フォルダ」に入れて
-              ください。
+              プレイリストもスマホから切り替えられます。
             </p>
           </section>
 
