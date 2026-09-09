@@ -6649,7 +6649,8 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 }
 
 /* --- 車載機: ⚙の設定ボタンと、スマホと接続するQR --- */
-.settings-gear-button {
+/* スマホと接続(QR)のボタン。上部バーの他のボタンと同じ丸い形。 */
+.sync-button {
   width: 30px;
   height: 30px;
   display: grid;
@@ -6658,10 +6659,18 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   border-radius: 999px;
   background: linear-gradient(180deg, #111814, #070a08);
   color: #82ae89;
-  font-size: 14px;
-  line-height: 1;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+}
+
+.sync-button svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .pairing-block {
@@ -7271,4 +7280,18 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   color: #7dff92;
   font-size: 9px;
   line-height: 1;
+}
+
+/* スマホと接続するだけの小さなダイアログ。 */
+.sync-card { width: min(420px, 92vw); text-align: center; }
+.sync-card h2 { margin-bottom: 16px; }
+.sync-card .two-actions { margin-top: 16px; justify-content: center; }
+.sync-card .pairing-start { width: 100%; }
+.sync-card .settings-hint {
+  display: block;
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #7d8894;
+  text-align: center;
 }

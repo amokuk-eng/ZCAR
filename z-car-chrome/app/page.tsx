@@ -543,7 +543,6 @@ export default function Home() {
     "";
   const homeDestination =
     settings.homeDest.trim() || mapDestinations[1]?.destination || "";
-  const [draft, setDraft] = useState<Settings>(defaults);
   const [clock, setClock] = useState("--:--");
   const [californiaClock, setCaliforniaClock] = useState("--:--");
   const [russiaClock, setRussiaClock] = useState("--:--");
@@ -1813,11 +1812,12 @@ export default function Home() {
     };
   }, [mediaSlot]);
 
-  const openSettings = () => {
-    setDraft(settings);
+  /** スマホと接続するためのQRを出す(押したらすぐ見えるようにする)。 */
+  const openPairing = () => {
     setPairingQr(null);
     setPairingError(false);
     settingsDialog.current?.showModal();
+    void startPairing();
   };
 
   /**
@@ -1832,7 +1832,6 @@ export default function Home() {
       key = generateSyncKey();
       const next = { ...settings, syncKey: key, syncedAt: 0 };
       setSettings(next);
-      setDraft((current) => ({ ...current, syncKey: key, syncedAt: 0 }));
     }
     try {
       const QRCode = (await import("qrcode")).default;
@@ -1915,10 +1914,8 @@ export default function Home() {
 
   const mainAction = async () => {
     if (homeboundMode) {
-      if (!settings.homeDest) {
-        openSettings();
-        return;
-      }
+      // 行き先が未設定なら何もしない(ボタンも押せないようにしてある)。
+      if (!settings.homeDest) return;
       await beginNavigation(settings.homeDest, "HOME");
       return;
     }
@@ -1936,10 +1933,7 @@ export default function Home() {
       await beginNavigation(destinationQuery, "DESTINATION");
       return;
     }
-    if (!settings.homeDest) {
-      openSettings();
-      return;
-    }
+    if (!settings.homeDest) return;
     await beginNavigation(settings.homeDest, "HOME");
   };
 
@@ -1951,11 +1945,8 @@ export default function Home() {
       checkedOutAt: hm(),
     };
     setSettings(next);
-    if (!next.homeDest) {
-      setDraft(next);
-      settingsDialog.current?.showModal();
-      return;
-    }
+    // 行き先が未設定のときは案内しない(ボタンも押せないようにしてある)。
+    if (!next.homeDest) return;
     await beginNavigation(next.homeDest, "HOME");
   };
 
@@ -2139,12 +2130,18 @@ export default function Home() {
             {!showMeter && (
               <button
                 type="button"
-                className="settings-gear-button"
-                onClick={openSettings}
-                aria-label="設定を開く"
-                title="設定"
+                className="sync-button"
+                onClick={openPairing}
+                aria-label="スマホと接続する(QRを表示)"
+                title="スマホと接続"
               >
-                <span aria-hidden="true">⚙</span>
+                {/* QRコードに見える印。押すと接続用のQRが出る。 */}
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="3" width="7" height="7" rx="1.4" />
+                  <rect x="14" y="3" width="7" height="7" rx="1.4" />
+                  <rect x="3" y="14" width="7" height="7" rx="1.4" />
+                  <path d="M14 14h3v3h-3zM18 18h3v3h-3zM14 20.5h1.5M20.5 14H21" />
+                </svg>
               </button>
             )}
             {showMeter && (
@@ -2998,146 +2995,39 @@ export default function Home() {
       </dialog>
 
       <dialog ref={settingsDialog}>
-        <div className="dialog-card settings-card">
-          <h2>Z CAR 設定</h2>
-
-          <section className="pairing-block">
-            <h3>スマホと接続</h3>
-            {pairingQr ? (
-              <div className="pairing-qr">
-                <img src={pairingQr} alt="接続用QRコード" width={720} height={720} />
-                <p>
-                  iPhoneのカメラでこのQRを読み取ってください。
-                  設定ページが開いて、この車とつながります。
-                </p>
-                <p className="pairing-warn">
-                  このQRは合言葉そのものです。他の人に見せたり撮影させたり
-                  しないでください。
-                </p>
-                <button type="button" onClick={() => setPairingQr(null)}>
-                  QRを隠す
-                </button>
-              </div>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="pairing-start"
-                  onClick={() => void startPairing()}
-                >
-                  {syncKey.length >= MIN_SYNC_KEY_LENGTH
-                    ? "接続用のQRを表示"
-                    : "スマホと接続する"}
-                </button>
-                <p className="settings-hint">
-                  {syncKey.length >= MIN_SYNC_KEY_LENGTH
-                    ? "接続済みです。別のスマホをつなぐときも、このQRを読み取ってください。"
-                    : "QRを出して、iPhoneのカメラで読み取ります。つながると、スマホからメーターの色や音楽を変えられます。"}
-                </p>
-              </>
-            )}
-            {pairingError ? (
-              <p className="pairing-warn">
-                QRを作れませんでした。もう一度押してください。
+        <div className="dialog-card sync-card">
+          <h2>スマホと接続</h2>
+          {pairingQr ? (
+            <div className="pairing-qr">
+              <img src={pairingQr} alt="接続用QRコード" width={720} height={720} />
+              <p>
+                iPhoneのカメラでこのQRを読み取ってください。
+                設定ページが開いて、この車とつながります。
               </p>
-            ) : null}
-          </section>
-
-          <section className="pairing-block">
-            <h3>音楽</h3>
-            <p className="settings-hint">
-              スマホの設定「音源フォルダ」に入れた曲が、メーター右下の
-              プレイヤーに並びます（いま {serverTracks.length} 曲）。
-              プレイリストもスマホから切り替えられます。
-            </p>
-          </section>
-
-          <label>
-            店舗名
-            <input
-              value={draft.storeName}
-              onChange={(event) =>
-                setDraft({ ...draft, storeName: event.target.value })
-              }
-            />
-          </label>
-          <label>
-            店舗住所 / 検索語
-            <input
-              value={draft.storeDest}
-              onChange={(event) =>
-                setDraft({ ...draft, storeDest: event.target.value })
-              }
-            />
-          </label>
-          <label>
-            勤務開始
-            <input
-              type="time"
-              value={draft.start}
-              onChange={(event) =>
-                setDraft({ ...draft, start: event.target.value })
-              }
-            />
-          </label>
-          <label>
-            自宅住所 / 検索語
-            <input
-              value={draft.homeDest}
-              onChange={(event) =>
-                setDraft({ ...draft, homeDest: event.target.value })
-              }
-            />
-          </label>
-          <label>
-            Google Routes APIキー
-            <input
-              type="password"
-              autoComplete="off"
-              value={draft.googleRoutesApiKey}
-              placeholder="Google Cloudで発行したキーを入力"
-              onChange={(event) =>
-                setDraft({ ...draft, googleRoutesApiKey: event.target.value })
-              }
-            />
-            <small className="settings-hint">
-              この端末内だけに保存され、到着予定時間の取得に使用します。
-            </small>
-          </label>
-          <label>
-            車両ID
-            <input
-              value={draft.carId}
-              onChange={(event) =>
-                setDraft({ ...draft, carId: event.target.value })
-              }
-            />
-          </label>
-          <a
-            className="settings-page-link"
-            href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/settings/`}
-          >
-            詳細設定ページを開く（メーターの色・車との同期）
-          </a>
+              <p className="pairing-warn">
+                このQRは合言葉そのものです。他の人に見せたり撮影させたり
+                しないでください。
+              </p>
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="pairing-start"
+                onClick={() => void startPairing()}
+              >
+                QRを表示する
+              </button>
+              <p className="settings-hint">
+                {pairingError
+                  ? "QRを作れませんでした。もう一度押してください。"
+                  : "QRを読み取ると、スマホからメーターの色・ナビの目的地・音楽を変えられます。"}
+              </p>
+            </>
+          )}
           <div className="two-actions">
             <button onClick={() => settingsDialog.current?.close()}>
-              キャンセル
-            </button>
-            <button
-              className="confirm"
-              onClick={() => {
-                setSettings({
-                  ...draft,
-                  storeName: draft.storeName || defaults.storeName,
-                  storeDest:
-                    draft.storeDest || draft.storeName || defaults.storeDest,
-                  start: draft.start || defaults.start,
-                  carId: draft.carId || defaults.carId,
-                });
-                settingsDialog.current?.close();
-              }}
-            >
-              保存
+              閉じる
             </button>
           </div>
         </div>
