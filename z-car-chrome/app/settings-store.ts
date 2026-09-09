@@ -507,6 +507,46 @@ export const deleteMusicTrack = async (key: string, id: string) =>
     }),
   );
 
+/** 車に貯めた曲を入れておく場所(sw.js の MUSIC_CACHE_NAME と同じ名前)。 */
+export const MUSIC_CACHE_NAME = "zcar-music-v1";
+
+/** 通信できないときのために、最後に見た一覧を端末に控えておく。 */
+export const MUSIC_LIBRARY_KEY = "zcar-music-library";
+
+export const readStoredLibrary = (): {
+  tracks: MusicTrack[];
+  playlists: MusicPlaylist[];
+  activePlaylistId: string;
+} => {
+  const empty = { tracks: [], playlists: [], activePlaylistId: "" };
+  if (typeof window === "undefined") return empty;
+  try {
+    const raw = window.localStorage.getItem(MUSIC_LIBRARY_KEY);
+    if (!raw) return empty;
+    const stored = JSON.parse(raw) as Partial<MusicListResult>;
+    return {
+      tracks: Array.isArray(stored.tracks) ? stored.tracks : [],
+      playlists: Array.isArray(stored.playlists) ? stored.playlists : [],
+      activePlaylistId:
+        typeof stored.activePlaylistId === "string" ? stored.activePlaylistId : "",
+    };
+  } catch {
+    return empty;
+  }
+};
+
+export const writeStoredLibrary = (library: {
+  tracks: MusicTrack[];
+  playlists: MusicPlaylist[];
+  activePlaylistId: string;
+}) => {
+  try {
+    window.localStorage.setItem(MUSIC_LIBRARY_KEY, JSON.stringify(library));
+  } catch {
+    // 保存できなくても再生には支障がない。
+  }
+};
+
 export const SETTINGS_STORAGE_KEY = "zcar";
 
 /**

@@ -11,7 +11,10 @@ import {
   saveMusicPlaylists,
   generateSyncKey,
   MIN_SYNC_KEY_LENGTH,
+  MUSIC_CACHE_NAME,
   musicTrackUrl,
+  readStoredLibrary,
+  writeStoredLibrary,
   PHONE_LONG_EDGE_MAX,
   sanitizeSyncedSettings,
   pickSyncedFields,
@@ -597,6 +600,14 @@ export default function Home() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioTime, setAudioTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
+  // 車に貯めた曲(オフラインでも鳴らせる)。中身は曲のURL。
+  const [savedTracks, setSavedTracks] = useState<Set<string>>(new Set());
+  const [savingCount, setSavingCount] = useState(0);
+  // いま鳴らすURL。貯めてあれば端末の中から、無ければサーバーから読む。
+  const [playUrl, setPlayUrl] = useState<string | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
+  // 曲を変えたあと、読み込みが終わってから鳴らすための印。
+  const wantPlayRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   // 音楽を鳴らし始めたら、ホームのYouTubeは作り直して止める(音の二重を防ぐ)。
   const [youtubeReloadKey, setYoutubeReloadKey] = useState(0);
@@ -1558,6 +1569,115 @@ export default function Home() {
   }));
   const currentTrack = playlistTracks[trackIndex] ?? null;
 
+  // 起動時は、前に見た一覧を端末から読む(圏外でもそのまま鳴らせる)。
+  useEffect(() => {
+    if (!ready) return;
+    const stored = readStoredLibrary();
+    if (stored.tracks.length) {
+      setServerTracks(stored.tracks);
+      setMusicPlaylists(stored.playlists);
+      setActivePlaylistId(stored.activePlaylistId);
+    }
+  }, [ready]);
+
+  // どの曲を貯め終えているかを調べ、まだの曲を順番に貯める。
+  useEffect(() => {
+    if (!ready || typeof caches === "undefined" || !serverTracks.length) return;
+    let active = true;
+
+    const store = async () => {
+      const cache = await caches.open(MUSIC_CACHE_NAME);
+      const wanted = serverTracks.map((track) => musicTrackUrl(track));
+      // 消された曲は端末からも消す(容量を空ける)。
+      const keys = await cache.keys();
+      await Promise.all(
+        keys
+          .filter((request) => !wanted.some((url) => request.url.endsWith(url)))
+          .map((request) => cache.delete(request)),
+      );
+
+      const done = new Set<string>();
+      for (const url of wanted) {
+        if (await cache.match(url)) done.add(url);
+      }
+      if (!active) return;
+      setSavedTracks(new Set(done));
+
+      // まだ貯めていない曲を、1曲ずつ落としてくる(通信を細く使う)。
+      const missing = wanted.filter((url) => !done.has(url));
+      setSavingCount(missing.length);
+      for (const url of missing) {
+        if (!active) return;
+        try {
+          await cache.add(url);
+          done.add(url);
+          setSavedTracks(new Set(done));
+        } catch {
+          // 圏外などで落とせなければ、次に開いたときに試す。
+        }
+        if (!active) return;
+        setSavingCount((current) => Math.max(0, current - 1));
+      }
+    };
+
+    void store().catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [ready, serverTracks]);
+
+  // 鳴らすURLを決める。貯めてあれば端末の中から読む(通信を使わない)。
+  useEffect(() => {
+    let active = true;
+    const release = () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+    };
+    if (!currentTrack) {
+      release();
+      setPlayUrl(null);
+      return;
+    }
+    const url = currentTrack.url;
+    const resolve = async () => {
+      if (typeof caches !== "undefined") {
+        try {
+          const cache = await caches.open(MUSIC_CACHE_NAME);
+          const hit = await cache.match(url);
+          if (hit) {
+            const blob = await hit.blob();
+            if (!active) return;
+            release();
+            const objectUrl = URL.createObjectURL(blob);
+            objectUrlRef.current = objectUrl;
+            setPlayUrl(objectUrl);
+            return;
+          }
+        } catch {
+          // 取り出せなければサーバーから読む。
+        }
+      }
+      if (!active) return;
+      release();
+      setPlayUrl(url);
+    };
+    void resolve();
+    return () => {
+      active = false;
+    };
+  }, [currentTrack?.url]);
+
+  // 曲を切り替えたときは、読み込みが終わってから鳴らす。
+  useEffect(() => {
+    if (!playUrl || !wantPlayRef.current) return;
+    wantPlayRef.current = false;
+    const audio = audioRef.current;
+    if (!audio) return;
+    void audio.play().catch(() => setIsPlaying(false));
+  }, [playUrl]);
+
   // 置き場の曲を読みに行く(合言葉があるときだけ)。
   useEffect(() => {
     if (!syncEnabled) return;
@@ -1577,6 +1697,11 @@ export default function Home() {
             return same ? current : result.playlists;
           });
           setActivePlaylistId(result.activePlaylistId);
+          writeStoredLibrary({
+            tracks: result.tracks,
+            playlists: result.playlists,
+            activePlaylistId: result.activePlaylistId,
+          });
         })
         .catch(() => {
           // 圏外などは次の周期に任せる。
@@ -1615,12 +1740,8 @@ export default function Home() {
     setTrackIndex(next);
     if (!autoPlay) return;
     setYoutubeReloadKey((key) => key + 1);
-    // 曲を差し替えた直後は src がまだ古いので、描画を待ってから鳴らす。
-    window.setTimeout(() => {
-      const audio = audioRef.current;
-      if (!audio) return;
-      void audio.play().catch(() => setIsPlaying(false));
-    }, 0);
+    // 曲の読み込み先が決まってから鳴らす(貯めた曲は端末の中から読む)。
+    wantPlayRef.current = true;
   };
 
   /** 車の画面からプレイリストを切り替える(スマホにも反映される)。 */
@@ -2312,7 +2433,10 @@ export default function Home() {
                 {carPlaying ? null : (
                   <article className="green-media-card" aria-label="音楽プレイヤー">
                     <header>
-                      <small>{activePlaylist ? activePlaylist.name : "MUSIC"}</small>
+                      <small>
+                        {activePlaylist ? activePlaylist.name : "MUSIC"}
+                        {savingCount > 0 ? ` · 保存中 ${savingCount}` : ""}
+                      </small>
                       <b>
                         {playlistTracks.length
                           ? `${trackIndex + 1} / ${playlistTracks.length}`
@@ -2332,6 +2456,9 @@ export default function Home() {
                             ? "PLAYING"
                             : "PAUSED"
                           : "STOPPED"}
+                        {currentTrack && savedTracks.has(currentTrack.url) ? (
+                          <b title="この端末に保存済み(通信なしで鳴ります)">⬇</b>
+                        ) : null}
                       </span>
                       <em>
                         {formatMusicTime(audioTime)} / {formatMusicTime(audioDuration)}
@@ -2699,7 +2826,7 @@ export default function Home() {
         {/* 音の実体。画面を切り替えても止まらないよう、ここに1つだけ置く。 */}
         <audio
           ref={audioRef}
-          src={currentTrack?.url}
+          src={playUrl ?? undefined}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
           onEnded={() => playTrack(trackIndex + 1)}
