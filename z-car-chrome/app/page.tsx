@@ -586,6 +586,8 @@ export default function Home() {
     Array<{ id: string; title: string; url: string }>
   >([]);
   const [trackIndex, setTrackIndex] = useState(0);
+  // 端末から曲を選んだときの結果表示(見つからなかった場合の案内にも使う)。
+  const [localPickNote, setLocalPickNote] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   // 音楽を鳴らし始めたら、ホームのYouTubeは作り直して止める(音の二重を防ぐ)。
@@ -1606,13 +1608,31 @@ export default function Home() {
     }
   };
 
-  /** USBなど、この端末の中から音楽ファイルを直接選ぶ。 */
+  /**
+   * USBなど、この端末の中から音楽ファイルを直接選ぶ。
+   * 車載機のファイル選択は種類で絞ると USB が出てこないことがあるので、
+   * 選ぶときは全部見せて、受け取ってからこちらで音楽だけを拾う。
+   */
   const pickLocalTracks = (fileList: FileList | null) => {
     const files = fileList ? Array.from(fileList) : [];
-    if (!files.length) return;
+    if (!files.length) {
+      setLocalPickNote("ファイルが選ばれませんでした。");
+      return;
+    }
+    const audioFiles = files.filter(
+      (file) =>
+        file.type.startsWith("audio/") ||
+        /\.(mp3|m4a|aac|wav|ogg|oga|opus|flac|mp4)$/i.test(file.name),
+    );
+    if (!audioFiles.length) {
+      setLocalPickNote(
+        `${files.length}件のうち、音楽ファイルはありませんでした。`,
+      );
+      return;
+    }
     localTracks.forEach((track) => URL.revokeObjectURL(track.url));
     setLocalTracks(
-      files.map((file, index) => ({
+      audioFiles.map((file, index) => ({
         id: `local-${index}-${file.name}`,
         title: file.name.replace(/\.[^.]+$/, ""),
         url: URL.createObjectURL(file),
@@ -1620,6 +1640,7 @@ export default function Home() {
     );
     setTrackIndex(0);
     setIsPlaying(false);
+    setLocalPickNote(`${audioFiles.length}曲を選びました。`);
   };
 
   // ホームの枠はメーター表示中もDOMに残る(CSSで隠しているだけ)なので、
@@ -2842,19 +2863,25 @@ export default function Home() {
               <input
                 type="file"
                 multiple
-                accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac"
                 onChange={(event) => {
                   pickLocalTracks(event.target.files);
                   event.target.value = "";
-                  settingsDialog.current?.close();
                 }}
               />
-              <span>この端末（USBなど）の曲を選ぶ</span>
+              <span>この端末・USBの曲を選ぶ</span>
             </label>
+            <p className="settings-hint" role="status">
+              {localPickNote ||
+                (localTracks.length
+                  ? `USBなどから ${localTracks.length} 曲を選んでいます（電源を切ると選び直しです）。`
+                  : "USBメモリの曲をそのまま鳴らせます（アップロード不要）。電源を入れ直すたびに選び直しが必要です。")}
+            </p>
             <p className="settings-hint">
-              {localTracks.length
-                ? `USBなどから ${localTracks.length} 曲を選んでいます（電源を切ると選び直しです）。`
-                : "USBメモリの中の曲をそのまま鳴らせます。アップロードは不要ですが、選び直しは電源を入れるたびに必要です。"}
+              ファイルを選ぶ画面でUSBが出てこないときは、左上のメニューから
+              USB(「USB」「udisk」などの名前)を選んでください。それでも出ない
+              場合は、車載機のファイル管理アプリでUSBの曲を本体の「Download」
+              などにコピーしてから選ぶか、iPhoneの「音源フォルダ」に入れて
+              ください。
             </p>
           </section>
 
