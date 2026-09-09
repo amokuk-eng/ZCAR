@@ -360,6 +360,97 @@ export const pushSharedSettings = async (key: string, settings: Settings) =>
     settings: pickSyncedFields(settings),
   });
 
+/* --- 音源置き場 (music.php) --- */
+
+export const MUSIC_ENDPOINT = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/music.php`;
+
+/** 音源置き場の1曲。url はエンドポイントからの相対パス。 */
+export type MusicTrack = {
+  id: string;
+  title: string;
+  url: string;
+  size: number;
+};
+
+export type MusicListResult = {
+  ok: boolean;
+  tracks: MusicTrack[];
+  totalBytes: number;
+  skipped?: Array<{ name: string; reason: string }>;
+  saved?: number;
+};
+
+/** 曲の URL を、そのまま再生できる絶対パスにする。 */
+export const musicTrackUrl = (track: MusicTrack) =>
+  `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/${track.url}`;
+
+const readMusicResponse = async (response: Response): Promise<MusicListResult> => {
+  if (!response.ok) return { ok: false, tracks: [], totalBytes: 0 };
+  const data = (await response.json()) as {
+    ok?: boolean;
+    tracks?: unknown;
+    totalBytes?: unknown;
+    skipped?: unknown;
+    saved?: unknown;
+  };
+  const tracks = Array.isArray(data.tracks)
+    ? data.tracks.flatMap((entry) => {
+        if (!entry || typeof entry !== "object") return [];
+        const item = entry as Record<string, unknown>;
+        if (typeof item.id !== "string" || typeof item.url !== "string") return [];
+        return [
+          {
+            id: item.id,
+            title: typeof item.title === "string" ? item.title : "TRACK",
+            url: item.url,
+            size: typeof item.size === "number" ? item.size : 0,
+          },
+        ];
+      })
+    : [];
+  return {
+    ok: data.ok === true,
+    tracks,
+    totalBytes: typeof data.totalBytes === "number" ? data.totalBytes : 0,
+    skipped: Array.isArray(data.skipped)
+      ? (data.skipped as Array<{ name: string; reason: string }>)
+      : undefined,
+    saved: typeof data.saved === "number" ? data.saved : undefined,
+  };
+};
+
+/** 置いてある曲の一覧を取る。 */
+export const fetchMusicTracks = async (key: string) =>
+  readMusicResponse(
+    await fetch(MUSIC_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, action: "list" }),
+      cache: "no-store",
+    }),
+  );
+
+/** 音楽ファイルを預ける。 */
+export const uploadMusicFiles = async (key: string, files: File[]) => {
+  const form = new FormData();
+  form.append("key", key);
+  files.forEach((file) => form.append("file[]", file));
+  return readMusicResponse(
+    await fetch(MUSIC_ENDPOINT, { method: "POST", body: form }),
+  );
+};
+
+/** 曲を消す。 */
+export const deleteMusicTrack = async (key: string, id: string) =>
+  readMusicResponse(
+    await fetch(MUSIC_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, action: "delete", id }),
+      cache: "no-store",
+    }),
+  );
+
 export const SETTINGS_STORAGE_KEY = "zcar";
 
 /**
