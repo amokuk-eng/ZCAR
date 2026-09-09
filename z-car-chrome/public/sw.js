@@ -3,6 +3,8 @@
 // 同一オリジンの静的アセット(ハッシュ付きチャンク・画像)はキャッシュ優先。
 // 外部API(天気・シフト・地図タイル等)はキャッシュせず素通しする。
 const CACHE_NAME = "zcar-runtime-v1";
+// 音楽ファイルはページ側が明示的に貯めるので、ここでは消さないでおく。
+const MUSIC_CACHE_NAME = "zcar-music-v1";
 
 self.addEventListener("install", () => self.skipWaiting());
 
@@ -12,7 +14,9 @@ self.addEventListener("activate", (event) => {
       .keys()
       .then((keys) =>
         Promise.all(
-          keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)),
+          keys
+            .filter((key) => key !== CACHE_NAME && key !== MUSIC_CACHE_NAME)
+            .map((key) => caches.delete(key)),
         ),
       )
       .then(() => self.clients.claim()),
@@ -32,6 +36,9 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  // 設定と音源のやり取りは素通しする。音楽ファイルは途中から読む要求
+  // (Range)が来るので、ここで横取りするとうまく鳴らないことがある。
+  if (url.pathname.includes("/api/")) return;
 
   if (request.mode === "navigate") {
     event.respondWith(
