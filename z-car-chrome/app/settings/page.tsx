@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  adoptMusicLibrary,
   defaults,
   fetchSharedSettings,
   mergeFuelEntries,
@@ -10,6 +11,7 @@ import {
   METER_THEMES,
   deleteMusicTrack,
   fetchMusicTracks,
+  generateSyncKey,
   MAX_MUSIC_PLAYLISTS,
   MAX_MUSIC_PLAYLIST_NAME,
   saveMusicPlaylists,
@@ -45,11 +47,6 @@ const emptyFuelDraft = {
 };
 
 /** Googleマップを案内モードで開くURL。車側の目的地ボタンと同じ形式。 */
-const navigationUrl = (destination: string) =>
-  "https://www.google.com/maps/dir/?api=1&destination=" +
-  encodeURIComponent(destination) +
-  "&travelmode=driving&dir_action=navigate";
-
 export default function PhoneSettingsPage() {
   const [draft, setDraft] = useState<Settings>(defaults);
   const [ready, setReady] = useState(false);
@@ -60,10 +57,16 @@ export default function PhoneSettingsPage() {
   const [openCard, setOpenCard] = useState<string | null>(null);
   const toggleCard = (id: string) =>
     setOpenCard((current) => (current === id ? null : id));
-  // ナビカードの中の目的地編集。ふだんは畳んでおく。
-  const [destEditOpen, setDestEditOpen] = useState(false);
   const [fuelDraft, setFuelDraft] = useState(emptyFuelDraft);
   const [fuelSaved, setFuelSaved] = useState(false);
+  // カメラでQRを読み取る画面。
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanState, setScanState] = useState<{
+    kind: "idle" | "opening" | "scanning" | "done" | "error";
+    note?: string;
+  }>({ kind: "idle" });
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   // 車載機のような大きい画面から来たかどうか(描画後に測る)。
   const [wideScreen, setWideScreen] = useState(false);
   // 音源置き場(サーバー)の中身。
@@ -90,10 +93,19 @@ export default function PhoneSettingsPage() {
     // QRを読み取って来た場合、URLの「#」以降に合言葉が入っている。
     const handedOff = readSyncKeyFromHash(window.location.hash);
     if (handedOff) {
+      const previousKey = stored.syncKey.trim();
       // 合言葉が変わったら、それまでの同期時刻は無効。0に戻して車側の内容を取り込む。
-      stored = { ...stored, syncKey: handedOff, syncedAt: 0 };
+      stored = { ...stored, syncKey: handedOff, syncedAt: 0, pairedAt: Date.now() };
       writeSettings(stored);
       setHandoffDone(true);
+      // つなぐ前にこの端末へ入れた曲を、車の置き場へ移す。
+      if (previousKey.length >= MIN_SYNC_KEY_LENGTH && previousKey !== handedOff) {
+        void adoptMusicLibrary(handedOff, previousKey)
+          .then((result) => {
+            if (result.ok) applyLibrary(result);
+          })
+          .catch(() => undefined);
+      }
       // 合言葉を履歴やアドレスバーに残さない。
       window.history.replaceState(null, "", window.location.pathname);
     }
@@ -159,11 +171,6 @@ export default function PhoneSettingsPage() {
     }
   };
 
-  // 住所が入っている目的地だけをナビの候補にする(番号は設定の並び順)。
-  const navigableDestinations = draft.mapDestinations
-    .map((entry, index) => ({ entry, number: index + 1 }))
-    .filter(({ entry }) => entry.destination.trim() !== "");
-
   const updateDestination = (index: number, patch: Partial<MapDestination>) => {
     setDraft((current) => ({
       ...current,
@@ -176,7 +183,65 @@ export default function PhoneSettingsPage() {
   };
 
   const syncKey = draft.syncKey.trim();
-  const canReachCar = syncKey.length >= MIN_SYNC_KEY_LENGTH;
+  const hasKey = syncKey.length >= MIN_SYNC_KEY_LENGTH;
+  // 「つながっている」のは、車のQRを読み取ったときだけ。
+  // (曲を先に入れるために、この端末が自分で作った合言葉は接続ではない)
+  const isPaired = draft.pairedAt > 0 && hasKey;
+
+  /**
+   * 音源を置くための合言葉。まだ無ければこの端末で作る。
+   * 車とつないだときに、その合言葉の置き場へ引っ越す。
+   */
+  const ensureMusicKey = () => {
+    if (hasKey) return syncKey;
+    const key = generateSyncKey();
+    const next = { ...draft, syncKey: key, syncedAt: 0 };
+    setDraft(next);
+    writeSettings(next);
+    return key;
+  };
+
+  /** カメラでQRを読み取る。読めたら車とつながる。 */
+  const startScan = async () => {
+    setScanState({ kind: "opening", note: "カメラを準備しています…" });
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setScanOpen(true);
+      setScanState({ kind: "scanning", note: "車の画面のQRを枠に入れてください" });
+    } catch {
+      setScanState({
+        kind: "error",
+        note: "カメラを使えませんでした。設定でカメラを許可してください。",
+      });
+    }
+  };
+
+  /** カメラを閉じる。 */
+  const stopScan = useCallback(() => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setScanOpen(false);
+  }, []);
+
+  /** 車のQRを読み取ったときの処理(カメラ・URLのどちらからでも同じ)。 */
+  const applyCarKey = (carKey: string) => {
+    const previousKey = syncKey;
+    const next = { ...draft, syncKey: carKey, syncedAt: 0, pairedAt: Date.now() };
+    setDraft(next);
+    writeSettings(next);
+    if (previousKey.length >= MIN_SYNC_KEY_LENGTH && previousKey !== carKey) {
+      // つなぐ前に入れた曲を、車の置き場へ移す。
+      void adoptMusicLibrary(carKey, previousKey)
+        .then((result) => {
+          if (result.ok) applyLibrary(result);
+        })
+        .catch(() => undefined);
+    }
+  };
 
   /** サーバーから返ってきた中身を画面に反映する。 */
   const applyLibrary = (result: {
@@ -191,9 +256,77 @@ export default function PhoneSettingsPage() {
     setActivePlaylistId(result.activePlaylistId);
   };
 
+  // 設定ページを開いたまま、QRのURL(「#」以降だけ違う)に飛んできたとき。
+  // この場合はページが読み込み直されないので、ここで拾う。
+  useEffect(() => {
+    if (!ready) return;
+    const onHashChange = () => {
+      const key = readSyncKeyFromHash(window.location.hash);
+      if (!key || key === draft.syncKey.trim()) return;
+      applyCarKey(key);
+      setHandoffDone(true);
+      window.history.replaceState(null, "", window.location.pathname);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  });
+
+  // カメラを開いている間、映像からQRを探し続ける。
+  useEffect(() => {
+    if (!scanOpen) return;
+    let active = true;
+    let timer = 0;
+    const video = videoRef.current;
+    if (!video || !streamRef.current) return;
+    video.srcObject = streamRef.current;
+    void video.play().catch(() => undefined);
+
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+
+    const scan = async () => {
+      if (!active) return;
+      if (context && video.videoWidth > 0) {
+        // 大きすぎると重いので、横640pxまで縮めてから読む。
+        const scale = Math.min(1, 640 / video.videoWidth);
+        canvas.width = Math.round(video.videoWidth * scale);
+        canvas.height = Math.round(video.videoHeight * scale);
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const image = context.getImageData(0, 0, canvas.width, canvas.height);
+        try {
+          const jsQR = (await import("jsqr")).default;
+          const found = jsQR(image.data, canvas.width, canvas.height);
+          if (found?.data && active) {
+            const hash = found.data.includes("#") ? found.data.slice(found.data.indexOf("#")) : "";
+            const key = readSyncKeyFromHash(hash);
+            if (key) {
+              active = false;
+              applyCarKey(key);
+              stopScan();
+              setScanState({ kind: "done", note: "車とつながりました" });
+              return;
+            }
+            setScanState({ kind: "scanning", note: "Z CAR のQRではないようです" });
+          }
+        } catch {
+          // 読み取りに失敗しても次のコマで試す。
+        }
+      }
+      if (active) timer = window.setTimeout(scan, 250);
+    };
+    timer = window.setTimeout(scan, 400);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [scanOpen, stopScan]);
+
+  // 画面を離れるときは必ずカメラを止める。
+  useEffect(() => stopScan, [stopScan]);
+
   // 音源置き場の中身は、カードを開いたときに読みに行く。
   useEffect(() => {
-    if (openCard !== "files" || !canReachCar) return;
+    if (openCard !== "files" || !hasKey) return;
     let active = true;
     setMusicState({ kind: "loading" });
     fetchMusicTracks(syncKey)
@@ -212,15 +345,16 @@ export default function PhoneSettingsPage() {
     return () => {
       active = false;
     };
-  }, [openCard, canReachCar, syncKey]);
+  }, [openCard, hasKey, syncKey]);
 
   /** 選んだ音楽ファイルを預ける。 */
   const uploadFiles = async (fileList: FileList | null) => {
     const files = fileList ? Array.from(fileList) : [];
-    if (!files.length || !canReachCar) return;
+    if (!files.length) return;
+    const key = ensureMusicKey();
     setMusicState({ kind: "uploading", note: `${files.length}曲を送っています…` });
     try {
-      const result = await uploadMusicFiles(syncKey, files);
+      const result = await uploadMusicFiles(key, files);
       if (!result.ok) {
         setMusicState({ kind: "error", note: "アップロードできませんでした" });
         return;
@@ -240,7 +374,7 @@ export default function PhoneSettingsPage() {
 
   /** 置いてある曲を消す。 */
   const removeTrack = async (track: MusicTrack) => {
-    if (!canReachCar) return;
+    if (!hasKey) return;
     if (!window.confirm(`「${track.title}」を消します。よろしいですか？`)) return;
     try {
       const result = await deleteMusicTrack(syncKey, track.id);
@@ -418,6 +552,36 @@ export default function PhoneSettingsPage() {
         </p>
       </header>
 
+      <section className={`zsetup-section zsetup-card${openCard === "pair" ? " is-open" : ""}`}>
+        <button
+          type="button"
+          className="zsetup-card-head"
+          aria-expanded={openCard === "pair"}
+          onClick={() => toggleCard("pair")}
+        >
+          <span>
+            <b>車と接続</b>
+            <small>{isPaired ? "接続済み" : "まだつながっていません"}</small>
+          </span>
+          <i aria-hidden="true" />
+        </button>
+        {openCard === "pair" ? (
+          <div className="zsetup-card-body">
+            <button type="button" className="zsetup-scan" onClick={() => void startScan()}>
+              カメラでQRを読み取る
+            </button>
+            <p className="zsetup-music-state" role="status">
+              {scanState.note ?? ""}
+            </p>
+            <p className="zsetup-sync-note">
+              車の画面の右上（QRのマーク）を押すとQRが出ます。それをこのボタンから
+              読み取ると、車とつながります。つながると、メーターの色・ナビの目的地・
+              音楽がこの端末から変えられます。
+            </p>
+          </div>
+        ) : null}
+      </section>
+
       <section className={`zsetup-section zsetup-card zsetup-nav${openCard === "nav" ? " is-open" : ""}`}>
         <button
           type="button"
@@ -426,45 +590,14 @@ export default function PhoneSettingsPage() {
           onClick={() => toggleCard("nav")}
         >
           <span>
-            <b>ナビ</b>
-            <small>設定した目的地へGoogleマップで案内を開始します</small>
+            <b>ナビの目的地</b>
+            <small>車の「目的地設定」に並ぶ行き先を登録します</small>
           </span>
           <i aria-hidden="true" />
         </button>
         {openCard === "nav" ? (
           <div className="zsetup-card-body">
-        <div className="zsetup-nav-list">
-            {navigableDestinations.length > 0 ? (
-              navigableDestinations.map(({ entry, number }) => (
-                <a
-                  className="zsetup-nav-target"
-                  key={number}
-                  href={navigationUrl(entry.destination.trim())}
-                >
-                  <b>{number}</b>
-                  <span>
-                    <strong>{entry.label.trim() || "目的地"}</strong>
-                    <small>{entry.destination.trim()}</small>
-                  </span>
-                  <em>案内開始</em>
-                </a>
-              ))
-            ) : (
-              <p className="zsetup-nav-empty">
-                下の「ナビの目的地」に住所を入れると、ここに並びます。
-              </p>
-            )}
-        </div>
-        <button
-          type="button"
-          className="zsetup-dest-toggle"
-          aria-expanded={destEditOpen}
-          onClick={() => setDestEditOpen((open) => !open)}
-        >
-          {destEditOpen ? "目的地の編集を閉じる" : "目的地を編集する"}
-        </button>
-        {destEditOpen ? (
-          <div className="zsetup-dest-edit">
+        <div className="zsetup-dest-edit">
         <div className="zsetup-playlists">
           {draft.mapDestinations.map((entry, index) => (
             <div className="zsetup-playlist" key={index}>
@@ -493,10 +626,10 @@ export default function PhoneSettingsPage() {
         </div>
         <p className="zsetup-sync-note">
           住所でも「ケーズデンキ 東住吉中野店」のような店名でも構いません。
-          空欄にした番号は、この一覧にも車のボタンにも出なくなります。
+          空欄にした番号は、車のボタンにも出なくなります。
+          案内の開始は車の画面から行います（下の「案内開始」）。
         </p>
-          </div>
-        ) : null}
+        </div>
           </div>
         ) : null}
       </section>
@@ -676,7 +809,12 @@ export default function PhoneSettingsPage() {
         </button>
         {openCard === "files" ? (
           <div className="zsetup-card-body">
-            {canReachCar ? (
+            {isPaired ? null : (
+              <p className="zsetup-notice">
+                まだ車とつながっていません。ここに入れた曲は、
+                車とつないだときにそのまま車へ渡されます。
+              </p>
+            )}
               <>
                 <label className="zsetup-upload">
                   <input
@@ -806,17 +944,11 @@ export default function PhoneSettingsPage() {
                     : ""}
                 </p>
               </>
-            ) : (
-              <p className="zsetup-sync-note">
-                先に車と接続してください（車の画面の ⚙ →「スマホと接続」の
-                QRを、iPhoneのカメラで読み取ります）。
-              </p>
-            )}
           </div>
         ) : null}
       </section>
 
-      {openCard === "theme" || (openCard === "nav" && destEditOpen) ? (
+      {openCard === "theme" || openCard === "nav" ? (
       <div className="zsetup-actions">
         <button type="button" className="zsetup-save" onClick={save}>
           保存する
@@ -833,6 +965,17 @@ export default function PhoneSettingsPage() {
                   : ""}
         </p>
       </div>
+      ) : null}
+
+      {scanOpen ? (
+        <div className="zsetup-scanner" role="dialog" aria-label="QRの読み取り">
+          <video ref={videoRef} playsInline muted />
+          <div className="zsetup-scanner-frame" aria-hidden="true" />
+          <p>{scanState.note ?? "車の画面のQRを枠に入れてください"}</p>
+          <button type="button" onClick={stopScan}>
+            やめる
+          </button>
+        </div>
       ) : null}
 
       {/* 車載機がまちがってこの画面に来たときの戻り道。スマホには出さない。 */}

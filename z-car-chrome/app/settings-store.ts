@@ -197,6 +197,8 @@ export type Settings = {
   meterTheme: MeterTheme;
   /** 設定同期の合言葉。空なら同期しない。端末内だけに保存し、送信内容には含めない。 */
   syncKey: string;
+  /** 車とつないだ時刻(0なら未接続)。端末ごとの値なので同期しない。 */
+  pairedAt: number;
   /** 最後に同期できた内容の時刻(ミリ秒)。これより新しいものが来たら取り込む。 */
   syncedAt: number;
   /** ミュージック画面に並べる YouTube プレイリスト。 */
@@ -221,6 +223,7 @@ export const defaults: Settings = {
   checkedOutAt: "",
   meterTheme: "green",
   syncKey: "",
+  pairedAt: 0,
   syncedAt: 0,
   playlists: defaultPlaylists,
   mapDestinations: defaultMapDestinations,
@@ -496,6 +499,20 @@ export const saveMusicPlaylists = async (
     }),
   );
 
+/**
+ * 車とつなぐ前にスマホへ入れた曲を、車の置き場へ引っ越す。
+ * 両方の合言葉を知っているこの端末からだけ呼べる。
+ */
+export const adoptMusicLibrary = async (key: string, fromKey: string) =>
+  readMusicResponse(
+    await fetch(MUSIC_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, action: "adopt", fromKey }),
+      cache: "no-store",
+    }),
+  );
+
 /** 曲を消す。 */
 export const deleteMusicTrack = async (key: string, id: string) =>
   readMusicResponse(
@@ -614,6 +631,7 @@ export const readSettings = (): Settings => {
         ? stored.meterTheme
         : defaults.meterTheme,
       syncKey: typeof stored.syncKey === "string" ? stored.syncKey : "",
+      pairedAt: typeof stored.pairedAt === "number" ? stored.pairedAt : 0,
       syncedAt: Number.isFinite(stored.syncedAt) ? Number(stored.syncedAt) : 0,
       playlists: sanitizePlaylists(stored.playlists),
       mapDestinations: sanitizeMapDestinations(stored.mapDestinations),

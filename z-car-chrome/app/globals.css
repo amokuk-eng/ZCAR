@@ -7408,3 +7408,126 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   background: linear-gradient(180deg, rgba(35, 106, 112, .85), rgba(8, 24, 26, .9));
   color: #eafcff;
 }
+
+/* --- 車のホーム: 目的地を選ぶダイアログ --- */
+.dest-card { width: min(520px, 92vw); }
+.dest-card h2 { margin-bottom: 14px; }
+.dest-card .two-actions { margin-top: 16px; justify-content: center; }
+
+.dest-choices {
+  display: grid;
+  gap: 8px;
+  max-height: 52vh;
+  overflow-y: auto;
+}
+
+.dest-choices button {
+  display: grid;
+  gap: 3px;
+  padding: 12px 14px;
+  border: 1px solid #2c3540;
+  border-radius: 12px;
+  background: #131a20;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dest-choices button b { font-size: 15px; font-weight: 800; }
+
+.dest-choices button small {
+  overflow: hidden;
+  color: #8b97a3;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dest-choices button.is-active {
+  border-color: #2f7f84;
+  background: linear-gradient(180deg, rgba(20, 46, 50, .9), rgba(9, 18, 20, .95));
+}
+
+.dest-choices button.is-active b { color: #6fe3ea; }
+
+/* --- スマホ設定: 車と接続(カメラでQRを読む) --- */
+.zsetup-scan {
+  width: 100%;
+  min-height: 48px;
+  margin-bottom: 10px;
+  border: 1px solid #2f7f84;
+  border-radius: 12px;
+  background: rgba(18, 38, 42, .75);
+  color: #6fe3ea;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  cursor: pointer;
+}
+
+.zsetup-notice {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(85, 224, 200, .3);
+  border-radius: 12px;
+  background: rgba(18, 38, 42, .5);
+  color: #9fd6dc;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.zsetup-scanner {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 16px;
+  padding: 24px;
+  background: #04080a;
+}
+
+.zsetup-scanner video {
+  width: min(86vw, 380px);
+  aspect-ratio: 3 / 4;
+  border-radius: 18px;
+  background: #000;
+  object-fit: cover;
+}
+
+.zsetup-scanner-frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(58vw, 250px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%) translateY(-28px);
+  border: 2px solid rgba(111, 227, 234, .85);
+  border-radius: 16px;
+  box-shadow: 0 0 0 9999px rgba(4, 8, 10, .35);
+  pointer-events: none;
+}
+
+.zsetup-scanner p {
+  margin: 0;
+  color: #cfe9ec;
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.zsetup-scanner button {
+  min-height: 46px;
+  padding: 0 28px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: transparent;
+  color: #9ba6b1;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}

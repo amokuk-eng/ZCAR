@@ -72,6 +72,7 @@ if ($isMultipart) {
     $key = is_string($_POST['key'] ?? null) ? trim($_POST['key']) : '';
     $action = 'upload';
     $trackId = '';
+    $fromKey = '';
 } else {
     $raw = file_get_contents('php://input');
     $body = json_decode((string) $raw, true);
@@ -81,6 +82,7 @@ if ($isMultipart) {
     $key = is_string($body['key'] ?? null) ? trim($body['key']) : '';
     $action = is_string($body['action'] ?? null) ? $body['action'] : 'list';
     $trackId = is_string($body['id'] ?? null) ? $body['id'] : '';
+    $fromKey = is_string($body['fromKey'] ?? null) ? trim($body['fromKey']) : '';
 }
 
 $keyLength = strlen($key);
@@ -212,6 +214,43 @@ if ($action === 'playlists') {
         ),
         LOCK_EX,
     );
+    respondWithLibrary($dir, $folder);
+}
+
+// --- 引っ越し(車とつなぐ前にスマホへ入れた曲を、車の置き場へ移す) ---
+if ($action === 'adopt') {
+    $fromLength = strlen($fromKey);
+    if ($fromLength < MIN_KEY_LENGTH || $fromLength > MAX_KEY_LENGTH || $fromKey === $key) {
+        // 移す元が無い(または同じ)なら、そのまま今の中身を返す。
+        respondWithLibrary($dir, $folder);
+    }
+    $fromFolder = hash('sha256', $fromKey);
+    $fromDir = __DIR__ . '/media/' . $fromFolder;
+    if (is_dir($fromDir)) {
+        $moved = 0;
+        foreach (glob($fromDir . '/*.json') ?: [] as $metaFile) {
+            if (basename($metaFile) === 'playlists.json') {
+                continue;
+            }
+            $meta = json_decode((string) file_get_contents($metaFile), true);
+            if (!is_array($meta) || !isset($meta['file'])) {
+                continue;
+            }
+            $audio = $fromDir . '/' . basename((string) $meta['file']);
+            if (!is_file($audio) || count($tracks) + $moved >= MAX_TRACKS) {
+                continue;
+            }
+            @rename($audio, $dir . '/' . basename((string) $meta['file']));
+            @rename($metaFile, $dir . '/' . basename($metaFile));
+            $moved++;
+        }
+        // 移す先にプレイリストが無ければ、こちらも引き継ぐ。
+        if (is_file($fromDir . '/playlists.json') && !is_file($dir . '/playlists.json')) {
+            @rename($fromDir . '/playlists.json', $dir . '/playlists.json');
+        }
+        @unlink($fromDir . '/playlists.json');
+        @rmdir($fromDir);
+    }
     respondWithLibrary($dir, $folder);
 }
 
