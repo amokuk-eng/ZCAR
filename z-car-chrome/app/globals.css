@@ -7593,17 +7593,18 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
    PATTERN ORANGE ver2 — ターコイズと同じ情報を、オレンジの意匠で。
    ============================================================ */
 #app.meter-theme-eva.is-fullscreen .eva-v2 .eva-stage {
-  grid-template-columns: 208px minmax(0, 1fr) 236px;
+  grid-template-columns: clamp(208px, 23vw, 244px) minmax(0, 1fr) 236px;
   gap: 10px;
 }
 
+/* 左は 時刻 / 本日走行 / 水温・電圧 と続けて、いちばん下に地図を敷く。 */
 #app.meter-theme-eva.is-fullscreen .eva-v2 .eva-column {
-  grid-template-rows: 112px minmax(0, 1fr) 106px 76px;
+  grid-template-rows: 104px 66px 100px minmax(0, 1fr);
   gap: 8px;
 }
 
 #app.meter-theme-eva.is-fullscreen .eva-v2 .eva-column-right {
-  grid-template-rows: 94px 80px 86px minmax(0, 1fr);
+  grid-template-rows: 94px 80px minmax(0, 1fr);
 }
 
 /* 水温と電圧の2連(横並び)。 */
@@ -7666,72 +7667,6 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   font-size: 8px;
   letter-spacing: .06em;
 }
-
-/* 外気温と天気 */
-#app.meter-theme-eva.is-fullscreen .eva-weather-row {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  gap: 4px;
-  align-items: center;
-}
-
-#app.meter-theme-eva.is-fullscreen .eva-weather-row span {
-  display: grid;
-  justify-items: center;
-  gap: 1px;
-}
-
-#app.meter-theme-eva.is-fullscreen .eva-weather-row svg {
-  width: 26px;
-  height: 26px;
-  color: #ff9d47;
-}
-
-#app.meter-theme-eva.is-fullscreen .eva-weather-row b {
-  color: #cf8b45;
-  font-size: 7px;
-  letter-spacing: .14em;
-}
-
-/* 世界時計 */
-#app.meter-theme-eva.is-fullscreen .eva-world ul {
-  display: grid;
-  gap: 2px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-#app.meter-theme-eva.is-fullscreen .eva-world li {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-#app.meter-theme-eva.is-fullscreen .eva-world li b {
-  color: #a4712f;
-  font-size: 7px;
-  letter-spacing: .14em;
-}
-
-#app.meter-theme-eva.is-fullscreen .eva-world li time {
-  color: #ffe9d2;
-  font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 15px;
-  font-variant-numeric: tabular-nums;
-}
-
-/* 中央 */
-#app.meter-theme-eva.is-fullscreen .eva-v2 .eva-center {
-  display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr);
-  gap: 8px;
-  min-height: 0;
-}
-
-#app.meter-theme-eva.is-fullscreen .eva-v2 .eva-speed strong { font-size: 96px; }
 
 /* 地図 */
 #app.meter-theme-eva.is-fullscreen .eva-map {
@@ -7981,23 +7916,22 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
 }
 
 /* 縦が狭い画面(ブラウザのバーで削られたときなど)の PATTERN ORANGE ver2。
-   世界時計を省き、文字とボタンを小さくして全部を収める。 */
+   文字とボタンを小さくして全部を収める。 */
 @media (max-height: 520px) {
   #app.meter-theme-eva.is-fullscreen .eva-v2 .eva-stage { gap: 8px; }
   #app.meter-theme-eva.is-fullscreen .eva-v2 .eva-column {
-    grid-template-rows: 92px minmax(0, 1fr) 64px;
+    grid-template-rows: 76px 50px 68px minmax(0, 1fr);
     gap: 6px;
   }
-  #app.meter-theme-eva.is-fullscreen .eva-world { display: none; }
   #app.meter-theme-eva.is-fullscreen .eva-v2 .eva-column-right {
-    grid-template-rows: 70px 56px 58px minmax(0, 1fr);
+    grid-template-rows: 70px 58px minmax(0, 1fr);
   }
   #app.meter-theme-eva.is-fullscreen .eva-v2 .eva-box { padding: 6px 8px; gap: 2px; }
   #app.meter-theme-eva.is-fullscreen .eva-v2 .eva-box strong { font-size: 24px; }
   #app.meter-theme-eva.is-fullscreen .eva-time strong { font-size: 26px; }
   #app.meter-theme-eva.is-fullscreen .eva-duo .eva-box strong { font-size: 20px; }
-  #app.meter-theme-eva.is-fullscreen .eva-weather-row svg { width: 22px; height: 22px; }
-  #app.meter-theme-eva.is-fullscreen .eva-v2 .eva-speed strong { font-size: 68px; }
+  #app.meter-theme-eva.is-fullscreen .eva-v2 .eva-speed strong { font-size: 76px; }
+  #app.meter-theme-eva.is-fullscreen .eva-v2 .eva-center { padding: 8px 12px; gap: 6px; }
   #app.meter-theme-eva.is-fullscreen .media-title { font-size: 12px; margin: 1px 0 3px; }
   #app.meter-theme-eva.is-fullscreen .media-progress { margin: 4px 0 5px; }
   #app.meter-theme-eva.is-fullscreen .media-controls button { min-height: 32px; }
@@ -8005,6 +7939,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .72); backdrop-filter: blur(3px); }
   #app.meter-theme-eva.is-fullscreen .media-controls svg { width: 15px; height: 15px; }
   #app.meter-theme-eva.is-fullscreen .media-lists { display: none; }
   /* 補足の一行は省いて、計器の数字を優先する。 */
+  #app.meter-theme-eva.is-fullscreen .eva-sun,
   #app.meter-theme-eva.is-fullscreen .eva-range b,
   #app.meter-theme-eva.is-fullscreen .eva-fuel b,
   #app.meter-theme-eva.is-fullscreen .eva-duo .eva-box b { display: none; }

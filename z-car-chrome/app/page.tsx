@@ -2136,7 +2136,7 @@ export default function Home() {
                 </header>
 
                 <div className="eva-stage">
-                  {/* 左: 時刻・外気温と天気・世界時計・本日の走行 */}
+                  {/* 左: 時刻・本日の走行・水温と電圧・地図 */}
                   <div className="eva-column">
                     <article className="eva-box eva-time">
                       <small>時刻 <span>LOCAL TIME</span></small>
@@ -2151,64 +2151,48 @@ export default function Home() {
                       </div>
                     </article>
 
-                    <article className={`eva-box eva-weather ${weatherStatus}`}>
-                      <small>外気温 <span>OUTSIDE</span></small>
-                      <strong>
-                        {weather ? Math.round(weather.temperature) : "--"}
-                        <em>°C</em>
-                      </strong>
-                      <div className="eva-weather-row">
-                        {weather ? (
-                          <>
-                            <span>
-                              <svg viewBox="0 0 48 48" aria-hidden="true">
-                                <WeatherGlyph
-                                  code={weather.code}
-                                  isDay={weather.isDay}
-                                  x={24}
-                                  y={24}
-                                  size={40}
-                                />
-                              </svg>
-                              <b>NOW</b>
-                            </span>
-                            {weather.hours.slice(0, 2).map((hour, index) => (
-                              <span key={hour.time}>
-                                <svg viewBox="0 0 48 48" aria-hidden="true">
-                                  <WeatherGlyph
-                                    code={hour.code}
-                                    isDay={hour.isDay}
-                                    x={24}
-                                    y={24}
-                                    size={36}
-                                  />
-                                </svg>
-                                <b>{index === 0 ? "+3H" : "+6H"}</b>
-                              </span>
-                            ))}
-                          </>
-                        ) : (
-                          <span><b>{weatherStatus === "loading" ? "取得中" : "--"}</b></span>
-                        )}
-                      </div>
-                    </article>
-
-                    <article className="eva-box eva-world">
-                      <small>世界時計 <span>WORLD</span></small>
-                      <ul>
-                        <li><b>CALIFORNIA</b><time>{californiaClock}</time></li>
-                        <li><b>RUSSIA</b><time>{russiaClock}</time></li>
-                        <li><b>CHINA</b><time>{chinaClock}</time></li>
-                      </ul>
-                    </article>
-
                     <article className="eva-box eva-trip">
                       <small>本日走行 <span>TODAY</span></small>
                       <strong>{dailyTripKm.toFixed(1)}<em>km</em></strong>
                     </article>
+
+                    {/* 水温と電圧は横に並べて、下の地図の高さを稼ぐ。 */}
+                    <div className="eva-duo">
+                      <article className={`eva-box${evaCoolantWarn ? " warn" : ""}`}>
+                        <small>水温 <span>°C</span></small>
+                        <strong>{obdData.coolant ?? "--"}</strong>
+                        <div className="eva-bar" aria-hidden="true">
+                          <i style={{ width: `${evaCoolantLevel}%` }} />
+                        </div>
+                        <b>{evaCoolantWarn ? "警告" : "正常"}</b>
+                      </article>
+                      <article className={`eva-box${evaVoltageWarn ? " warn" : ""}`}>
+                        <small>電圧 <span>V</span></small>
+                        <strong>{obdData.voltage?.toFixed(1) ?? "--"}</strong>
+                        <div className="eva-bar" aria-hidden="true">
+                          <i style={{ width: `${evaVoltageLevel}%` }} />
+                        </div>
+                        <b>{evaVoltageWarn ? "警告" : "正常"}</b>
+                      </article>
+                    </div>
+
+                    <div className="eva-map">
+                      <div
+                        ref={greenMapElementRef}
+                        className="eva-map-canvas"
+                        aria-label="現在地の地図"
+                      />
+                      <div
+                        className={`eva-map-standby${greenMapReady ? " is-ready" : ""}`}
+                        aria-hidden="true"
+                      >
+                        <b>地図取得中 ACQUIRING MAP</b>
+                      </div>
+                      <div className="eva-map-mark" aria-hidden="true" />
+                    </div>
                   </div>
 
-                  {/* 中央: 速度・回転・地図 */}
+                  {/* 中央: パターン・速度・回転 */}
                   <div className="eva-center">
                     <header className={`eva-pattern ${evaPattern.tone}`}>
                       <span className="eva-pattern-code">{evaPattern.code}</span>
@@ -2243,23 +2227,9 @@ export default function Home() {
                       </div>
                       <b>{obdData.rpm === null ? "---- rpm" : `${obdData.rpm} rpm`}</b>
                     </div>
-                    <div className="eva-map">
-                      <div
-                        ref={greenMapElementRef}
-                        className="eva-map-canvas"
-                        aria-label="現在地の地図"
-                      />
-                      <div
-                        className={`eva-map-standby${greenMapReady ? " is-ready" : ""}`}
-                        aria-hidden="true"
-                      >
-                        <b>地図取得中 ACQUIRING MAP</b>
-                      </div>
-                      <div className="eva-map-mark" aria-hidden="true" />
-                    </div>
                   </div>
 
-                  {/* 右: 航続距離・平均燃費・水温・電圧・音楽 */}
+                  {/* 右: 航続距離・平均燃費・音楽 */}
                   <div className="eva-column eva-column-right">
                     <button
                       type="button"
@@ -2297,26 +2267,6 @@ export default function Home() {
                         {estimatedRemainingLiters?.toFixed(1) ?? "--"} L
                       </b>
                     </article>
-
-                    {/* 水温と電圧は横に並べて、右下のプレイヤーの場所を空ける。 */}
-                    <div className="eva-duo">
-                      <article className={`eva-box${evaCoolantWarn ? " warn" : ""}`}>
-                        <small>水温 <span>°C</span></small>
-                        <strong>{obdData.coolant ?? "--"}</strong>
-                        <div className="eva-bar" aria-hidden="true">
-                          <i style={{ width: `${evaCoolantLevel}%` }} />
-                        </div>
-                        <b>{evaCoolantWarn ? "警告" : "正常"}</b>
-                      </article>
-                      <article className={`eva-box${evaVoltageWarn ? " warn" : ""}`}>
-                        <small>電圧 <span>V</span></small>
-                        <strong>{obdData.voltage?.toFixed(1) ?? "--"}</strong>
-                        <div className="eva-bar" aria-hidden="true">
-                          <i style={{ width: `${evaVoltageLevel}%` }} />
-                        </div>
-                        <b>{evaVoltageWarn ? "警告" : "正常"}</b>
-                      </article>
-                    </div>
 
                     {carPlaying ? null : (
                       <article className="eva-box media-card" aria-label="音楽プレイヤー">
