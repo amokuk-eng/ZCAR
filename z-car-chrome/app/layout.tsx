@@ -38,8 +38,19 @@ export const metadata: Metadata = {
   description: "PORMIDO G10向け Zポータル・カーナビホーム",
   manifest: `${basePath}/manifest.webmanifest`,
   icons: {
-    icon: `${basePath}/favicon.svg`,
+    icon: [
+      { url: `${basePath}/favicon.svg`, type: "image/svg+xml" },
+      { url: `${basePath}/icon-192.png`, sizes: "192x192", type: "image/png" },
+    ],
     shortcut: `${basePath}/favicon.svg`,
+    // iPhoneでホーム画面に追加したときのアイコン(メーター風)。
+    apple: [
+      { url: `${basePath}/apple-touch-icon.png`, sizes: "180x180", type: "image/png" },
+    ],
+  },
+  // ホーム画面に並んだときの名前。
+  appleWebApp: {
+    title: "Z CAR",
   },
   openGraph: {
     title: "Z CAR",
