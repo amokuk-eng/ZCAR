@@ -521,6 +521,8 @@ export default function Home() {
 
   // マップ画面の 1〜5 のナビ目的地。設定ページから編集できる。
   const mapDestinations = settings.mapDestinations;
+  // 案内開始で使う行き先。「目的地設定」から選ぶ。
+  const [navTargetKey, setNavTargetKey] = useState("work");
   // 出勤・退勤は設定した店舗/自宅住所を使い、未入力なら1番・2番で代用する。
   const workDestination =
     settings.storeDest.trim() ||
@@ -529,6 +531,19 @@ export default function Home() {
     "";
   const homeDestination =
     settings.homeDest.trim() || mapDestinations[1]?.destination || "";
+  // 「目的地設定」で選べる候補。出勤・退勤と、登録済みの 1〜5。
+  const navChoices = [
+    { key: "work", label: "出勤", note: "店舗へ", destination: workDestination },
+    { key: "home", label: "退勤", note: "自宅へ", destination: homeDestination },
+    ...mapDestinations.map((entry, index) => ({
+      key: `dest-${index}`,
+      label: entry.label.trim() || `${index + 1}番`,
+      note: `${index + 1}番`,
+      destination: entry.destination.trim(),
+    })),
+  ].filter((entry) => entry.destination);
+  const navTarget =
+    navChoices.find((entry) => entry.key === navTargetKey) ?? navChoices[0] ?? null;
   const [clock, setClock] = useState("--:--");
   const [californiaClock, setCaliforniaClock] = useState("--:--");
   const [russiaClock, setRussiaClock] = useState("--:--");
@@ -584,6 +599,7 @@ export default function Home() {
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const homeDialog = useRef<HTMLDialogElement>(null);
+  const destDialog = useRef<HTMLDialogElement>(null);
   const settingsDialog = useRef<HTMLDialogElement>(null);
   // 音源置き場の曲(スマホから預けたもの)と、車で直接選んだ曲(USBなど)。
   const [serverTracks, setServerTracks] = useState<MusicTrack[]>([]);
@@ -2656,24 +2672,23 @@ export default function Home() {
                 className="live-map-canvas"
                 aria-label="現在地を追従するライブマップ"
               />
-              <nav className="map-obd-bar map-commute-bar" aria-label="出勤・退勤ナビ">
+              <nav className="map-obd-bar map-commute-bar" aria-label="ナビの操作">
                 <button
                   type="button"
-                  disabled={!workDestination}
-                  onClick={() => workDestination && openMap(workDestination)}
+                  disabled={!navTarget}
+                  onClick={() => navTarget && openMap(navTarget.destination)}
                 >
-                  <small>WORK ROUTE</small>
-                  <strong>出勤</strong>
-                  <em>店舗へ</em>
+                  <small>START GUIDE</small>
+                  <strong>案内開始</strong>
+                  <em>{navTarget ? navTarget.label : "目的地なし"}</em>
                 </button>
                 <button
                   type="button"
-                  disabled={!homeDestination}
-                  onClick={() => homeDestination && openMap(homeDestination)}
+                  onClick={() => destDialog.current?.showModal()}
                 >
-                  <small>HOME ROUTE</small>
-                  <strong>退勤</strong>
-                  <em>自宅へ</em>
+                  <small>DESTINATION</small>
+                  <strong>目的地設定</strong>
+                  <em>{navTarget ? navTarget.note : "スマホで登録"}</em>
                 </button>
               </nav>
             </div>
@@ -2886,6 +2901,37 @@ export default function Home() {
               <span><b>PATTERN ORANGE</b><small>COMMAND ROOM COCKPIT</small></span>
               <em>{settings.meterTheme === "eva" ? "ACTIVE" : "SELECT"}</em>
             </button>
+          </div>
+        </div>
+      </dialog>
+
+      <dialog ref={destDialog}>
+        <div className="dialog-card dest-card">
+          <h2>目的地を選ぶ</h2>
+          {navChoices.length ? (
+            <div className="dest-choices">
+              {navChoices.map((choice) => (
+                <button
+                  key={choice.key}
+                  type="button"
+                  className={choice.key === navTarget?.key ? "is-active" : undefined}
+                  onClick={() => {
+                    setNavTargetKey(choice.key);
+                    destDialog.current?.close();
+                  }}
+                >
+                  <b>{choice.label}</b>
+                  <small>{choice.destination}</small>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="settings-hint">
+              目的地がまだありません。スマホの設定「ナビ」から登録してください。
+            </p>
+          )}
+          <div className="two-actions">
+            <button onClick={() => destDialog.current?.close()}>閉じる</button>
           </div>
         </div>
       </dialog>
