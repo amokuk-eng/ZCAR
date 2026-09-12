@@ -206,9 +206,6 @@ const loadGoogleMaps = (key: string) => {
   }
   return w.__gmapsPromise;
 };
-/** オレンジメーターの回転計のマス数。 */
-const EVA_REV_CELLS = 24;
-
 /** 再生位置の表示(秒 -> 0:00)。 */
 const formatMusicTime = (seconds: number) => {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -355,6 +352,138 @@ function WeatherGlyph({
       {kind === "snow" && <path className="weather-fall" d="M14 35V43 M10 39H18 M24 35V43 M20 39H28 M34 35V43 M30 39H38" />}
       {kind === "storm" && <path className="weather-bolt" d="M25 32L18 41H24L21 47L33 36H27L31 32Z" />}
     </g>
+  );
+}
+
+function EvaCockpit({
+  rpm,
+  speed,
+  coolant,
+  voltage,
+  status,
+}: {
+  rpm: number | null;
+  speed: number | null;
+  coolant: number | null;
+  voltage: number | null;
+  status: ObdConnectionStatus;
+}) {
+  const live = status === "live";
+  const linking =
+    status === "requesting" ||
+    status === "connecting" ||
+    status === "connected" ||
+    status === "initializing";
+  const coolantWarn = coolant !== null && coolant >= 100;
+  const voltageWarn = voltage !== null && voltage <= 11.8;
+  const anyWarn = coolantWarn || voltageWarn;
+  const pattern = anyWarn
+    ? { code: "赤", label: "PATTERN RED", tone: "alert" }
+    : live
+      ? { code: "緑", label: "PATTERN GREEN", tone: "normal" }
+      : { code: "橙", label: "PATTERN ORANGE", tone: "hold" };
+  const revCells = 24;
+  const revActive = Math.round(
+    Math.max(0, Math.min(1, (rpm ?? 0) / 8000)) * revCells,
+  );
+  const coolantLevel =
+    coolant === null
+      ? 0
+      : Math.max(0, Math.min(100, ((coolant - 40) / 80) * 100));
+  const voltageLevel =
+    voltage === null
+      ? 0
+      : Math.max(0, Math.min(100, ((voltage - 10) / 5) * 100));
+  const signalLabel = live
+    ? "回線接続 LINK ACTIVE"
+    : linking
+      ? "同期中 SYNCING"
+      : "信号消失 NO SIGNAL";
+
+  return (
+    <div className={`eva-stage ${pattern.tone}`}>
+      <div className="eva-column">
+        <article className={`eva-box${coolantWarn ? " warn" : ""}`}>
+          <small>水温 <span>COOLANT</span></small>
+          <strong>
+            {coolant ?? "--"}
+            <em>°C</em>
+          </strong>
+          <div className="eva-bar" aria-hidden="true">
+            <i style={{ width: `${coolantLevel}%` }} />
+          </div>
+          <b>{coolantWarn ? "警告 OVERHEAT" : "正常 NOMINAL"}</b>
+        </article>
+        <article className={`eva-box${voltageWarn ? " warn" : ""}`}>
+          <small>電圧 <span>VOLTAGE</span></small>
+          <strong>
+            {voltage ?? "--"}
+            <em>V</em>
+          </strong>
+          <div className="eva-bar" aria-hidden="true">
+            <i style={{ width: `${voltageLevel}%` }} />
+          </div>
+          <b>{voltageWarn ? "警告 LOW VOLT" : "正常 NOMINAL"}</b>
+        </article>
+      </div>
+
+      <div className="eva-center">
+        <header className={`eva-pattern ${pattern.tone}`}>
+          <span className="eva-pattern-code">{pattern.code}</span>
+          <span className="eva-pattern-label">{pattern.label}</span>
+        </header>
+        <div
+          className="eva-speed"
+          aria-label={`Speed ${speed ?? 0} kilometers per hour`}
+        >
+          <strong>{speed === null ? "--" : Math.round(speed)}</strong>
+          <span>
+            km/h<small>速度 VELOCITY</small>
+          </span>
+        </div>
+        <div
+          className="eva-rev"
+          aria-label={`Engine ${rpm ?? 0} RPM`}
+        >
+          <small>回転 REV</small>
+          <div className="eva-rev-cells" aria-hidden="true">
+            {Array.from({ length: revCells }, (_, index) => (
+              <i
+                key={index}
+                className={
+                  index < revActive
+                    ? index >= revCells - 4
+                      ? "on hot"
+                      : "on"
+                    : undefined
+                }
+              />
+            ))}
+          </div>
+          <b>{rpm === null ? "---- rpm" : `${rpm} rpm`}</b>
+        </div>
+      </div>
+
+      <div className="eva-column">
+        <article className={`eva-box eva-signal${live ? "" : " warn"}`}>
+          <small>信号 <span>SIGNAL</span></small>
+          <strong className="eva-signal-state">{signalLabel}</strong>
+          <b>{live ? "OBD2 TELEMETRY" : "TOUCH OBD2 TO LINK"}</b>
+        </article>
+        <article className={`eva-box eva-status${anyWarn ? " warn" : ""}`}>
+          <small>状態 <span>STATUS</span></small>
+          <ul>
+            <li className={coolantWarn ? "bad" : undefined}>
+              {coolantWarn ? "▲ 機関温度上昇" : "・機関温度 安定"}
+            </li>
+            <li className={voltageWarn ? "bad" : undefined}>
+              {voltageWarn ? "▲ 電圧低下" : "・電源系 安定"}
+            </li>
+            <li>{live ? "・遠隔測定 良好" : "・遠隔測定 待機"}</li>
+          </ul>
+        </article>
+      </div>
+    </div>
   );
 }
 
@@ -528,9 +657,6 @@ export default function Home() {
     setCenter: (point: { lat: number; lng: number }) => void;
     moveCamera: (camera: Record<string, unknown>) => void;
   } | null>(null);
-  // 地図を実際に描いている DOM 要素。テーマを切り替えるとメーターの器が
-  // 差し替わるので、同じ地図インスタンスを使い回すと表示が消えてしまう。
-  const greenMapHostRef = useRef<HTMLElement | null>(null);
   const weatherLatitude = location ? Number(location.lat.toFixed(2)) : null;
   const weatherLongitude = location ? Number(location.lng.toFixed(2)) : null;
   const weatherLocationKey =
@@ -654,7 +780,6 @@ export default function Home() {
       homeGmapMarkerRef.current = null;
       homeGmapCircleRef.current = null;
       greenGmapRef.current = null;
-      greenMapHostRef.current = null;
     };
   }, []);
 
@@ -1174,14 +1299,18 @@ export default function Home() {
   }, [showMeter, showFuel]);
 
   useEffect(() => {
-    if (showMeter) return;
+    if (showMeter && settings.meterTheme === "green") return;
     greenGmapRef.current = null;
-    greenMapHostRef.current = null;
     setGreenMapReady(false);
   }, [showMeter, settings.meterTheme]);
 
   useEffect(() => {
-    if (!showMeter || !mapsApiKey || !greenMapElementRef.current) return;
+    if (
+      !showMeter ||
+      settings.meterTheme !== "green" ||
+      !mapsApiKey ||
+      !greenMapElementRef.current
+    ) return;
     let cancelled = false;
     const focusPoint = location
       ? { lat: location.lat, lng: location.lng }
@@ -1208,9 +1337,7 @@ export default function Home() {
             ) => void;
           };
         };
-        const hostChanged = greenMapHostRef.current !== greenMapElementRef.current;
-        if (!greenGmapRef.current || hostChanged) {
-          if (hostChanged) setGreenMapReady(false);
+        if (!greenGmapRef.current) {
           const map = new mapsApi.Map(greenMapElementRef.current, {
             center: focusPoint,
             zoom: GREEN_METER_MAP_ZOOM,
@@ -1224,7 +1351,6 @@ export default function Home() {
             keyboardShortcuts: false,
           });
           greenGmapRef.current = map;
-          greenMapHostRef.current = greenMapElementRef.current;
           // tilesloaded は地図インスタンスのイベントで、この effect の実行回とは
           // 無関係。位置情報が更新されるたび cleanup で cancelled が立つため、
           // ここで cancelled を見ると待機表示が永久に消えなくなる。
@@ -1356,27 +1482,6 @@ export default function Home() {
   } as CSSProperties;
   const greenCenterSpeed =
     displaySpeed === null ? null : Math.round(displaySpeed);
-
-  // --- オレンジ(PATTERN ORANGE)メーターの表示に使う値 ---
-  const evaLive = obdStatus === "live";
-  const evaCoolantWarn = obdData.coolant !== null && obdData.coolant >= 100;
-  const evaVoltageWarn = obdData.voltage !== null && obdData.voltage <= 11.8;
-  const evaPattern = evaCoolantWarn || evaVoltageWarn
-    ? { code: "赤", label: "PATTERN RED", tone: "alert" }
-    : evaLive
-      ? { code: "緑", label: "PATTERN GREEN", tone: "normal" }
-      : { code: "橙", label: "PATTERN ORANGE", tone: "hold" };
-  const evaRevActive = Math.round(
-    Math.max(0, Math.min(1, (obdData.rpm ?? 0) / 8000)) * EVA_REV_CELLS,
-  );
-  const evaCoolantLevel =
-    obdData.coolant === null
-      ? 0
-      : Math.max(0, Math.min(100, ((obdData.coolant - 40) / 80) * 100));
-  const evaVoltageLevel =
-    obdData.voltage === null
-      ? 0
-      : Math.max(0, Math.min(100, ((obdData.voltage - 10) / 5) * 100));
   const dailyTripKm = dailyTrip.date === today ? dailyTrip.distanceKm : 0;
   const performanceDate = `${today.slice(5, 7)}.${today.slice(8, 10)}`;
   const performanceWeekday = new Intl.DateTimeFormat("en-US", {
@@ -2120,11 +2225,7 @@ export default function Home() {
         {showMeter && (
           <main className="fullscreen-obd" aria-label="CARISTA OBD2 vehicle monitor">
             {settings.meterTheme === "eva" ? (
-              <section
-                className="eva-cluster eva-v2"
-                aria-label="Pattern orange command cockpit"
-                style={greenCockpitStyle}
-              >
+              <section className="eva-cluster" aria-label="Pattern orange command cockpit">
                 <header className={`eva-topline ${obdStatus}`}>
                   <strong>特別警戒 DRIVE MONITOR</strong>
                   <span><i aria-hidden="true" />{obdStatusLabelEn}</span>
@@ -2135,146 +2236,49 @@ export default function Home() {
                   </b>
                 </header>
 
-                <div className="eva-stage">
-                  {/* 左: 時刻・本日の走行・水温と電圧・地図 */}
-                  <div className="eva-column">
-                    <article className="eva-box eva-time">
-                      <small>時刻 <span>LOCAL TIME</span></small>
-                      <strong>{clock}</strong>
-                      <div className="eva-time-date">
-                        <span>{performanceDate}</span>
-                        <span>{performanceWeekday} · JST</span>
-                      </div>
-                      <div className="eva-sun">
-                        <span>日の出 {solarSunrise ?? "--:--"}</span>
-                        <span>日の入 {solarSunset ?? "--:--"}</span>
-                      </div>
-                    </article>
+                <EvaCockpit
+                  rpm={obdData.rpm}
+                  speed={displaySpeed}
+                  coolant={obdData.coolant}
+                  voltage={obdData.voltage}
+                  status={obdStatus}
+                />
 
-                    <article className="eva-box eva-trip">
-                      <small>本日走行 <span>TODAY</span></small>
-                      <strong>{dailyTripKm.toFixed(1)}<em>km</em></strong>
-                    </article>
-
-                    {/* 水温と電圧は横に並べて、下の地図の高さを稼ぐ。 */}
-                    <div className="eva-duo">
-                      <article className={`eva-box${evaCoolantWarn ? " warn" : ""}`}>
-                        <small>水温 <span>°C</span></small>
-                        <strong>{obdData.coolant ?? "--"}</strong>
-                        <div className="eva-bar" aria-hidden="true">
-                          <i style={{ width: `${evaCoolantLevel}%` }} />
-                        </div>
-                        <b>{evaCoolantWarn ? "警告" : "正常"}</b>
-                      </article>
-                      <article className={`eva-box${evaVoltageWarn ? " warn" : ""}`}>
-                        <small>電圧 <span>V</span></small>
-                        <strong>{obdData.voltage?.toFixed(1) ?? "--"}</strong>
-                        <div className="eva-bar" aria-hidden="true">
-                          <i style={{ width: `${evaVoltageLevel}%` }} />
-                        </div>
-                        <b>{evaVoltageWarn ? "警告" : "正常"}</b>
-                      </article>
-                    </div>
-
-                    <div className="eva-map">
-                      <div
-                        ref={greenMapElementRef}
-                        className="eva-map-canvas"
-                        aria-label="現在地の地図"
-                      />
-                      <div
-                        className={`eva-map-standby${greenMapReady ? " is-ready" : ""}`}
-                        aria-hidden="true"
-                      >
-                        <b>地図取得中 ACQUIRING MAP</b>
-                      </div>
-                      <div className="eva-map-mark" aria-hidden="true" />
-                    </div>
-                  </div>
-
-                  {/* 中央: パターン・速度・回転 */}
-                  <div className="eva-center">
-                    <header className={`eva-pattern ${evaPattern.tone}`}>
-                      <span className="eva-pattern-code">{evaPattern.code}</span>
-                      <span className="eva-pattern-label">{evaPattern.label}</span>
-                    </header>
-                    <div
-                      className="eva-speed"
-                      aria-label={`Speed ${displaySpeed ?? 0} kilometers per hour`}
-                    >
-                      <strong>
-                        {greenCenterSpeed === null ? "--" : greenCenterSpeed}
-                      </strong>
-                      <span>
-                        km/h<small>速度 VELOCITY</small>
-                      </span>
-                    </div>
-                    <div className="eva-rev" aria-label={`Engine ${obdData.rpm ?? 0} RPM`}>
-                      <small>回転 REV</small>
-                      <div className="eva-rev-cells" aria-hidden="true">
-                        {Array.from({ length: EVA_REV_CELLS }, (_, index) => (
-                          <i
-                            key={index}
-                            className={
-                              index < evaRevActive
-                                ? index >= EVA_REV_CELLS - 4
-                                  ? "on hot"
-                                  : "on"
-                                : undefined
-                            }
-                          />
-                        ))}
-                      </div>
-                      <b>{obdData.rpm === null ? "---- rpm" : `${obdData.rpm} rpm`}</b>
-                    </div>
-                  </div>
-
-                  {/* 右: 航続距離・平均燃費・音楽 */}
-                  <div className="eva-column eva-column-right">
-                    <button
-                      type="button"
-                      className={`eva-box eva-range${
+                <footer className="eva-footer">
+                  <span><small>時刻 LOCAL TIME</small><b>{clock}</b></span>
+                  <button
+                    type="button"
+                    className={
+                      [
+                        fuelResetting ? "resetting" : "",
                         estimatedRemainingLiters !== null &&
                         estimatedRemainingLiters <= FUEL_RESERVE_L
-                          ? " warn"
-                          : ""
-                      }${fuelResetting ? " resetting" : ""}`}
-                      onPointerDown={startFuelReset}
-                      onPointerUp={cancelFuelReset}
-                      onPointerLeave={cancelFuelReset}
-                      onPointerCancel={cancelFuelReset}
-                      onContextMenu={(event) => event.preventDefault()}
-                      aria-label={`Estimated range ${Math.round(fuelRangeKm)} kilometers. Hold to refuel.`}
-                    >
-                      <small>航続距離 <span>RANGE</span></small>
-                      <strong>{Math.round(fuelRangeKm)}<em>km</em></strong>
-                      <div className="eva-bar" aria-hidden="true">
-                        <i style={{ width: `${fuelPercent}%` }} />
-                      </div>
-                      <b>長押しで給油リセット</b>
-                    </button>
-
-                    <article className="eva-box eva-fuel">
-                      <small>平均燃費 <span>FUEL AVG</span></small>
-                      <strong>
-                        {estimatedAverageFuelEconomy === null
-                          ? "--"
-                          : estimatedAverageFuelEconomy.toFixed(1)}
-                        <em>km/L</em>
-                      </strong>
-                      <b>
-                        満タン {Math.round(fuelTripKm)} km / 残
-                        {estimatedRemainingLiters?.toFixed(1) ?? "--"} L
-                      </b>
-                    </article>
-
-                    {carPlaying ? null : (
-                      <article className="eva-box media-card" aria-label="音楽プレイヤー">
-                        {musicPanel}
-                      </article>
-                    )}
-                  </div>
-                </div>
+                          ? "critical"
+                          : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ") || undefined
+                    }
+                    onPointerDown={startFuelReset}
+                    onPointerUp={cancelFuelReset}
+                    onPointerLeave={cancelFuelReset}
+                    onPointerCancel={cancelFuelReset}
+                    onContextMenu={(event) => event.preventDefault()}
+                    aria-label={`Estimated range ${Math.round(fuelRangeKm)} kilometers. Hold to refuel.`}
+                  >
+                    <small>活動限界 ACTIVITY LIMIT</small>
+                    <b>{Math.round(fuelRangeKm)} km</b>
+                    <i style={{ width: `${fuelPercent}%` }} aria-hidden="true" />
+                  </button>
+                  <span>
+                    <small>平均燃費 FUEL AVG</small>
+                    <b>
+                      {monthlyFuelEconomy === null
+                        ? "-- km/L"
+                        : `${monthlyFuelEconomy.toFixed(1)} km/L`}
+                    </b>
+                  </span>
+                </footer>
               </section>
             ) : (
               <section className="performance-cluster green-nav-cluster" style={greenCockpitStyle}>
@@ -2892,9 +2896,6 @@ export default function Home() {
               }}
             >
               <i className="theme-preview eva" aria-hidden="true">
-                <b className="eva-mini-side" />
-                <b className="eva-mini-core">88</b>
-                <b className="eva-mini-side eva-mini-player" />
                 <span>PATTERN ORANGE</span>
               </i>
               <span><b>PATTERN ORANGE</b><small>COMMAND ROOM COCKPIT</small></span>
