@@ -59,6 +59,8 @@ export default function PhoneSettingsPage() {
     setOpenCard((current) => (current === id ? null : id));
   const [fuelDraft, setFuelDraft] = useState(emptyFuelDraft);
   const [fuelSaved, setFuelSaved] = useState(false);
+  // 読み取った瞬間に出す「接続完了！」の知らせ。
+  const [pairedNotice, setPairedNotice] = useState(false);
   // カメラでQRを読み取る画面。
   const [scanOpen, setScanOpen] = useState(false);
   const [scanState, setScanState] = useState<{
@@ -229,6 +231,7 @@ export default function PhoneSettingsPage() {
 
   /** 車のQRを読み取ったときの処理(カメラ・URLのどちらからでも同じ)。 */
   const applyCarKey = (carKey: string) => {
+    setPairedNotice(true);
     const previousKey = syncKey;
     const next = { ...draft, syncKey: carKey, syncedAt: 0, pairedAt: Date.now() };
     setDraft(next);
@@ -323,6 +326,13 @@ export default function PhoneSettingsPage() {
 
   // 画面を離れるときは必ずカメラを止める。
   useEffect(() => stopScan, [stopScan]);
+
+  // 「接続完了！」は数秒で自分から消える(押しても消せる)。
+  useEffect(() => {
+    if (!pairedNotice) return;
+    const timer = window.setTimeout(() => setPairedNotice(false), 4000);
+    return () => window.clearTimeout(timer);
+  }, [pairedNotice]);
 
   // 音源置き場の中身は、カードを開いたときに読みに行く。
   useEffect(() => {
@@ -542,6 +552,21 @@ export default function PhoneSettingsPage() {
 
   return (
     <main className="zsetup" aria-busy={!ready}>
+      {pairedNotice ? (
+        <button
+          type="button"
+          className="zsetup-paired"
+          role="status"
+          onClick={() => setPairedNotice(false)}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M7 12.4l3.2 3.2L17 8.8" />
+          </svg>
+          <b>接続完了！</b>
+          <small>車とつながりました</small>
+        </button>
+      ) : null}
       <header className="zsetup-head">
         <p className="zsetup-eyebrow">Z PORTAL | CAR</p>
         <h1>Z CAR 設定</h1>
