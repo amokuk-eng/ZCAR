@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Z CAR">
   <!--
     Z CAR のアプリアイコン。オーナーのタント(L375S・ベージュ)を、
-    フロントガラスが目・グリルが笑顔になった可愛いキャラクターとして描いた。
+    ヘッドライトが目・グリルが笑顔になった可愛いキャラクターとして描いた。
     背が高く角ばった箱形・大きなガラス・短いボンネットというタントらしさは残す。
     実車のナンバーは出さずプレートは「Z CAR」。エンブレムは付けない。
   -->
@@ -10,7 +10,7 @@
       <stop offset="0" stop-color="#16262d"/>
       <stop offset="1" stop-color="#050a0c"/>
     </linearGradient>
-    <radialGradient id="glow" cx="50%" cy="42%" r="58%">
+    <radialGradient id="glow" cx="50%" cy="44%" r="58%">
       <stop offset="0" stop-color="#2ea7b4" stop-opacity=".42"/>
       <stop offset="1" stop-color="#2ea7b4" stop-opacity="0"/>
     </radialGradient>
@@ -24,17 +24,17 @@
       <stop offset="0" stop-color="#f8ecc6" stop-opacity=".9"/>
       <stop offset="1" stop-color="#f8ecc6" stop-opacity="0"/>
     </linearGradient>
-    <linearGradient id="glass" x1=".1" y1="0" x2=".9" y2="1">
-      <stop offset="0" stop-color="#c3e8ef"/>
-      <stop offset=".55" stop-color="#8fc8d7"/>
-      <stop offset="1" stop-color="#6aa7bb"/>
+    <linearGradient id="glass" x1=".12" y1="0" x2=".9" y2="1">
+      <stop offset="0" stop-color="#33555f"/>
+      <stop offset=".5" stop-color="#1d3038"/>
+      <stop offset="1" stop-color="#15242a"/>
     </linearGradient>
-    <linearGradient id="lamp" x1="0" y1="0" x2=".2" y2="1">
-      <stop offset="0" stop-color="#fdfefe"/>
-      <stop offset=".55" stop-color="#e6f1f4"/>
-      <stop offset="1" stop-color="#b3ccd4"/>
+    <linearGradient id="lamp" x1=".2" y1="0" x2=".5" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".6" stop-color="#eef6f8"/>
+      <stop offset="1" stop-color="#cbdde2"/>
     </linearGradient>
-    <radialGradient id="iris" cx="42%" cy="34%" r="72%">
+    <radialGradient id="iris" cx="40%" cy="32%" r="74%">
       <stop offset="0" stop-color="#5fc9dd"/>
       <stop offset=".6" stop-color="#2a8fa8"/>
       <stop offset="1" stop-color="#1b5e73"/>
@@ -45,9 +45,9 @@
   <rect width="512" height="512" fill="url(#glow)"/>
 
   <!-- 小さく表示したときに埋もれないよう、車体を一回り大きくして中央に置く。 -->
-  <g transform="translate(-23.6,-43.4) scale(1.1)">
+  <g transform="translate(-27,-53.4) scale(1.1)">
   <!-- 接地の影 -->
-  <ellipse cx="256" cy="452" rx="172" ry="24" fill="#000" opacity=".45"/>
+  <ellipse cx="256" cy="464" rx="174" ry="24" fill="#000" opacity=".45"/>
 
   <!-- ドアミラー(付け根は車体で隠れる) -->
   <g fill="#c2a566" stroke="#6b5324" stroke-width="6" stroke-linejoin="round">
@@ -56,7 +56,7 @@
   </g>
 
   <!-- 車体(背の高い箱形) -->
-  <path d="M124 94h264c25 0 40 16 42 45l6 262c1 25-12 39-36 39H112c-24 0-37-14-36-39l6-262c2-29 17-45 42-45z"
+  <path d="M124 94h264c25 0 40 16 42 45l6 272c1 25-12 39-36 39H112c-24 0-37-14-36-39l6-272c2-29 17-45 42-45z"
         fill="url(#body)" stroke="#6b5324" stroke-width="8" stroke-linejoin="round"/>
 
   <!-- ルーフレール -->
@@ -65,52 +65,50 @@
     <rect x="328" y="98" width="52" height="10" rx="5"/>
   </g>
 
-  <!-- フロントガラス(=顔。目が見えるよう明るいガラスにする) -->
+  <!-- フロントガラス -->
   <path d="M141 130h230c11 0 18 7 19 18l7 108c1 12-6 20-18 20H133c-12 0-19-8-18-20l7-108c1-11 8-18 19-18z"
         fill="url(#glass)" stroke="#111c20" stroke-width="12" stroke-linejoin="round"/>
-
-  <!-- 目 -->
-  <g>
-    <circle cx="198" cy="201" r="47" fill="#fdffff"/>
-    <circle cx="314" cy="201" r="47" fill="#fdffff"/>
-    <circle cx="200" cy="207" r="27" fill="url(#iris)"/>
-    <circle cx="312" cy="207" r="27" fill="url(#iris)"/>
-    <circle cx="200" cy="207" r="14" fill="#0d161a"/>
-    <circle cx="312" cy="207" r="14" fill="#0d161a"/>
-    <circle cx="191" cy="197" r="9" fill="#fff"/>
-    <circle cx="303" cy="197" r="9" fill="#fff"/>
-    <circle cx="208" cy="217" r="5" fill="#fff" opacity=".55"/>
-    <circle cx="320" cy="217" r="5" fill="#fff" opacity=".55"/>
-  </g>
+  <path d="M168 138h52l-60 130h-34l10-112c1-11 8-18 19-18z" fill="#7fd3dd" opacity=".15"/>
+  <path d="M262 138h28l-60 130h-28z" fill="#7fd3dd" opacity=".09"/>
 
   <!-- ワイパー -->
-  <g stroke="#1b2226" stroke-width="10" stroke-linecap="round" opacity=".5">
-    <path d="M152 296l96-14"/>
-    <path d="M256 296l96-14"/>
+  <g stroke="#1b2226" stroke-width="10" stroke-linecap="round" opacity=".9">
+    <path d="M152 296l96-16"/>
+    <path d="M256 296l96-16"/>
   </g>
 
   <!-- ボンネットの艶 -->
-  <path d="M104 300c48-11 256-11 304 0l-4 22c-56-11-240-11-296 0z" fill="url(#hood)"/>
+  <path d="M104 298c48-11 256-11 304 0l-4 20c-56-10-240-10-296 0z" fill="url(#hood)"/>
 
-  <!-- ヘッドライト -->
-  <rect x="100" y="308" width="94" height="44" rx="22" fill="url(#lamp)" stroke="#5d4a22" stroke-width="7"/>
-  <rect x="318" y="308" width="94" height="44" rx="22" fill="url(#lamp)" stroke="#5d4a22" stroke-width="7"/>
-  <circle cx="126" cy="330" r="11" fill="#f0a73c" opacity=".92"/>
-  <circle cx="386" cy="330" r="11" fill="#f0a73c" opacity=".92"/>
+  <!-- 目(ヘッドライト) -->
+  <g stroke="#5d4a22" stroke-width="7">
+    <ellipse cx="154" cy="338" rx="54" ry="38" fill="url(#lamp)"/>
+    <ellipse cx="358" cy="338" rx="54" ry="38" fill="url(#lamp)"/>
+  </g>
+  <circle cx="121" cy="356" r="11" fill="#f0a73c" opacity=".55"/>
+  <circle cx="391" cy="356" r="11" fill="#f0a73c" opacity=".55"/>
+  <circle cx="166" cy="340" r="26" fill="url(#iris)"/>
+  <circle cx="346" cy="340" r="26" fill="url(#iris)"/>
+  <circle cx="166" cy="340" r="14" fill="#0d161a"/>
+  <circle cx="346" cy="340" r="14" fill="#0d161a"/>
+  <circle cx="157" cy="331" r="9" fill="#fff"/>
+  <circle cx="337" cy="331" r="9" fill="#fff"/>
+  <circle cx="174" cy="350" r="5" fill="#fff" opacity=".55"/>
+  <circle cx="354" cy="350" r="5" fill="#fff" opacity=".55"/>
 
   <!-- ほっぺ -->
-  <ellipse cx="139" cy="372" rx="27" ry="12" fill="#d9705f" opacity=".3"/>
-  <ellipse cx="373" cy="372" rx="27" ry="12" fill="#d9705f" opacity=".3"/>
+  <ellipse cx="120" cy="392" rx="25" ry="11" fill="#d9705f" opacity=".32"/>
+  <ellipse cx="392" cy="392" rx="25" ry="11" fill="#d9705f" opacity=".32"/>
 
   <!-- 口(グリルが笑顔) -->
-  <path d="M180 364q76 44 152 0" fill="none" stroke="#182024" stroke-width="19" stroke-linecap="round"/>
+  <path d="M184 382q72 42 144 0" fill="none" stroke="#182024" stroke-width="18" stroke-linecap="round"/>
 
   <!-- ナンバープレート(実車の番号は出さない) -->
-  <rect x="204" y="398" width="104" height="32" rx="7" fill="#f2f6f0" stroke="#1e7a44" stroke-width="5"/>
-  <text x="256" y="421" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
-        font-size="21" font-weight="700" letter-spacing="1.4" fill="#1e7a44">Z CAR</text>
+  <rect x="204" y="416" width="104" height="28" rx="7" fill="#f2f6f0" stroke="#1e7a44" stroke-width="5"/>
+  <text x="256" y="437" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="19" font-weight="700" letter-spacing="1.3" fill="#1e7a44">Z CAR</text>
 
   <!-- バンパー下の黒い帯 -->
-  <path d="M84 434h344l-2 6c-2 12-10 18-24 18H110c-14 0-22-6-24-18z" fill="#10161a"/>
+  <path d="M84 444h344l-2 6c-2 12-10 18-24 18H110c-14 0-22-6-24-18z" fill="#10161a"/>
   </g>
 </svg>
