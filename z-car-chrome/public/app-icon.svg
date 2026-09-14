@@ -3,7 +3,7 @@
     Z CAR のアプリアイコン。オーナーのタント(L375S・ベージュ)を、
     ヘッドライトが目・グリルが笑顔になった可愛いキャラクターとして描いた。
     背が高く角ばった箱形・大きなガラス・短いボンネットというタントらしさは残す。
-    実車のナンバーは出さずプレートは「Z CAR」。エンブレムは付けない。
+    実車のナンバーやエンブレム、文字は入れていない。
   -->
   <defs>
     <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
@@ -45,9 +45,9 @@
   <rect width="512" height="512" fill="url(#glow)"/>
 
   <!-- 小さく表示したときに埋もれないよう、車体を一回り大きくして中央に置く。 -->
-  <g transform="translate(-27,-53.4) scale(1.1)">
+  <g transform="translate(-27,-44.4) scale(1.1)">
   <!-- 接地の影 -->
-  <ellipse cx="256" cy="464" rx="174" ry="24" fill="#000" opacity=".45"/>
+  <ellipse cx="256" cy="448" rx="174" ry="24" fill="#000" opacity=".45"/>
 
   <!-- ドアミラー(付け根は車体で隠れる) -->
   <g fill="#c2a566" stroke="#6b5324" stroke-width="6" stroke-linejoin="round">
@@ -56,7 +56,7 @@
   </g>
 
   <!-- 車体(背の高い箱形) -->
-  <path d="M124 94h264c25 0 40 16 42 45l6 272c1 25-12 39-36 39H112c-24 0-37-14-36-39l6-272c2-29 17-45 42-45z"
+  <path d="M124 94h264c25 0 40 16 42 45l6 256c1 25-12 39-36 39H112c-24 0-37-14-36-39l6-256c2-29 17-45 42-45z"
         fill="url(#body)" stroke="#6b5324" stroke-width="8" stroke-linejoin="round"/>
 
   <!-- ルーフレール -->
@@ -101,14 +101,9 @@
   <ellipse cx="392" cy="392" rx="25" ry="11" fill="#d9705f" opacity=".32"/>
 
   <!-- 口(グリルが笑顔) -->
-  <path d="M184 382q72 42 144 0" fill="none" stroke="#182024" stroke-width="18" stroke-linecap="round"/>
-
-  <!-- ナンバープレート(実車の番号は出さない) -->
-  <rect x="204" y="416" width="104" height="28" rx="7" fill="#f2f6f0" stroke="#1e7a44" stroke-width="5"/>
-  <text x="256" y="437" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
-        font-size="19" font-weight="700" letter-spacing="1.3" fill="#1e7a44">Z CAR</text>
+  <path d="M178 384q78 44 156 0" fill="none" stroke="#182024" stroke-width="18" stroke-linecap="round"/>
 
   <!-- バンパー下の黒い帯 -->
-  <path d="M84 444h344l-2 6c-2 12-10 18-24 18H110c-14 0-22-6-24-18z" fill="#10161a"/>
+  <path d="M84 428h344l-2 6c-2 12-10 18-24 18H110c-14 0-22-6-24-18z" fill="#10161a"/>
   </g>
 </svg>
