@@ -215,6 +215,8 @@ const formatMusicTime = (seconds: number) => {
 
 /** 音源置き場の一覧を見に行く間隔(設定より頻度は低くてよい)。 */
 const MUSIC_POLL_MS = 120000;
+// 接続用QRを出しておく秒数。合言葉そのものなので出しっぱなしにしない。
+const PAIRING_AUTO_CLOSE_S = 10;
 
 // 他の端末での設定変更を取りに行く間隔。
 const SYNC_POLL_MS = 30000;
@@ -601,6 +603,10 @@ export default function Home() {
   const homeDialog = useRef<HTMLDialogElement>(null);
   const destDialog = useRef<HTMLDialogElement>(null);
   const settingsDialog = useRef<HTMLDialogElement>(null);
+  // QRを出しっぱなしにしない(合言葉そのものなので)。表示してから
+  // PAIRING_AUTO_CLOSE_S 秒で自動的に閉じる。
+  const pairingTimerRef = useRef<number | null>(null);
+  const [pairingLeft, setPairingLeft] = useState(0);
   // 音源置き場の曲(スマホから預けたもの)と、車で直接選んだ曲(USBなど)。
   const [serverTracks, setServerTracks] = useState<MusicTrack[]>([]);
   const [musicPlaylists, setMusicPlaylists] = useState<MusicPlaylist[]>([]);
@@ -1752,6 +1758,35 @@ export default function Home() {
     }
   };
 
+  const stopPairingTimer = () => {
+    if (pairingTimerRef.current !== null) {
+      window.clearInterval(pairingTimerRef.current);
+      pairingTimerRef.current = null;
+    }
+  };
+
+  const closePairing = () => {
+    stopPairingTimer();
+    setPairingLeft(0);
+    settingsDialog.current?.close();
+  };
+
+  /** 表示してからの残り秒を数え、0になったら自動で閉じる。 */
+  const armPairingTimer = () => {
+    stopPairingTimer();
+    setPairingLeft(PAIRING_AUTO_CLOSE_S);
+    pairingTimerRef.current = window.setInterval(() => {
+      setPairingLeft((left) => {
+        if (left <= 1) {
+          stopPairingTimer();
+          settingsDialog.current?.close();
+          return 0;
+        }
+        return left - 1;
+      });
+    }, 1000);
+  };
+
   const openPairing = () => {
     setPairingQr(null);
     setPairingError(false);
@@ -1782,6 +1817,7 @@ export default function Home() {
         color: { dark: "#04110c", light: "#e6fbf7" },
       });
       setPairingQr(image);
+      armPairingTimer();
     } catch {
       setPairingError(true);
     }
@@ -2936,7 +2972,7 @@ export default function Home() {
         </div>
       </dialog>
 
-      <dialog ref={settingsDialog}>
+      <dialog ref={settingsDialog} onClose={stopPairingTimer}>
         <div className="dialog-card sync-card">
           <h2>スマホと接続</h2>
           {pairingQr ? (
@@ -2949,6 +2985,9 @@ export default function Home() {
               <p className="pairing-warn">
                 このQRは合言葉そのものです。他の人に見せたり撮影させたり
                 しないでください。
+              </p>
+              <p className="pairing-countdown" role="status">
+                あと {pairingLeft} 秒で自動的に閉じます
               </p>
             </div>
           ) : (
@@ -2968,9 +3007,7 @@ export default function Home() {
             </>
           )}
           <div className="two-actions">
-            <button onClick={() => settingsDialog.current?.close()}>
-              閉じる
-            </button>
+            <button onClick={closePairing}>閉じる</button>
           </div>
         </div>
       </dialog>
