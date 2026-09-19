@@ -1,113 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Z CAR">
-  <!--
-    Z CAR のアプリアイコン。オーナーのタント(L375S・ベージュ)を正面から見た
-    イラスト。背が高く角ばった箱形、大きなフロントガラス、短いボンネット、
-    横に広いヘッドライトというタントの特徴を残しつつ、小さく表示しても
-    輪郭が分かるよう面は大きく・線は太くしている。
-    実車のナンバーは出さずプレートは「Z CAR」、エンブレムも実在のロゴでは
-    なく Z のマークにしている。
-  -->
+  <!-- 設定の歯車の中にメーターを入れたアイコン。面と太い線だけで、小さくても形が残る。 -->
   <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#16262d"/>
-      <stop offset="1" stop-color="#050a0c"/>
-    </linearGradient>
-    <radialGradient id="glow" cx="50%" cy="44%" r="58%">
-      <stop offset="0" stop-color="#2ea7b4" stop-opacity=".4"/>
-      <stop offset="1" stop-color="#2ea7b4" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="body" x1=".16" y1="0" x2=".88" y2="1">
-      <stop offset="0" stop-color="#e6d19c"/>
-      <stop offset=".4" stop-color="#d2b478"/>
-      <stop offset=".76" stop-color="#b59551"/>
-      <stop offset="1" stop-color="#8e6f37"/>
-    </linearGradient>
-    <linearGradient id="hood" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#f6e8bf" stop-opacity=".9"/>
-      <stop offset="1" stop-color="#f6e8bf" stop-opacity="0"/>
-    </linearGradient>
-    <linearGradient id="glass" x1=".12" y1="0" x2=".9" y2="1">
-      <stop offset="0" stop-color="#33555f"/>
-      <stop offset=".5" stop-color="#1d3038"/>
-      <stop offset="1" stop-color="#15242a"/>
-    </linearGradient>
-    <linearGradient id="lamp" x1="0" y1="0" x2=".25" y2="1">
-      <stop offset="0" stop-color="#f6fcfd"/>
-      <stop offset=".5" stop-color="#cfe4ea"/>
-      <stop offset="1" stop-color="#93b7c1"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0e1a1f"/>
+      <stop offset="1" stop-color="#05090b"/>
     </linearGradient>
   </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
 
-  <rect width="512" height="512" fill="url(#sky)"/>
-  <rect width="512" height="512" fill="url(#glow)"/>
-
-  <!-- 小さく表示したときに埋もれないよう、車体を一回り大きくして中央に置く。 -->
-  <g transform="translate(-23.6,-43.4) scale(1.1)">
-  <!-- 接地の影 -->
-  <ellipse cx="256" cy="452" rx="172" ry="24" fill="#000" opacity=".45"/>
-
-  <!-- ドアミラー(付け根は車体で隠れる) -->
-  <g fill="#b99c60" stroke="#6b5324" stroke-width="6" stroke-linejoin="round">
-    <path d="M100 250l-30 6c-9 2-13 10-9 18 3 6 9 9 16 8l25-4z"/>
-    <path d="M412 250l30 6c9 2 13 10 9 18-3 6-9 9-16 8l-25-4z"/>
+  <!-- 歯車 -->
+  <g fill="#3ddfe6">
+    <g>
+      <rect x="225" y="34" width="62" height="56" rx="12"/>
+      <rect x="225" y="34" width="62" height="56" rx="12" transform="rotate(45 256 256)"/>
+      <rect x="225" y="34" width="62" height="56" rx="12" transform="rotate(90 256 256)"/>
+      <rect x="225" y="34" width="62" height="56" rx="12" transform="rotate(135 256 256)"/>
+      <rect x="225" y="34" width="62" height="56" rx="12" transform="rotate(180 256 256)"/>
+      <rect x="225" y="34" width="62" height="56" rx="12" transform="rotate(225 256 256)"/>
+      <rect x="225" y="34" width="62" height="56" rx="12" transform="rotate(270 256 256)"/>
+      <rect x="225" y="34" width="62" height="56" rx="12" transform="rotate(315 256 256)"/>
+    </g>
+    <circle cx="256" cy="256" r="182"/>
   </g>
+  <circle cx="256" cy="256" r="138" fill="#0a1216"/>
 
-  <!-- 車体(背の高い箱形) -->
-  <path d="M124 94h264c25 0 40 16 42 45l6 262c1 25-12 39-36 39H112c-24 0-37-14-36-39l6-262c2-29 17-45 42-45z"
-        fill="url(#body)" stroke="#6b5324" stroke-width="8" stroke-linejoin="round"/>
-
-  <!-- ルーフレール -->
-  <g fill="#f0dfae" opacity=".8">
-    <rect x="132" y="98" width="52" height="10" rx="5"/>
-    <rect x="328" y="98" width="52" height="10" rx="5"/>
-  </g>
-
-  <!-- フロントガラス(大きく、下に向かって広がる台形) -->
-  <path d="M141 130h230c11 0 18 7 19 18l7 108c1 12-6 20-18 20H133c-12 0-19-8-18-20l7-108c1-11 8-18 19-18z"
-        fill="url(#glass)" stroke="#111c20" stroke-width="12" stroke-linejoin="round"/>
-  <!-- ガラスの映り込み -->
-  <path d="M168 138h52l-60 130h-34l10-112c1-11 8-18 19-18z" fill="#7fd3dd" opacity=".15"/>
-  <path d="M262 138h28l-60 130h-28z" fill="#7fd3dd" opacity=".09"/>
-
-  <!-- ワイパー -->
-  <g stroke="#1b2226" stroke-width="10" stroke-linecap="round" opacity=".92">
-    <path d="M152 300l96-16"/>
-    <path d="M256 300l96-16"/>
-  </g>
-
-  <!-- ボンネットの艶 -->
-  <path d="M104 300c48-11 256-11 304 0l-4 24c-56-11-240-11-296 0z" fill="url(#hood)"/>
-
-  <!-- ヘッドライト(横に広い) -->
-  <path d="M90 320l84-8c15-1 24 8 21 21l-3 15c-2 11-10 17-22 17l-80-2c-11 0-17-6-17-16l2-18c0-6 4-9 15-9z"
-        fill="url(#lamp)" stroke="#5d4a22" stroke-width="7" stroke-linejoin="round"/>
-  <path d="M422 320l-84-8c-15-1-24 8-21 21l3 15c2 11 10 17 22 17l80-2c11 0 17-6 17-16l-2-18c0-6-4-9-15-9z"
-        fill="url(#lamp)" stroke="#5d4a22" stroke-width="7" stroke-linejoin="round"/>
-  <circle cx="120" cy="344" r="12" fill="#f0a73c" opacity=".92"/>
-  <circle cx="392" cy="344" r="12" fill="#f0a73c" opacity=".92"/>
-
-  <!-- Z のエンブレム -->
-  <ellipse cx="256" cy="336" rx="39" ry="27" fill="#141c20" stroke="#3ddfe6" stroke-width="7"/>
-  <path d="M238 324h36v11l-20 14h21v11h-38v-11l20-14h-19z" fill="#3ddfe6"/>
-
-  <!-- グリルと左右のダクト -->
-  <g fill="#141a1d">
-    <rect x="150" y="372" width="212" height="20" rx="7"/>
-    <rect x="104" y="400" width="86" height="26" rx="8"/>
-    <rect x="322" y="400" width="86" height="26" rx="8"/>
-  </g>
-  <g stroke="#3d4549" stroke-width="4" stroke-linecap="round" opacity=".85">
-    <path d="M160 382h192"/>
-    <path d="M116 413h62"/>
-    <path d="M334 413h62"/>
-  </g>
-
-  <!-- ナンバープレート(実車の番号は出さない) -->
-  <rect x="204" y="396" width="104" height="34" rx="7" fill="#f2f6f0" stroke="#1e7a44" stroke-width="5"/>
-  <text x="256" y="421" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
-        font-size="22" font-weight="700" letter-spacing="1.5" fill="#1e7a44">Z CAR</text>
-
-  <!-- バンパー下の黒い帯 -->
-  <path d="M84 434h344l-2 6c-2 12-10 18-24 18H110c-14 0-22-6-24-18z" fill="#10161a"/>
-  </g>
+  <!-- メーター -->
+  <path d="M173 304A96 96 0 1 1 339 304" fill="none" stroke="#7ff2f8" stroke-width="17" stroke-linecap="round"/>
+  <path d="M256 256l50-72" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="15" fill="#ffffff"/>
 </svg>
