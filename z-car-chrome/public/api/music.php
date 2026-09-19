@@ -12,6 +12,14 @@
  *            -> {"ok":true,"tracks":[...]}
  *   消す   : POST (JSON) {"key":"合言葉","action":"delete","id":"..."}
  *            -> {"ok":true,"tracks":[...]}
+ *   合言葉を渡す:
+ *     出す : POST (JSON) {"key":"合言葉","action":"linkcode"}
+ *            -> {"ok":true,"code":"XXXXXXXX","expiresIn":600}
+ *     使う : POST (JSON) {"action":"linkclaim","code":"XXXXXXXX"}
+ *            -> {"ok":true,"key":"合言葉"}
+ *     パソコンにカメラが無くても、短い文字列を打つだけで車とつなげるため。
+ *     コードは10分で切れ、1回使うと消える。総当たりを防ぐため、外れた
+ *     回数も数えて制限する。
  *
  * 置き場所は media/<合言葉のSHA-256>/ です。合言葉を知らなければ場所が
  * 分からないので、他の人からは辿れません。ただし音は車のブラウザが直接
@@ -28,14 +36,22 @@ const MIN_KEY_LENGTH = 8;
 const MAX_KEY_LENGTH = 128;
 /** 1曲あたりの上限 (25MB)。 */
 const MAX_FILE_BYTES = 26214400;
-/** 置き場全体の上限 (600MB)。 */
-const MAX_TOTAL_BYTES = 629145600;
+/** 置き場全体の上限 (2GB)。 */
+const MAX_TOTAL_BYTES = 2147483648;
 /** 曲数の上限。 */
-const MAX_TRACKS = 200;
+const MAX_TRACKS = 500;
 const MAX_TITLE_LENGTH = 80;
 /** プレイリストの上限。 */
 const MAX_PLAYLISTS = 12;
 const MAX_PLAYLIST_NAME = 24;
+/** 合言葉を渡すコードの長さと寿命(秒)。 */
+const LINK_CODE_LENGTH = 8;
+const LINK_CODE_TTL = 600;
+/** 読み違えやすい文字(0/O/1/I など)は使わない。 */
+const LINK_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+/** 同じ相手からの外れ回数の上限と、その集計時間(秒)。 */
+const LINK_FAIL_MAX = 20;
+const LINK_FAIL_WINDOW = 3600;
 
 /** 受け付ける拡張子と、返すときの Content-Type。 */
 const ALLOWED_TYPES = [
@@ -83,6 +99,137 @@ if ($isMultipart) {
     $action = is_string($body['action'] ?? null) ? $body['action'] : 'list';
     $trackId = is_string($body['id'] ?? null) ? $body['id'] : '';
     $fromKey = is_string($body['fromKey'] ?? null) ? trim($body['fromKey']) : '';
+    $linkCode = is_string($body['code'] ?? null) ? strtoupper(trim($body['code'])) : '';
+}
+
+/**
+ * 合言葉の受け渡しに使う小さな置き場。中身は合言葉そのものなので、
+ * 直接アクセスできないよう .htaccess で塞ぐ(音源と違い、外から読む必要が無い)。
+ */
+function linkDir(): string
+{
+    $dir = __DIR__ . '/links';
+    if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
+        fail(500, 'storage unavailable');
+    }
+    $guard = $dir . '/.htaccess';
+    if (!file_exists($guard)) {
+        @file_put_contents(
+            $guard,
+            "Options -Indexes\nRequire all denied\n<IfModule !mod_authz_core.c>\nDeny from all\n</IfModule>\n",
+        );
+    }
+    return $dir;
+}
+
+/**
+ * コードの置き場所と鍵。ファイル名はコードそのものではなくハッシュにし、
+ * 中身(合言葉)もコードから作った鍵で暗号化する。万一 .htaccess が効かず
+ * ファイルを読まれても、コードを知らなければ合言葉は取り出せない。
+ */
+function linkFile(string $dir, string $code): string
+{
+    return $dir . '/' . hash('sha256', 'zcar-link-file|' . $code) . '.json';
+}
+
+function linkSecret(string $code): string
+{
+    return hash('sha256', 'zcar-link-secret|' . $code, true);
+}
+
+/** 合言葉を、コードを知っている人だけが戻せる形にする。 */
+function sealKey(string $key, string $code): array
+{
+    if (!function_exists('openssl_encrypt')) {
+        return ['plain' => $key];
+    }
+    $iv = random_bytes(12);
+    $tag = '';
+    $cipher = openssl_encrypt($key, 'aes-256-gcm', linkSecret($code), OPENSSL_RAW_DATA, $iv, $tag);
+    if ($cipher === false) {
+        return ['plain' => $key];
+    }
+    return ['iv' => base64_encode($iv), 'tag' => base64_encode($tag), 'cipher' => base64_encode($cipher)];
+}
+
+/** 封を開ける。戻せなければ空文字。 */
+function openKey(array $stored, string $code): string
+{
+    if (isset($stored['plain']) && is_string($stored['plain'])) {
+        return $stored['plain'];
+    }
+    if (!function_exists('openssl_decrypt')) {
+        return '';
+    }
+    foreach (['iv', 'tag', 'cipher'] as $field) {
+        if (!isset($stored[$field]) || !is_string($stored[$field])) {
+            return '';
+        }
+    }
+    $plain = openssl_decrypt(
+        (string) base64_decode($stored['cipher'], true),
+        'aes-256-gcm',
+        linkSecret($code),
+        OPENSSL_RAW_DATA,
+        (string) base64_decode($stored['iv'], true),
+        (string) base64_decode($stored['tag'], true),
+    );
+    return is_string($plain) ? $plain : '';
+}
+
+/** 期限切れのコードを片付ける(置きっぱなしにしない)。 */
+function sweepLinks(string $dir): void
+{
+    $now = time();
+    foreach (glob($dir . '/*.json') ?: [] as $file) {
+        // 外れ回数の記録は別の形なので、ここでは触らない。
+        if (str_starts_with(basename($file), 'fail-')) {
+            continue;
+        }
+        $stored = json_decode((string) @file_get_contents($file), true);
+        if (!is_array($stored) || (int) ($stored['expiresAt'] ?? 0) <= $now) {
+            @unlink($file);
+        }
+    }
+    foreach (glob($dir . '/fail-*.json') ?: [] as $file) {
+        $stored = json_decode((string) @file_get_contents($file), true);
+        if (!is_array($stored) || (int) ($stored['until'] ?? 0) <= $now) {
+            @unlink($file);
+        }
+    }
+}
+
+// --- コードを使う(合言葉をまだ持っていない端末から呼ばれる) ---
+if (!$isMultipart && $action === 'linkclaim') {
+    $dir = linkDir();
+    sweepLinks($dir);
+
+    // 総当たりを防ぐため、外した回数を相手ごとに数える。
+    $who = hash('sha256', (string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+    $failFile = $dir . '/fail-' . $who . '.json';
+    $fails = json_decode((string) @file_get_contents($failFile), true);
+    $failCount = is_array($fails) && (int) ($fails['until'] ?? 0) > time()
+        ? (int) ($fails['count'] ?? 0)
+        : 0;
+    if ($failCount >= LINK_FAIL_MAX) {
+        fail(429, 'too many attempts');
+    }
+
+    $valid = preg_match('/^[' . LINK_CODE_ALPHABET . ']{' . LINK_CODE_LENGTH . '}$/', $linkCode) === 1;
+    $file = $valid ? linkFile($dir, $linkCode) : '';
+    $stored = $valid ? json_decode((string) @file_get_contents($file), true) : null;
+    $opened = is_array($stored) ? openKey($stored, $linkCode) : '';
+    if (!is_array($stored) || $opened === '' || (int) ($stored['expiresAt'] ?? 0) <= time()) {
+        @file_put_contents(
+            $failFile,
+            json_encode(['count' => $failCount + 1, 'until' => time() + LINK_FAIL_WINDOW]),
+            LOCK_EX,
+        );
+        fail(404, 'code not found');
+    }
+    // 1回使ったら消す。
+    @unlink($file);
+    respond(['ok' => true, 'key' => $opened]);
 }
 
 $keyLength = strlen($key);
@@ -170,6 +317,35 @@ $tracks = readTracks($dir, $folder);
 // --- 一覧 ---
 if ($action === 'list') {
     respondWithLibrary($dir, $folder);
+}
+
+// --- コードを出す(合言葉を持っている端末から呼ぶ) ---
+if ($action === 'linkcode') {
+    $linkDir = linkDir();
+    sweepLinks($linkDir);
+    $alphabet = LINK_CODE_ALPHABET;
+    $max = strlen($alphabet) - 1;
+    for ($attempt = 0; $attempt < 20; $attempt++) {
+        $code = '';
+        for ($i = 0; $i < LINK_CODE_LENGTH; $i++) {
+            $code .= $alphabet[random_int(0, $max)];
+        }
+        $file = linkFile($linkDir, $code);
+        if (file_exists($file)) {
+            continue;
+        }
+        $written = @file_put_contents(
+            $file,
+            json_encode(sealKey($key, $code) + ['expiresAt' => time() + LINK_CODE_TTL]),
+            LOCK_EX,
+        );
+        if ($written === false) {
+            fail(500, 'storage unavailable');
+        }
+        @chmod($file, 0600);
+        respond(['ok' => true, 'code' => $code, 'expiresIn' => LINK_CODE_TTL]);
+    }
+    fail(500, 'could not make a code');
 }
 
 // --- プレイリストの保存(まるごと置き換え) ---
