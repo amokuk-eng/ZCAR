@@ -2983,8 +2983,8 @@ export default function Home() {
                 設定ページが開いて、この車とつながります。
               </p>
               <p className="pairing-warn">
-                このQRは合言葉そのものです。他の人に見せたり撮影させたり
-                しないでください。
+                このQRを読み取った端末は、この車の設定と音楽を操作できます。
+                他の人に見せたり撮影させたりしないでください。
               </p>
               <p className="pairing-countdown" role="status">
                 あと {pairingLeft} 秒で自動的に閉じます
