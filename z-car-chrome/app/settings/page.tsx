@@ -652,7 +652,7 @@ export default function PhoneSettingsPage() {
         <h1>Z CAR 設定</h1>
         <p className="zsetup-lead">
           {handoffDone
-            ? "QRから合言葉を読み込みました。車と同じ設定になります。"
+            ? "車とつながりました。この端末から設定を変えられます。"
             : "この端末（スマートフォン）に保存される設定です。"}
         </p>
       </header>
