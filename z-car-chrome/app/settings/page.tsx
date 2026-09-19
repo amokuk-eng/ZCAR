@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   adoptMusicLibrary,
+  claimLinkCode,
+  createLinkCode,
+  LINK_CODE_LENGTH,
+  SETTINGS_URL_HINT,
   defaults,
   fetchSharedSettings,
   mergeFuelEntries,
@@ -61,6 +65,13 @@ export default function PhoneSettingsPage() {
   const [fuelSaved, setFuelSaved] = useState(false);
   // 読み取った瞬間に出す「接続完了！」の知らせ。
   const [pairedNotice, setPairedNotice] = useState(false);
+  // パソコンなどに合言葉を渡すコードの状態。
+  const [linkState, setLinkState] = useState<
+    | { kind: "idle" | "loading" }
+    | { kind: "shown"; code: string; left: number }
+    | { kind: "error"; note: string }
+  >({ kind: "idle" });
+  const [codeInput, setCodeInput] = useState("");
   // カメラでQRを読み取る画面。
   const [scanOpen, setScanOpen] = useState(false);
   const [scanState, setScanState] = useState<{
@@ -327,6 +338,19 @@ export default function PhoneSettingsPage() {
   // 画面を離れるときは必ずカメラを止める。
   useEffect(() => stopScan, [stopScan]);
 
+  // コードの残り時間を数え、0になったら消す。
+  useEffect(() => {
+    if (linkState.kind !== "shown") return;
+    const timer = window.setInterval(() => {
+      setLinkState((current) => {
+        if (current.kind !== "shown") return current;
+        if (current.left <= 1) return { kind: "idle" };
+        return { ...current, left: current.left - 1 };
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [linkState.kind]);
+
   // 「接続完了！」は数秒で自分から消える(押しても消せる)。
   useEffect(() => {
     if (!pairedNotice) return;
@@ -362,9 +386,14 @@ export default function PhoneSettingsPage() {
     const files = fileList ? Array.from(fileList) : [];
     if (!files.length) return;
     const key = ensureMusicKey();
-    setMusicState({ kind: "uploading", note: `${files.length}曲を送っています…` });
+    setMusicState({ kind: "uploading", note: `0 / ${files.length}曲` });
     try {
-      const result = await uploadMusicFiles(key, files);
+      const result = await uploadMusicFiles(key, files, (done, total, name) => {
+        setMusicState({
+          kind: "uploading",
+          note: name ? `${done} / ${total}曲　${name}` : `${done} / ${total}曲`,
+        });
+      });
       if (!result.ok) {
         setMusicState({ kind: "error", note: "アップロードできませんでした" });
         return;
@@ -379,6 +408,57 @@ export default function PhoneSettingsPage() {
       });
     } catch {
       setMusicState({ kind: "error", note: "通信できませんでした" });
+    }
+  };
+
+  /**
+   * パソコンなどカメラの無い端末に合言葉を渡すためのコードを出す。
+   * 合言葉そのものは画面に出さない。コードは10分で切れる。
+   */
+  const showLinkCode = async () => {
+    const key = syncKey;
+    if (key.length < MIN_SYNC_KEY_LENGTH) {
+      setLinkState({ kind: "error", note: "先に車とつないでください" });
+      return;
+    }
+    setLinkState({ kind: "loading" });
+    try {
+      const made = await createLinkCode(key);
+      if (!made) {
+        setLinkState({ kind: "error", note: "コードを作れませんでした" });
+        return;
+      }
+      setLinkState({ kind: "shown", code: made.code, left: made.expiresIn });
+    } catch {
+      setLinkState({ kind: "error", note: "通信できませんでした" });
+    }
+  };
+
+  /** 受け取ったコードを打って、この端末を車につなぐ。 */
+  const useLinkCode = async () => {
+    const code = codeInput.trim().toUpperCase().replace(/[^0-9A-Z]/g, "");
+    if (code.length !== LINK_CODE_LENGTH) {
+      setLinkState({ kind: "error", note: `コードは${LINK_CODE_LENGTH}文字です` });
+      return;
+    }
+    setLinkState({ kind: "loading" });
+    try {
+      const result = await claimLinkCode(code);
+      if (!result.ok) {
+        setLinkState({
+          kind: "error",
+          note:
+            result.status === 429
+              ? "試した回数が多すぎます。しばらく待ってください"
+              : "このコードは使えません（期限切れか、打ち間違いです）",
+        });
+        return;
+      }
+      applyCarKey(result.key);
+      setCodeInput("");
+      setLinkState({ kind: "idle" });
+    } catch {
+      setLinkState({ kind: "error", note: "通信できませんでした" });
     }
   };
 
@@ -603,6 +683,34 @@ export default function PhoneSettingsPage() {
               読み取ると、車とつながります。つながると、メーターの色・ナビの目的地・
               音楽がこの端末から変えられます。
             </p>
+
+            {/* カメラが無いパソコンは、スマホに出したコードを打ってつなぐ。 */}
+            <div className="zsetup-code">
+              <b>コードでつなぐ</b>
+              <p>
+                カメラが無いパソコンはこちら。つないである端末の「音源フォルダ」で
+                出したコードを打ってください。
+              </p>
+              <div className="zsetup-code-row">
+                <input
+                  type="text"
+                  inputMode="text"
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  spellCheck={false}
+                  maxLength={LINK_CODE_LENGTH + 2}
+                  placeholder={"X".repeat(LINK_CODE_LENGTH)}
+                  value={codeInput}
+                  onChange={(event) => setCodeInput(event.target.value)}
+                />
+                <button type="button" onClick={() => void useLinkCode()}>
+                  つなぐ
+                </button>
+              </div>
+              {linkState.kind === "error" ? (
+                <p className="zsetup-code-note" role="status">{linkState.note}</p>
+              ) : null}
+            </div>
           </div>
         ) : null}
       </section>
@@ -853,6 +961,38 @@ export default function PhoneSettingsPage() {
                   />
                   <span>音楽ファイルを追加</span>
                 </label>
+                {isPaired ? (
+                  <div className="zsetup-code">
+                    <b>パソコンから入れる</b>
+                    <p>
+                      曲がパソコンにあるなら、そちらから入れた方が速くて楽です。
+                      パソコンで {SETTINGS_URL_HINT} を開き、「車と接続」の
+                      「コードでつなぐ」にこのコードを打ってください。
+                    </p>
+                    {linkState.kind === "shown" ? (
+                      <div className="zsetup-code-shown" role="status">
+                        <strong>{linkState.code}</strong>
+                        <small>
+                          あと {Math.floor(linkState.left / 60)}分
+                          {String(linkState.left % 60).padStart(2, "0")}秒で切れます
+                        </small>
+                      </div>
+                    ) : (
+                      <div className="zsetup-code-row">
+                        <button
+                          type="button"
+                          onClick={() => void showLinkCode()}
+                          disabled={linkState.kind === "loading"}
+                        >
+                          {linkState.kind === "loading" ? "作っています…" : "コードを出す"}
+                        </button>
+                      </div>
+                    )}
+                    {linkState.kind === "error" ? (
+                      <p className="zsetup-code-note" role="status">{linkState.note}</p>
+                    ) : null}
+                  </div>
+                ) : null}
                 <p className="zsetup-music-state" role="status">
                   {musicState.kind === "loading"
                     ? "読み込み中…"

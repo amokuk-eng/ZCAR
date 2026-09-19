@@ -367,6 +367,12 @@ export const pushSharedSettings = async (key: string, settings: Settings) =>
 
 export const MUSIC_ENDPOINT = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/music.php`;
 
+/** 合言葉を渡すコードの長さ(music.php の LINK_CODE_LENGTH と同じ)。 */
+export const LINK_CODE_LENGTH = 8;
+
+/** 「パソコンでここを開いて」と案内するときに見せるアドレス。 */
+export const SETTINGS_URL_HINT = "zest7.jp/zcar/settings/";
+
 /** 音源置き場の1曲。url はエンドポイントからの相対パス。 */
 export type MusicTrack = {
   id: string;
@@ -474,14 +480,104 @@ export const fetchMusicTracks = async (key: string) =>
     }),
   );
 
-/** 音楽ファイルを預ける。 */
-export const uploadMusicFiles = async (key: string, files: File[]) => {
-  const form = new FormData();
-  form.append("key", key);
-  files.forEach((file) => form.append("file[]", file));
-  return readMusicResponse(
-    await fetch(MUSIC_ENDPOINT, { method: "POST", body: form }),
-  );
+/**
+ * 音楽ファイルを預ける。1曲ずつ順番に送る。
+ *
+ * まとめて1回で送ると、曲数が多いときにサーバーの受け取り上限
+ * (post_max_size) や時間切れに引っかかって全部やり直しになる。
+ * 1曲ずつなら、途中で失敗しても失敗した曲だけが残る。
+ * onProgress には「何曲目まで終わったか」を渡す。
+ */
+export const uploadMusicFiles = async (
+  key: string,
+  files: File[],
+  onProgress?: (done: number, total: number, name: string) => void,
+) => {
+  let last: MusicListResult | null = null;
+  const skipped: Array<{ name: string; reason: string }> = [];
+  let saved = 0;
+
+  for (const [index, file] of files.entries()) {
+    onProgress?.(index, files.length, file.name);
+    const form = new FormData();
+    form.append("key", key);
+    form.append("file[]", file);
+    let result: MusicListResult;
+    try {
+      result = await readMusicResponse(
+        await fetch(MUSIC_ENDPOINT, { method: "POST", body: form }),
+      );
+    } catch {
+      skipped.push({ name: file.name, reason: "通信できませんでした" });
+      continue;
+    }
+    if (!result.ok) {
+      skipped.push({ name: file.name, reason: "保存できませんでした" });
+      continue;
+    }
+    last = result;
+    saved += result.saved ?? 0;
+    if (result.skipped) skipped.push(...result.skipped);
+  }
+  onProgress?.(files.length, files.length, "");
+
+  if (!last) {
+    // 1曲も入らなかったときは、今の一覧を読み直して返す。
+    const current = await fetchMusicTracks(key).catch(() => null);
+    return current
+      ? { ...current, saved: 0, skipped }
+      : {
+          ok: false,
+          tracks: [],
+          playlists: [],
+          activePlaylistId: "",
+          totalBytes: 0,
+          saved: 0,
+          skipped,
+        };
+  }
+  return { ...last, saved, skipped };
+};
+
+/**
+ * 合言葉を短い文字列で別の端末に渡す。カメラの無いパソコンでも
+ * 車とつなげるようにするため。コードは10分で切れ、1回使うと消える。
+ */
+export const createLinkCode = async (key: string) => {
+  const response = await fetch(MUSIC_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key, action: "linkcode" }),
+    cache: "no-store",
+  });
+  const data = (await response.json().catch(() => null)) as {
+    ok?: boolean;
+    code?: string;
+    expiresIn?: number;
+  } | null;
+  if (!data || data.ok !== true || typeof data.code !== "string") return null;
+  return {
+    code: data.code,
+    expiresIn: typeof data.expiresIn === "number" ? data.expiresIn : 600,
+  };
+};
+
+/** 受け取ったコードを合言葉に引き換える。 */
+export const claimLinkCode = async (code: string) => {
+  const response = await fetch(MUSIC_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "linkclaim", code }),
+    cache: "no-store",
+  });
+  const data = (await response.json().catch(() => null)) as {
+    ok?: boolean;
+    key?: string;
+  } | null;
+  if (!data || data.ok !== true || typeof data.key !== "string") {
+    return { ok: false as const, status: response.status };
+  }
+  return { ok: true as const, key: data.key };
 };
 
 /** プレイリストと「車で流す一覧」をまとめて保存する。 */
