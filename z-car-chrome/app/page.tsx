@@ -2978,16 +2978,10 @@ export default function Home() {
           {pairingQr ? (
             <div className="pairing-qr">
               <img src={pairingQr} alt="接続用QRコード" width={720} height={720} />
-              <p>
-                iPhoneのカメラでこのQRを読み取ってください。
-                設定ページが開いて、この車とつながります。
-              </p>
-              <p className="pairing-warn">
-                このQRを読み取った端末は、この車の設定と音楽を操作できます。
-                他の人に見せたり撮影させたりしないでください。
-              </p>
+              <p>スマホのカメラで読み取ってください</p>
+              <p className="pairing-warn">他の人には見せないでください</p>
               <p className="pairing-countdown" role="status">
-                あと {pairingLeft} 秒で自動的に閉じます
+                あと {pairingLeft} 秒で閉じます
               </p>
             </div>
           ) : (
